@@ -1,0 +1,156 @@
+version: "3.9"
+
+networks:
+  doit:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+  # rabbitmq_data:  # Phase 3
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16 — event store + read models
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: doit-postgres
+    restart: unless-stopped
+    networks:
+      - doit
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Go API — REST + WebSocket on :8080
+  # ---------------------------------------------------------------------------
+  doit-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: doit-api
+    restart: unless-stopped
+    networks:
+      - doit
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      PORT: "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # Caddy — TLS termination, reverse proxy, PWA static assets
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    container_name: doit-caddy
+    restart: unless-stopped
+    networks:
+      - doit
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web/dist:/srv/web:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      doit-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ===========================================================================
+  # Phase 3 services — uncomment when ready
+  # ===========================================================================
+
+  # rabbitmq:
+  #   image: rabbitmq:3.13-management-alpine
+  #   container_name: doit-rabbitmq
+  #   restart: unless-stopped
+  #   networks:
+  #     - doit
+  #   ports:
+  #     - "127.0.0.1:5672:5672"
+  #     - "127.0.0.1:15672:15672"
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+  #     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+  #   volumes:
+  #     - rabbitmq_data:/var/lib/rabbitmq
+  #   healthcheck:
+  #     test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+  #     interval: 15s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 30s
+
+  # worker-recurring:
+  #   build:
+  #     context: ./api
+  #     dockerfile: Dockerfile
+  #     args:
+  #       CMD_PATH: cmd/worker-recurring
+  #   container_name: doit-worker-recurring
+  #   restart: unless-stopped
+  #   networks:
+  #     - doit
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+  #     RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+
+  # worker-cleanup:
+  #   build:
+  #     context: ./api
+  #     dockerfile: Dockerfile
+  #     args:
+  #       CMD_PATH: cmd/worker-cleanup
+  #   container_name: doit-worker-cleanup
+  #   restart: unless-stopped
+  #   networks:
+  #     - doit
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
