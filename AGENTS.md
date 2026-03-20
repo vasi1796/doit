@@ -13,7 +13,7 @@ with Google SSO authentication.
 
 Core design goals:
 - **Event-sourced architecture** as a learning vehicle and for full audit trail
-- **CRDT-based sync** for offline-first multi-device usage
+- **CRDT-based sync** for offline-first multi-device usage (Phase 2)
 - **Offline-first PWA** — the app must work without a network connection
 - **Self-hosted** — runs on a single server via Docker Compose
 
@@ -21,55 +21,47 @@ Core design goals:
 
 ## Architecture Overview
 
+### Write Path
 ```
-User Action
-    |
-    v
-[Frontend: React + Dexie.js (IndexedDB)]
-    |
-    v  (online: POST /events)
-[Go API Server (Chi router)]
-    |
-    v
-[Event Store (PostgreSQL — append-only)]
-    |
-    v  (Phase 3: Transactional Outbox)
-[RabbitMQ Topic Exchanges]
-    |
-    v
-[Projection Workers] --> [Read Models (PostgreSQL)]
+HTTP Request → Handler → CommandHandler → Aggregate (validates + produces events)
+    → EventStore.Append (Postgres transaction)
+    → Projector.Project (updates read model tables)
+    → HTTP Response
 ```
 
-**Key architectural patterns:**
+### Read Path
+```
+HTTP Request → Handler → SELECT from read model tables (pgxpool) → HTTP Response
+```
+
+**Key patterns:**
 - **Event Sourcing**: All state mutations produce events appended to the event store.
   Read models are projections derived from events. Never update read models directly.
-- **CQRS**: Commands write events; queries read from projected read models.
-- **Offline-first**: The frontend uses IndexedDB (via Dexie.js) as its local source
-  of truth. Sync happens when connectivity is available.
-- **Transactional Outbox** (Phase 3): Events and outbox rows are written in a single
-  Postgres transaction. A poller publishes outbox rows to RabbitMQ.
+- **CQRS**: Commands go through domain aggregates; queries hit read model tables directly.
+- **Consumer-side interfaces**: Each package defines the interfaces it needs from its dependencies.
 
 ---
 
 ## Tech Stack
 
-### Backend
-- **Go 1.22+**
-- **Chi** — HTTP router
+### Backend (implemented)
+- **Go 1.22+** — `api/go.mod`
+- **Chi v5** — HTTP router with middleware
+- **pgx v5 + pgxpool** — Postgres driver and connection pooling
+- **goose v3** — SQL migrations
+- **zerolog** — structured JSON logging
+- **golang-jwt/jwt v5** — JWT token creation/validation
+- **golang.org/x/oauth2** — Google OAuth 2.0
+- **go-chi/cors** — CORS middleware
 - **PostgreSQL 16** — event store + read models
-- **RabbitMQ 3.13+** — async event distribution (Phase 3)
-- **Google SSO** — authentication for 1-3 users
 
-### Frontend
-- **React 18+** with **TypeScript**
-- **Vite** — build tooling
-- **Dexie.js** — IndexedDB wrapper + `useLiveQuery` for reactive state
-- **TipTap** — rich text / markdown editing for task descriptions
-- **Tailwind CSS** — styling
-- **Workbox** — service worker for offline caching
+### Frontend (not yet implemented)
+- **React 18+** with **TypeScript**, **Vite**, **Dexie.js**, **Tailwind CSS**
 
 ### Infrastructure
-- **Docker Compose** — local development and self-hosted deployment
+- **Docker Compose** — Postgres + Caddy + API
+- **Caddy** — reverse proxy, automatic TLS, static file serving
+- **GitHub Actions** — CI with unit + integration tests
 
 ---
 
@@ -77,38 +69,31 @@ User Action
 
 ```
 doit/
-  api/                    # Go backend
+  api/                         # Go backend
     cmd/
-      api/                # API server entry point
-      migrate/            # Migration runner CLI
-    internal/             # Go packages (not importable externally)
-      config/             # Environment configuration
-      domain/             # Domain types, events, aggregates
-      eventstore/         # Event store implementation
-      projection/         # Read model projections
-      handler/            # HTTP handlers
-      middleware/          # HTTP middleware (auth, logging)
-      rabbitmq/           # RabbitMQ publisher/consumer (Phase 3)
-      outbox/             # Transactional outbox poller (Phase 3)
-    migrations/           # SQL migration files (goose)
-    go.mod
+      api/main.go              # Server entry point: router, auth, domain stack wiring
+      migrate/main.go          # Goose migration runner CLI
+    internal/
+      auth/                    # JWT (TokenService), Google OAuth, context helpers
+      config/                  # Env var loading → Config struct
+      domain/                  # Aggregates, commands, payloads, errors, CommandHandler
+      eventstore/              # Event struct, Store (Append/Load), sentinel errors
+      handler/                 # HTTP handlers: auth, task, list, label, response utils
+      middleware/              # JWT auth middleware (cookie-based)
+      projection/              # Projector: events → read model table updates
+    migrations/                # SQL files: 001_events, 002_read_models
     Dockerfile
-  web/                    # Frontend React application
-    src/
-      components/         # React components
-      hooks/              # Custom React hooks
-      db/                 # Dexie.js database schema and queries
-      sync/               # Sync engine (online/offline)
-      types/              # TypeScript type definitions
+    go.mod
+  web/                         # Frontend (not yet implemented)
     Dockerfile
   docs/
-    adr/                  # Architecture Decision Records
-  scripts/                # Build, migration, and utility scripts
-  docker-compose.yml      # Local dev / self-hosted deployment
-  Caddyfile               # Reverse proxy configuration
-  Makefile                # Build commands
-  AGENTS.md               # This file
-  CLAUDE.md               # Claude Code-specific configuration
+    adr/                       # 7 Architecture Decision Records
+    design-document.md         # Full design spec
+  scripts/backup.sh            # Database backup with retention
+  .github/workflows/ci.yml    # GitHub Actions CI
+  docker-compose.yml           # Postgres + Caddy + API
+  Caddyfile                    # Reverse proxy config
+  Makefile                     # Build commands
 ```
 
 ---
@@ -116,166 +101,163 @@ doit/
 ## Code Conventions
 
 ### Go
-
 - **Table-driven tests** for all unit tests.
 - **Explicit error handling** — never use `panic()` for recoverable errors.
   Always return and check errors.
-- **Interfaces defined at package boundaries** — consumers define the interfaces
+- **Interfaces defined by consumer** — consumers define the interfaces
   they need; producers provide concrete implementations.
-- **Handler naming**: `HandleTaskCreated`, `HandleTaskCompleted`,
-  `HandleLabelAdded`, etc. — prefixed with `Handle` followed by the event name.
+- **Event naming**: past-tense PascalCase — `TaskCreated`, `TaskCompleted`, `LabelAdded`
+- **Aggregate handler naming**: `HandleCreate`, `HandleComplete`, `HandleDelete`, etc.
 
 ### Frontend (React/TypeScript)
-
 - **Dexie.js + `useLiveQuery`** is the sole state management approach.
   Do NOT introduce Redux, Zustand, Jotai, or any other state library.
 - **Unidirectional data flow**:
-  ```
-  User Action -> IndexedDB write (via Dexie) -> useLiveQuery -> re-render
-  ```
-- All CSS and JS must work in **Safari/WebKit**. Do not use Chromium-only APIs.
-- Minimum **44px tap targets** per Apple Human Interface Guidelines.
-
-### Event Naming
-
-Events use past-tense PascalCase names describing what happened:
-- `TaskCreated`
-- `TaskCompleted`
-- `TaskUncompleted`
-- `TaskDeleted`
-- `TaskMoved`
-- `TaskDescriptionUpdated`
-- `LabelAdded`
-- `LabelRemoved`
-- `ListCreated`
-- `SubtaskCreated`
-- `SubtaskCompleted`
+  `User Action → IndexedDB write (Dexie) → useLiveQuery → re-render`
+- All CSS and JS must work in **Safari/WebKit**. No Chromium-only APIs.
+- Minimum **44px tap targets** per Apple HIG.
 
 ---
 
-## Event Sourcing Model
-
-### Event Store Schema
-
-```sql
-CREATE TABLE events (
-    id              UUID PRIMARY KEY,
-    aggregate_id    UUID NOT NULL,
-    aggregate_type  TEXT NOT NULL,       -- 'task', 'list', 'label'
-    event_type      TEXT NOT NULL,       -- 'TaskCreated', 'TaskCompleted', etc.
-    user_id         UUID NOT NULL,
-    data            JSONB NOT NULL,      -- event-specific payload
-    timestamp       TIMESTAMPTZ NOT NULL,-- HLC timestamp
-    version         INTEGER NOT NULL     -- per-aggregate monotonic version
-);
-```
-
-### Mutation Flow
-
-1. Client sends a command (e.g., "complete task X").
-2. The aggregate validates the command and produces one or more events.
-3. Events are appended to the event store within a transaction.
-4. (Phase 3) An outbox row is written in the same transaction.
-5. (Phase 3) A poller reads the outbox and publishes events to RabbitMQ.
-6. Projection workers consume events and update read models.
-
-### Read Model Entities
-
-- `users` — user profile data from Google SSO
-- `lists` — task lists
-- `tasks` — projected task state
-- `labels` — user-defined labels
-- `task_labels` — many-to-many relationship
-- `subtasks` — task sub-items
-- `user_config` — per-user settings (theme, default list, etc.)
-- `aggregate_snapshots` — periodic aggregate state snapshots for performance
-
----
-
-## CRDT Conventions
-
-Used for offline-first sync between devices (Phase 2+):
+## CRDT Conventions (Phase 2+)
 
 | Data Type | CRDT Strategy | Notes |
 |-----------|--------------|-------|
 | Scalar fields (title, due date, status) | **LWW-Register** | Last-Writer-Wins using HLC timestamps |
-| Labels on a task | **OR-Set** | Observed-Remove Set — concurrent add/remove handled correctly |
-| Task/subtask ordering | **Fractional Indexing** | Position keys between adjacent items |
+| Labels on a task | **OR-Set** | Observed-Remove Set — concurrent add/remove resolved |
+| Task/subtask ordering | **Fractional Indexing** | String position keys between adjacent items |
 | Timestamps | **HLC** | Hybrid Logical Clock for causal ordering |
-| Markdown descriptions | **LWW-Register** | Whole-string replacement, no character-level merge (see ADR-006) |
+| Markdown descriptions | **LWW-Register** | Whole-string replacement (see ADR-006) |
 
 ### Conflict Resolution Policies
-
-- **Edit resurrects delete**: If one device deletes a task and another edits it
-  concurrently, the edit wins and the task is restored.
-- **Complete resurrects delete**: If one device deletes a task and another completes
-  it concurrently, the completion wins and the task is restored.
-- **Concurrent list moves**: Last-Writer-Wins based on HLC timestamp.
+- **Edit resurrects delete** — concurrent edit + delete → edit wins, task restored
+- **Complete resurrects delete** — concurrent complete + delete → complete wins
+- **Concurrent list moves** — Last-Writer-Wins based on HLC timestamp
 
 ---
 
-## API Endpoints Summary
+## Backend Package Guide
 
-All API routes are prefixed with `/api/v1`.
+### `eventstore` — Append-only event persistence
+- `Event` struct: ID, AggregateID, AggregateType, EventType, UserID, Data (json.RawMessage), Timestamp, Version
+- `Store.Append(ctx, []Event)` — transactional insert, returns `ErrVersionConflict` on duplicate version
+- `Store.LoadByAggregate(ctx, id)` — all events for an aggregate, ordered by version
+- `Store.LoadByUserSince(ctx, userID, since)` — for sync
 
-### Authentication
-- `GET  /auth/google/login` — initiate Google SSO
-- `GET  /auth/google/callback` — OAuth callback
-- `POST /auth/refresh` — refresh JWT token
+### `domain` — Business rules (no DB dependency)
+- **Aggregates** (`TaskAggregate`, `ListAggregate`, `LabelAggregate`): pure objects that replay events via `Apply()` and validate commands via `Handle*()` methods
+- **CommandHandler**: orchestrates load → replay → handle → append → project. Verifies user ownership on load.
+- **Commands**: `CreateTask`, `CompleteTask`, `DeleteTask`, `MoveTask`, `AddLabel`, `RemoveLabel`, `CreateSubtask`, etc.
+- **Payloads**: typed structs for `Event.Data` JSON (e.g., `TaskCreatedPayload`, `TaskCompletedPayload`)
+- **EventLoader interface** (consumer-defined): `LoadByAggregate` + `Append`
+- **EventProjector interface** (consumer-defined): `Project`
 
-### Events
-- `POST /events` — append new events (primary write path)
-- `GET  /events?since=<timestamp>` — fetch events since timestamp (sync)
+### `projection` — Events → read model tables
+- `Projector.Project(ctx, []Event)` — dispatches to per-event handlers
+- INSERT handlers use `ON CONFLICT DO UPDATE` (idempotent upsert)
+- UPDATE handlers log warnings on zero rows affected
 
-### Read Models (Queries)
-- `GET    /lists` — all lists for current user
-- `GET    /lists/:id` — single list with tasks
-- `GET    /tasks/:id` — single task detail
-- `GET    /labels` — all labels for current user
-- `GET    /user/config` — user configuration
+### `handler` — HTTP layer
+- `TaskHandler`, `ListHandler`, `LabelHandler` — each with consumer-defined commander interfaces
+- `AuthHandler` — Google OAuth login/callback, dev login, logout
+- Shared utils: `writeJSON`, `writeError`, `readJSON`, `parseUUID`, `requireUserID`, `mapDomainError`
 
-### iCal
-- `GET /ical/:token` — iCal feed (token-based auth, no SSO)
+### `auth` — Authentication primitives
+- `TokenService` — issue/validate HS256 JWTs
+- `GoogleOAuth` — OAuth2 config, code exchange, userinfo fetch
+- `WithUserID` / `UserIDFromContext` — context helpers
+
+### `middleware` — HTTP middleware
+- `JWTAuth` — reads `doit_token` cookie, validates JWT, injects user ID into context
+
+---
+
+## API Endpoints
+
+### Auth (unauthenticated)
+```
+GET  /auth/google/login       → redirect to Google consent
+GET  /auth/google/callback    → exchange code, set JWT cookie, redirect
+POST /auth/dev                → dev login (DEV_MODE only)
+POST /auth/logout             → clear cookie
+```
+
+### Tasks (authenticated via JWT cookie)
+```
+POST   /api/v1/tasks                           → create task
+GET    /api/v1/tasks                           → list tasks (?list_id, ?is_completed, ?inbox=true)
+GET    /api/v1/tasks/{id}                      → task detail with subtasks + labels
+PATCH  /api/v1/tasks/{id}                      → update description, move to list
+DELETE /api/v1/tasks/{id}                      → soft-delete
+POST   /api/v1/tasks/{id}/complete             → mark complete
+POST   /api/v1/tasks/{id}/uncomplete           → mark incomplete
+POST   /api/v1/tasks/{id}/subtasks             → create subtask
+POST   /api/v1/tasks/{id}/subtasks/{sid}/complete → complete subtask
+POST   /api/v1/tasks/{id}/labels               → add label
+DELETE /api/v1/tasks/{id}/labels/{lid}         → remove label
+```
+
+### Lists & Labels (authenticated)
+```
+POST /api/v1/lists    → create list
+GET  /api/v1/lists    → all user lists
+POST /api/v1/labels   → create label
+GET  /api/v1/labels   → all user labels
+```
+
+### Infrastructure (unauthenticated)
+```
+GET /healthz          → DB connectivity check
+```
+
+---
+
+## Event Types
+
+```
+TaskCreated, TaskCompleted, TaskUncompleted, TaskDeleted, TaskMoved,
+TaskDescriptionUpdated, LabelAdded, LabelRemoved, LabelCreated,
+ListCreated, SubtaskCreated, SubtaskCompleted
+```
+
+Aggregate types: `task`, `list`, `label`
 
 ---
 
 ## Running Locally
 
 ```bash
-# Start all services (Postgres, RabbitMQ, API server, frontend dev server)
-docker compose up
+docker compose up postgres -d                    # start Postgres
+DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable make migrate  # apply migrations
 
-# Run Go tests
-make test
+# Dev mode (no Google creds needed):
+DATABASE_URL=... DEV_MODE=true JWT_SECRET=$(openssl rand -base64 32) SECURE_COOKIES=false make run
 
-# Run Go linter
-make lint
-
-# Run frontend tests
-cd web && npm test
-
-# Run everything
-make run
+# Tests:
+make test                                        # unit tests
+make test-integration                            # needs running Postgres
+make vet                                         # go vet
 ```
 
 ---
 
 ## Phase Overview
 
-| Phase | Scope | Key Deliverables |
-|-------|-------|-----------------|
-| **Phase 1** | Online-only MVP | Event store, basic projections, CRUD UI, Google SSO, Docker Compose |
-| **Phase 2** | Offline + CRDT | Dexie.js local store, service worker, CRDT merge, sync engine |
-| **Phase 3** | RabbitMQ + Workers | Transactional outbox, RabbitMQ topic routing, projection workers, DLQ |
-| **Phase 4** | Polish | iCal feed, keyboard shortcuts, drag-and-drop, recurring tasks, performance |
+| Phase | Scope | Status |
+|-------|-------|--------|
+| **Phase 1** | Online-only MVP — event store, projections, CRUD API, Google SSO, Docker Compose | Backend done, frontend pending |
+| **Phase 2** | Offline-first + CRDT sync — Dexie.js, service worker, LWW/OR-Set merge, WebSocket push, HLC timestamps | Not started |
+| **Phase 3** | RabbitMQ + workers — transactional outbox, topic exchanges, DLQ, recurring tasks, trash purge, Prometheus/Grafana | Not started |
+| **Phase 4** | Polish — projection rebuilder CLI, calendar view, dark mode, search, subtasks, drag-and-drop, keyboard shortcuts | Not started |
+
+See `docs/design-document.md` for full phase details including DDIA reading plan.
 
 ---
 
 ## Key Constraints
 
-- **Safari-only PWA**: No Background Sync API. Push notifications are best-effort.
-  Storage eviction is a risk — the app must handle graceful re-sync.
-- **Token auth for iCal**: The iCal feed uses a long-lived token in the URL,
-  not session-based auth.
-- **All mutations through event store**: Never write directly to read model tables.
-- **1-3 users**: Designed for personal/family use. Do not over-engineer for scale.
+- **All mutations through event store** — never write directly to read model tables
+- **Consumer-side interfaces** — interfaces defined where they're used, not where they're implemented
+- **User scoping** — every read query filters by `user_id`; write commands verify aggregate ownership
+- **Safari-only PWA** — no Background Sync, no Chromium-only APIs
+- **1-3 users** — do not over-engineer for scale

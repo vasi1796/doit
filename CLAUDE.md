@@ -16,13 +16,20 @@ Dexie.js for local state. See AGENTS.md for full architectural context.
 
 ```
 api/              Go backend
-  cmd/            Binary entry points (e.g., api/cmd/api/main.go)
-  internal/       Go packages — domain, eventstore, projection, handler, middleware
-  migrations/     SQL migration files (goose)
-  go.mod
-web/              React frontend — components, hooks, db, sync, types
+  cmd/api/        Server entry point (router, auth, domain stack wiring)
+  cmd/migrate/    Migration runner CLI (goose)
+  internal/
+    auth/          JWT tokens, Google OAuth, context helpers
+    config/        Env var loading
+    domain/        Aggregates, commands, payloads, CommandHandler
+    eventstore/    Event store (append/load/query)
+    handler/       HTTP handlers (task, list, label, auth, response utils)
+    middleware/     JWT auth middleware
+    projection/    Event → read model table updates
+  migrations/     SQL migration files
+web/              React frontend (not yet implemented)
 docs/adr/         Architecture Decision Records
-scripts/          Build, migration, and utility scripts
+scripts/          Backup and utility scripts
 ```
 
 ---
@@ -49,7 +56,7 @@ scripts/          Build, migration, and utility scripts
 ### Commit Messages
 - Use conventional commit format: `type(scope): description`
 - Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`
-- Scope examples: `eventstore`, `projection`, `sync`, `ui`, `auth`
+- Scope examples: `eventstore`, `projection`, `sync`, `ui`, `auth`, `domain`
 - Example: `feat(eventstore): add aggregate snapshot support`
 - Keep the subject line under 72 characters.
 
@@ -67,7 +74,7 @@ handlers then update read models from those events.
 ### 2. Every event handler must be idempotent
 Event handlers (projections, workers) may receive the same event more than once.
 They must produce the same result regardless of how many times they process an
-event. Use the event's `id` and `version` for deduplication.
+event. Use `ON CONFLICT` for inserts, plain `UPDATE` for modifications.
 
 ### 3. Frontend state comes only from Dexie.js useLiveQuery
 Do NOT introduce Redux, Zustand, Jotai, React Context for state management,
@@ -75,29 +82,29 @@ or any other state library. The data flow is:
 ```
 User action -> Dexie.js write to IndexedDB -> useLiveQuery auto-updates -> React re-renders
 ```
-This is the single source of truth for the frontend.
 
 ### 4. Safari/WebKit only — no Chromium-only APIs
 This is a Safari PWA. Do not use:
 - Background Sync API (not available in Safari)
 - Web Bluetooth, Web USB, or other Chromium-only APIs
 - CSS features without WebKit support
-Always verify WebKit compatibility for any browser API.
 
 ### 5. Minimum 44px tap targets
 All interactive elements must have at least 44x44px touch targets per Apple
 Human Interface Guidelines.
 
+### 6. User scoping on all operations
+Every read query must include `WHERE user_id = $1`. Every write command must
+verify the aggregate belongs to the requesting user (done in `loadTaskAggregate`).
+
 ---
 
 ## Test Expectations
 
-- **Unit tests** for all business logic (domain, event handling, CRDT merge).
+- **Unit tests** for all business logic (domain, event handling, config, auth).
 - **Table-driven tests** in Go — no exceptions.
-- **Integration tests** for the event store -> projection flow: write events,
-  verify read models are correctly projected.
-- **CRDT merge tests**: test all conflict scenarios (concurrent edit, edit vs
-  delete, concurrent label add/remove, concurrent list moves).
+- **Integration tests** (build tag `//go:build integration`) for event store
+  and projection flows against real Postgres.
 - Frontend: test Dexie.js database operations and sync logic.
 
 ---
@@ -105,8 +112,14 @@ Human Interface Guidelines.
 ## Common Commands
 
 ```bash
-# Start all services locally
-docker compose up
+# Start Postgres
+docker compose up postgres -d
+
+# Run migrations
+DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable make migrate
+
+# Run API (dev mode)
+DATABASE_URL=... DEV_MODE=true JWT_SECRET=... SECURE_COOKIES=false make run
 
 # Run Go tests
 make test
@@ -114,23 +127,17 @@ make test
 # Run Go tests with verbose output
 make test-verbose
 
-# Run Go linter
-make lint
+# Run integration tests (needs Postgres)
+make test-integration
+
+# Run Go vet
+make vet
 
 # Run frontend dev server
 cd web && npm run dev
 
-# Run frontend tests
-cd web && npm test
-
-# Run frontend linter
-cd web && npm run lint
-
 # Build everything
 make build
-
-# Run the full stack locally
-make run
 ```
 
 ---
@@ -139,9 +146,10 @@ make run
 
 - Go 1.22+ required
 - Node.js 20+ and npm for the frontend
-- Docker and Docker Compose for local services (Postgres, RabbitMQ)
+- Docker and Docker Compose for local services (Postgres)
 - PostgreSQL 16 (via Docker for local dev)
-- RabbitMQ 3.13+ (via Docker for local dev, Phase 3)
+- Google OAuth 2.0 credentials for production auth
+- `DEV_MODE=true` enables `/auth/dev` endpoint for local testing without Google
 
 ---
 
@@ -149,13 +157,12 @@ make run
 
 Events: `TaskCreated`, `TaskCompleted`, `TaskUncompleted`, `TaskDeleted`,
 `TaskMoved`, `TaskDescriptionUpdated`, `LabelAdded`, `LabelRemoved`,
-`ListCreated`, `SubtaskCreated`, `SubtaskCompleted`
-
-Handlers: `HandleTaskCreated`, `HandleTaskCompleted`, etc.
+`LabelCreated`, `ListCreated`, `SubtaskCreated`, `SubtaskCompleted`
 
 ---
 
 ## Useful Context Files
 
-- `AGENTS.md` — full architecture overview, data model, API endpoints
+- `AGENTS.md` — full architecture overview, package guide, API endpoints
 - `docs/adr/` — Architecture Decision Records explaining key design choices
+- `docs/design-document.md` — complete design specification
