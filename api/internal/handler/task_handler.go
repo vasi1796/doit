@@ -46,7 +46,7 @@ type createTaskRequest struct {
 	Description string     `json:"description,omitempty"`
 	Priority    int        `json:"priority"`
 	DueDate     *time.Time `json:"due_date,omitempty"`
-	ListID      uuid.UUID  `json:"list_id"`
+	ListID      *uuid.UUID `json:"list_id,omitempty"`
 	Position    string     `json:"position"`
 }
 

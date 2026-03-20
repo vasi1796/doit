@@ -15,7 +15,7 @@ type CreateTask struct {
 	Description string
 	Priority    int
 	DueDate     *time.Time
-	ListID      uuid.UUID
+	ListID      *uuid.UUID
 	Position    string
 }
 

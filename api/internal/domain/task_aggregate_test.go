@@ -17,12 +17,13 @@ var (
 )
 
 func validCreateCmd() CreateTask {
+	listID := uuid.New()
 	return CreateTask{
 		TaskID:   uuid.New(),
 		UserID:   testUserID,
 		Title:    "Buy groceries",
 		Priority: 1,
-		ListID:   uuid.New(),
+		ListID:   &listID,
 		Position: "a",
 	}
 }

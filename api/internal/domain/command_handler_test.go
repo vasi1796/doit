@@ -52,7 +52,6 @@ func TestCommandHandlerCreateTask(t *testing.T) {
 		UserID:   uuid.New(),
 		Title:    "Test task",
 		Priority: 1,
-		ListID:   uuid.New(),
 		Position: "a",
 	}
 
