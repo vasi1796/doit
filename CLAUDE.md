@@ -144,7 +144,7 @@ make build
 
 ## Environment Setup
 
-- Go 1.22+ required
+- Go 1.26+ required
 - Node.js 20+ and npm for the frontend
 - Docker and Docker Compose for local services (Postgres)
 - PostgreSQL 16 (via Docker for local dev)

@@ -24,10 +24,14 @@ type OAuthExchanger interface {
 	Exchange(ctx context.Context, code string) (*auth.GoogleUser, error)
 }
 
-const upsertUserSQL = `INSERT INTO users (id, google_id, email, name, avatar_url, allowed, created_at)
+const upsertUserByGoogleIDSQL = `INSERT INTO users (id, google_id, email, name, avatar_url, allowed, created_at)
 VALUES ($1, $2, $3, $4, $5, true, NOW())
 ON CONFLICT (google_id) DO UPDATE SET
 	email = EXCLUDED.email, name = EXCLUDED.name, avatar_url = EXCLUDED.avatar_url
+RETURNING id`
+
+const upsertUserByEmailSQL = `UPDATE users SET google_id = $1, name = $2, avatar_url = $3
+WHERE email = $4
 RETURNING id`
 
 // AuthHandler holds dependencies for authentication endpoints.
@@ -237,8 +241,17 @@ func (h *AuthHandler) isAllowed(email string) bool {
 
 func (h *AuthHandler) upsertUser(ctx context.Context, user *auth.GoogleUser) (uuid.UUID, error) {
 	var userID uuid.UUID
-	err := h.pool.QueryRow(ctx, upsertUserSQL,
+	err := h.pool.QueryRow(ctx, upsertUserByGoogleIDSQL,
 		uuid.New(), user.ID, user.Email, user.Name, user.AvatarURL,
+	).Scan(&userID)
+	if err == nil {
+		return userID, nil
+	}
+
+	// If the email already exists under a different google_id (e.g., from dev login),
+	// update the existing row to use the real google_id.
+	err = h.pool.QueryRow(ctx, upsertUserByEmailSQL,
+		user.ID, user.Name, user.AvatarURL, user.Email,
 	).Scan(&userID)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("upserting user: %w", err)

@@ -131,6 +131,7 @@ func newRouter(pool *pgxpool.Pool, logger zerolog.Logger, cfg *config.Config) *c
 	}))
 
 	// Health check (unauthenticated)
+	r.Head("/healthz", healthHandler(pool, logger))
 	r.Get("/healthz", healthHandler(pool, logger))
 
 	// Auth
