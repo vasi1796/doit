@@ -44,7 +44,7 @@ function SubtaskItem({ subtask, taskId, onChanged }: { subtask: Subtask; taskId:
         type="button"
         onClick={handleToggle}
         className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-colors ${
-          subtask.is_completed ? 'bg-[#007aff] border-[#007aff]' : 'border-gray-300 hover:border-[#007aff]'
+          subtask.is_completed ? 'bg-accent border-accent' : 'border-gray-300 hover:border-accent'
         }`}
       >
         {subtask.is_completed && (
@@ -60,13 +60,13 @@ function SubtaskItem({ subtask, taskId, onChanged }: { subtask: Subtask; taskId:
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleSave}
           onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false) }}
-          className="flex-1 text-base outline-none border-b border-[#007aff] py-0.5"
+          className="flex-1 text-base outline-none border-b border-accent py-0.5"
           autoFocus
         />
       ) : (
         <span
           onClick={() => !subtask.is_completed && setEditing(true)}
-          className={`flex-1 text-sm cursor-text ${subtask.is_completed ? 'line-through text-[#86868b]' : ''}`}
+          className={`flex-1 text-sm cursor-text ${subtask.is_completed ? 'line-through text-text-secondary' : ''}`}
         >
           {subtask.title}
         </span>
@@ -106,7 +106,7 @@ export function SubtaskSection({ taskId, subtasks, onChanged }: SubtaskSectionPr
 
   return (
     <div className="mb-4">
-      <h3 className="text-xs font-medium text-[#86868b] uppercase tracking-wide mb-2">
+      <h3 className="text-xs font-medium text-text-secondary uppercase tracking-wide mb-2">
         Subtasks{subtasks.length > 0 && ` (${completed}/${subtasks.length})`}
       </h3>
       <div className="space-y-0.5">
@@ -121,10 +121,10 @@ export function SubtaskSection({ taskId, subtasks, onChanged }: SubtaskSectionPr
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Add subtask..."
-            className="flex-1 text-base outline-none placeholder:text-[#86868b]"
+            className="flex-1 text-base outline-none placeholder:text-text-secondary"
           />
           {newTitle.trim() && (
-            <button type="submit" className="text-[#007aff] text-xs font-medium">Add</button>
+            <button type="submit" className="text-accent text-xs font-medium">Add</button>
           )}
         </form>
       </div>

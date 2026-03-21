@@ -6,7 +6,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ message = 'No tasks', hint, action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-[#86868b]">
+    <div className="flex flex-col items-center justify-center py-16 text-text-secondary">
       <svg
         width="48"
         height="48"
@@ -26,7 +26,7 @@ export function EmptyState({ message = 'No tasks', hint, action }: EmptyStatePro
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-3 text-sm text-[#007aff] font-medium min-h-[44px] px-4"
+          className="mt-3 text-sm text-accent font-medium min-h-[44px] px-4"
         >
           {action.label}
         </button>

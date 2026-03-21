@@ -52,7 +52,7 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
         className="flex items-center gap-2 min-h-[40px] px-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
       >
         <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: displayColor }} />
-        <span className="text-[#1d1d1f]">{displayName}</span>
+        <span className="text-text-primary">{displayName}</span>
       </button>
 
       {open && (
@@ -66,7 +66,7 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
               type="button"
               onClick={() => { onChange(''); close() }}
               className={`w-full flex items-center gap-2.5 text-left px-4 py-2.5 text-[15px] hover:bg-gray-50 ${
-                !value ? 'text-[#007aff] font-medium' : 'text-[#1d1d1f]'
+                !value ? 'text-accent font-medium' : 'text-text-primary'
               }`}
             >
               <span className="w-3 h-3 rounded-full bg-[#86868b]" />
@@ -78,7 +78,7 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
                 type="button"
                 onClick={() => { onChange(l.id); close() }}
                 className={`w-full flex items-center gap-2.5 text-left px-4 py-2.5 text-[15px] hover:bg-gray-50 ${
-                  value === l.id ? 'text-[#007aff] font-medium' : 'text-[#1d1d1f]'
+                  value === l.id ? 'text-accent font-medium' : 'text-text-primary'
                 }`}
               >
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: l.colour || '#86868b' }} />
@@ -102,18 +102,18 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
                         key={c}
                         type="button"
                         onClick={() => setNewColour(c)}
-                        className={`w-5 h-5 rounded-full ${newColour === c ? 'ring-2 ring-offset-1 ring-[#007aff]/40' : ''}`}
+                        className={`w-5 h-5 rounded-full ${newColour === c ? 'ring-2 ring-offset-1 ring-accent/40' : ''}`}
                         style={{ backgroundColor: c }}
                       />
                     ))}
-                    <button type="submit" className="ml-auto text-[13px] text-[#007aff] font-medium">Create</button>
+                    <button type="submit" className="ml-auto text-[13px] text-accent font-medium">Create</button>
                   </div>
                 </form>
               ) : (
                 <button
                   type="button"
                   onClick={() => setCreating(true)}
-                  className="w-full text-left px-4 py-2.5 text-[15px] text-[#007aff] hover:bg-gray-50"
+                  className="w-full text-left px-4 py-2.5 text-[15px] text-accent hover:bg-gray-50"
                 >
                   + New list
                 </button>

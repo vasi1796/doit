@@ -32,7 +32,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
           <path d="M7 23l-4-4 4-4" />
           <path d="M21 13v2a4 4 0 0 1-4 4H3" />
         </svg>
-        <span className={value ? 'text-[#1d1d1f]' : 'text-[#86868b]'}>{current.label}</span>
+        <span className={value ? 'text-text-primary' : 'text-text-secondary'}>{current.label}</span>
       </button>
 
       {open && (
@@ -48,7 +48,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
                 type="button"
                 onClick={() => { onChange(r.value); close() }}
                 className={`w-full text-left px-4 py-2.5 text-[15px] hover:bg-gray-50 transition-colors ${
-                  value === r.value ? 'text-[#007aff] font-medium' : 'text-[#1d1d1f]'
+                  value === r.value ? 'text-accent font-medium' : 'text-text-primary'
                 }`}
               >
                 {r.label}

@@ -10,7 +10,7 @@ export function CompletedPage() {
   return (
     <div>
       <div className="px-4 pt-6 pb-2">
-        <h1 className="text-2xl font-semibold text-[#1d1d1f]">Completed</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">Completed</h1>
       </div>
       <TaskList
         tasks={tasks}

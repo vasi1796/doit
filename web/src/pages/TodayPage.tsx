@@ -13,8 +13,8 @@ export function TodayPage() {
   return (
     <div>
       <div className="px-4 pt-6 pb-2">
-        <h1 className="text-2xl font-semibold text-[#1d1d1f]">Today</h1>
-        <p className="text-sm text-[#86868b]">
+        <h1 className="text-2xl font-semibold text-text-primary">Today</h1>
+        <p className="text-sm text-text-secondary">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
       </div>

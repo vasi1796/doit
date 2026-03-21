@@ -74,7 +74,7 @@ export function LabelPicker({ allLabels, attachedIds, taskId, onChanged, onLabel
                 key={c}
                 type="button"
                 onClick={() => setNewColour(c)}
-                className={`w-4 h-4 rounded-full ${newColour === c ? 'ring-2 ring-offset-1 ring-[#007aff]/30' : ''}`}
+                className={`w-4 h-4 rounded-full ${newColour === c ? 'ring-2 ring-offset-1 ring-accent/30' : ''}`}
                 style={{ backgroundColor: c }}
               />
             ))}
@@ -87,13 +87,13 @@ export function LabelPicker({ allLabels, attachedIds, taskId, onChanged, onLabel
             className="flex-1 text-sm outline-none border-b border-gray-200 py-1"
             autoFocus
           />
-          <button type="submit" className="text-[#007aff] text-sm font-medium">Add</button>
+          <button type="submit" className="text-accent text-sm font-medium">Add</button>
         </form>
       ) : (
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="w-full text-left px-2 py-1.5 text-sm text-[#007aff] hover:bg-gray-50 rounded-lg min-h-[36px]"
+          className="w-full text-left px-2 py-1.5 text-sm text-accent hover:bg-gray-50 rounded-lg min-h-[36px]"
         >
           + Create label
         </button>

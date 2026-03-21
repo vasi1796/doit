@@ -21,10 +21,10 @@ function TrashItem({ task, onRestored }: { task: Task; onRestored: () => void })
   return (
     <div className="flex items-center gap-3 px-4 min-h-[44px] py-2 border-b border-gray-100">
       <PriorityFlag priority={task.priority} size={12} />
-      <span className="flex-1 text-[15px] text-[#86868b] line-through truncate">{task.title}</span>
+      <span className="flex-1 text-[15px] text-text-secondary line-through truncate">{task.title}</span>
       <button
         onClick={handleRestore}
-        className="text-[#007aff] text-sm font-medium px-2 min-h-[44px]"
+        className="text-accent text-sm font-medium px-2 min-h-[44px]"
       >
         Restore
       </button>
@@ -38,8 +38,8 @@ export function TrashPage() {
   return (
     <div>
       <div className="px-4 pt-6 pb-2">
-        <h1 className="text-2xl font-semibold text-[#1d1d1f]">Trash</h1>
-        <p className="text-sm text-[#86868b]">Tasks are permanently deleted after 30 days</p>
+        <h1 className="text-2xl font-semibold text-text-primary">Trash</h1>
+        <p className="text-sm text-text-secondary">Tasks are permanently deleted after 30 days</p>
       </div>
       {loading ? (
         <div className="space-y-1 px-4 py-2">

@@ -16,12 +16,12 @@ export function TaskProperties({ task, lists, onSave, onListsChanged }: TaskProp
   return (
     <div className="space-y-2 mb-4 bg-gray-50 rounded-lg p-3">
       <div className="flex items-center gap-3">
-        <span className="text-xs text-[#86868b] w-16 shrink-0">Priority</span>
+        <span className="text-xs text-text-secondary w-16 shrink-0">Priority</span>
         <PriorityPicker value={task.priority} onChange={(p) => onSave('priority', p)} />
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="text-xs text-[#86868b] w-16 shrink-0">Due date</span>
+        <span className="text-xs text-text-secondary w-16 shrink-0">Due date</span>
         <DatePicker
           value={task.due_date || ''}
           onChange={(d) => onSave('due_date', d || '')}
@@ -30,7 +30,7 @@ export function TaskProperties({ task, lists, onSave, onListsChanged }: TaskProp
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="text-xs text-[#86868b] w-16 shrink-0">Time</span>
+        <span className="text-xs text-text-secondary w-16 shrink-0">Time</span>
         <TimePicker
           value={task.due_time || ''}
           onChange={(t) => onSave('due_time', t || '')}
@@ -39,7 +39,7 @@ export function TaskProperties({ task, lists, onSave, onListsChanged }: TaskProp
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="text-xs text-[#86868b] w-16 shrink-0">Repeat</span>
+        <span className="text-xs text-text-secondary w-16 shrink-0">Repeat</span>
         <RecurrencePicker
           value={task.recurrence_rule || ''}
           onChange={(r) => onSave('recurrence_rule', r)}
@@ -48,7 +48,7 @@ export function TaskProperties({ task, lists, onSave, onListsChanged }: TaskProp
 
       {lists && (
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[#86868b] w-16 shrink-0">List</span>
+          <span className="text-xs text-text-secondary w-16 shrink-0">List</span>
           <ListSelect
             value={task.list_id || ''}
             lists={lists}

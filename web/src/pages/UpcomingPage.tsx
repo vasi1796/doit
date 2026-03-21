@@ -41,17 +41,17 @@ export function UpcomingPage() {
   return (
     <div>
       <div className="px-4 pt-6 pb-2">
-        <h1 className="text-2xl font-semibold text-[#1d1d1f]">Upcoming</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">Upcoming</h1>
       </div>
       {loading ? (
-        <div className="px-4 py-8 text-center text-[#86868b] text-sm">Loading...</div>
+        <div className="px-4 py-8 text-center text-text-secondary text-sm">Loading...</div>
       ) : grouped.length === 0 ? (
-        <div className="px-4 py-16 text-center text-[#86868b] text-sm">Nothing coming up this week</div>
+        <div className="px-4 py-16 text-center text-text-secondary text-sm">Nothing coming up this week</div>
       ) : (
         grouped.map((group) => (
           <div key={group.date}>
             <div className="px-4 pt-4 pb-1">
-              <h2 className="text-sm font-semibold text-[#86868b]">{group.label}</h2>
+              <h2 className="text-sm font-semibold text-text-secondary">{group.label}</h2>
             </div>
             <TaskList
               tasks={group.tasks}

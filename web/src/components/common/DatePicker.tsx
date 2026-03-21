@@ -75,13 +75,13 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
-        <span className={value ? 'text-[#1d1d1f]' : 'text-[#86868b]'}>
+        <span className={value ? 'text-text-primary' : 'text-text-secondary'}>
           {value ? formatDisplayDate(value) : 'Date'}
         </span>
         {value && onClear && (
           <span
             onClick={(e) => { e.stopPropagation(); onClear() }}
-            className="text-[#86868b] hover:text-[#ff3b30]"
+            className="text-text-secondary hover:text-danger"
           >
             ×
           </span>
@@ -100,21 +100,21 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
               <button
                 type="button"
                 onClick={() => { onChange(todayStr); close() }}
-                className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-[#007aff]/8 text-[#007aff] hover:bg-[#007aff]/15"
+                className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-accent/8 text-accent hover:bg-accent/15"
               >
                 Today
               </button>
               <button
                 type="button"
                 onClick={() => { onChange(toDateStr(tomorrow)); close() }}
-                className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-gray-100 text-[#1d1d1f] hover:bg-gray-200"
+                className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-gray-100 text-text-primary hover:bg-gray-200"
               >
                 Tomorrow
               </button>
               <button
                 type="button"
                 onClick={() => { onChange(toDateStr(nextWeek)); close() }}
-                className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-gray-100 text-[#1d1d1f] hover:bg-gray-200"
+                className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-gray-100 text-text-primary hover:bg-gray-200"
               >
                 Next week
               </button>
@@ -127,7 +127,7 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
                   <path d="m15 18-6-6 6-6" />
                 </svg>
               </button>
-              <span className="text-[13px] font-semibold text-[#1d1d1f]">
+              <span className="text-[13px] font-semibold text-text-primary">
                 {MONTHS[viewMonth]} {viewYear}
               </span>
               <button type="button" onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded-lg">
@@ -140,7 +140,7 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
             {/* Day headers */}
             <div className="grid grid-cols-7 mb-1">
               {DAYS.map(d => (
-                <span key={d} className="text-center text-[10px] font-medium text-[#86868b] py-1">{d}</span>
+                <span key={d} className="text-center text-[10px] font-medium text-text-secondary py-1">{d}</span>
               ))}
             </div>
 
@@ -165,12 +165,12 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
                     onClick={() => selectDate(day)}
                     className={`py-1.5 text-[13px] rounded-lg transition-colors ${
                       isSelected
-                        ? 'bg-[#007aff] text-white font-semibold'
+                        ? 'bg-accent text-white font-semibold'
                         : isToday
-                          ? 'bg-[#007aff]/10 text-[#007aff] font-semibold'
+                          ? 'bg-accent/10 text-accent font-semibold'
                           : isPast
-                            ? 'text-[#c7c7cc] hover:bg-gray-100'
-                            : 'text-[#1d1d1f] hover:bg-gray-100'
+                            ? 'text-text-tertiary hover:bg-gray-100'
+                            : 'text-text-primary hover:bg-gray-100'
                     }`}
                   >
                     {day}

@@ -36,8 +36,8 @@ function NavItem({ to, label, icon, count }: { to: string; label: string; icon: 
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[14px] transition-colors ${
           isActive
-            ? 'bg-[#007aff]/10 text-[#007aff] font-medium'
-            : 'text-[#1d1d1f] hover:bg-black/[0.03]'
+            ? 'bg-accent/10 text-accent font-medium'
+            : 'text-text-primary hover:bg-black/[0.03]'
         }`
       }
     >
@@ -46,7 +46,7 @@ function NavItem({ to, label, icon, count }: { to: string; label: string; icon: 
       </svg>
       <span className="flex-1">{label}</span>
       {count !== undefined && count > 0 && (
-        <span className="text-[11px] text-[#86868b] font-medium">{count}</span>
+        <span className="text-[11px] text-text-secondary font-medium">{count}</span>
       )}
     </NavLink>
   )
@@ -80,7 +80,7 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
     <aside className="w-[260px] h-screen bg-[#f5f5f7] border-r border-gray-200 flex flex-col shrink-0 overflow-y-auto">
       {/* App title */}
       <div className="px-4 pt-4 pb-2">
-        <h1 className="text-lg font-semibold text-[#1d1d1f]">DoIt</h1>
+        <h1 className="text-lg font-semibold text-text-primary">DoIt</h1>
       </div>
 
       {/* Smart lists */}
@@ -101,11 +101,11 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
       {/* User lists */}
       <div className="px-2 flex-1">
         <div className="flex items-center justify-between px-3 mb-1">
-          <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider">Lists</p>
+          <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Lists</p>
           <button
             type="button"
             onClick={() => setAddingList(!addingList)}
-            className="text-[#86868b] hover:text-[#007aff] transition-colors"
+            className="text-text-secondary hover:text-accent transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M12 5v14M5 12h14" />
@@ -128,11 +128,11 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
                   key={c}
                   type="button"
                   onClick={() => setNewListColour(c)}
-                  className={`w-5 h-5 rounded-full ${newListColour === c ? 'ring-2 ring-offset-1 ring-[#007aff]/30' : ''}`}
+                  className={`w-5 h-5 rounded-full ${newListColour === c ? 'ring-2 ring-offset-1 ring-accent/30' : ''}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
-              <button type="submit" className="ml-auto text-xs text-[#007aff] font-medium">Create</button>
+              <button type="submit" className="ml-auto text-xs text-accent font-medium">Create</button>
             </div>
           </form>
         )}
@@ -144,8 +144,8 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
                 className={({ isActive }) =>
                   `flex-1 flex items-center gap-3 px-3 min-h-[36px] rounded-lg text-[14px] transition-colors ${
                     isActive
-                      ? 'bg-[#007aff]/10 text-[#007aff] font-medium'
-                      : 'text-[#1d1d1f] hover:bg-black/5'
+                      ? 'bg-accent/10 text-accent font-medium'
+                      : 'text-text-primary hover:bg-black/5'
                   }`
                 }
               >
@@ -155,7 +155,7 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
                 />
                 <span className="flex-1">{list.name}</span>
                 {(taskCounts.byList[list.id] || 0) > 0 && (
-                  <span className="text-[11px] text-[#86868b] font-medium">{taskCounts.byList[list.id]}</span>
+                  <span className="text-[11px] text-text-secondary font-medium">{taskCounts.byList[list.id]}</span>
                 )}
               </NavLink>
               <button
@@ -171,7 +171,7 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
                     toast(err instanceof Error ? err.message : 'Failed to delete', 'error')
                   }
                 }}
-                className="opacity-0 group-hover:opacity-100 text-[#86868b] hover:text-[#ff3b30] p-1 mr-1 transition-opacity"
+                className="opacity-0 group-hover:opacity-100 text-text-secondary hover:text-danger p-1 mr-1 transition-opacity"
                 aria-label="Delete list"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -187,7 +187,7 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
       {labels.length > 0 && (
         <div className="px-2 mt-2">
           <div className="mx-2 mb-2 border-t border-gray-300" />
-          <p className="px-3 text-[11px] font-semibold text-[#86868b] uppercase tracking-wider mb-1">Labels</p>
+          <p className="px-3 text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Labels</p>
           <div className="space-y-0.5">
             {labels.map((label) => (
               <div key={label.id} className="group flex items-center">
@@ -196,8 +196,8 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
                   className={({ isActive }) =>
                     `flex-1 flex items-center gap-3 px-3 min-h-[36px] rounded-lg text-[14px] transition-colors ${
                       isActive
-                        ? 'bg-[#007aff]/10 text-[#007aff] font-medium'
-                        : 'text-[#1d1d1f] hover:bg-black/5'
+                        ? 'bg-accent/10 text-accent font-medium'
+                        : 'text-text-primary hover:bg-black/5'
                     }`
                   }
                 >
@@ -220,7 +220,7 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
                       toast(err instanceof Error ? err.message : 'Failed to delete', 'error')
                     }
                   }}
-                  className="opacity-0 group-hover:opacity-100 text-[#86868b] hover:text-[#ff3b30] p-1 mr-1 transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 text-text-secondary hover:text-danger p-1 mr-1 transition-opacity"
                   aria-label="Delete label"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -253,7 +253,7 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
               toast(err instanceof Error ? err.message : 'Failed to sign out', 'error')
             }
           }}
-          className="flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[13px] text-[#86868b] hover:bg-black/[0.03] w-full transition-colors"
+          className="flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[13px] text-text-secondary hover:bg-black/[0.03] w-full transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

@@ -11,7 +11,7 @@ export function InboxPage() {
   return (
     <div>
       <div className="px-4 pt-6 pb-2">
-        <h1 className="text-2xl font-semibold text-[#1d1d1f]">Inbox</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">Inbox</h1>
       </div>
       <QuickAdd ref={quickAddRef} lists={lists} labels={labels} onCreated={refreshAll} onListsChanged={refreshLists} onLabelsChanged={refreshLabels} />
       <TaskList

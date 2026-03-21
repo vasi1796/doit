@@ -104,7 +104,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
       <button
         type="button"
         onClick={() => { setExpanded(true); setTimeout(() => inputRef.current?.focus(), 50) }}
-        className="mx-4 my-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#f8f8fa] hover:bg-[#f0f0f2] transition-colors text-[15px] text-[#86868b] w-[calc(100%-32px)]"
+        className="mx-4 my-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#f8f8fa] hover:bg-[#f0f0f2] transition-colors text-[15px] text-text-secondary w-[calc(100%-32px)]"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round">
           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -123,16 +123,16 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
         <button
           type="button"
           onClick={() => { resetForm(); setExpanded(false) }}
-          className="text-sm text-[#86868b] hover:text-[#1d1d1f] min-h-[36px] px-1"
+          className="text-sm text-text-secondary hover:text-text-primary min-h-[36px] px-1"
         >
           Cancel
         </button>
-        <span className="text-sm font-semibold text-[#1d1d1f]">New Task</span>
+        <span className="text-sm font-semibold text-text-primary">New Task</span>
         <button
           type="button"
           onClick={handleSubmit}
           disabled={!title.trim() || submitting}
-          className="text-sm font-semibold text-[#007aff] min-h-[36px] px-1 disabled:opacity-30"
+          className="text-sm font-semibold text-accent min-h-[36px] px-1 disabled:opacity-30"
         >
           {submitting ? 'Adding...' : 'Add'}
         </button>
@@ -147,7 +147,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
           placeholder="Task name"
           aria-label="Task name"
-          className="w-full text-[17px] font-medium outline-none placeholder:text-[#c7c7cc]"
+          className="w-full text-[17px] font-medium outline-none placeholder:text-text-tertiary"
         />
       </div>
 
@@ -158,7 +158,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
           placeholder="Notes"
           aria-label="Task notes"
           rows={2}
-          className="w-full text-[16px] outline-none placeholder:text-[#c7c7cc] resize-none text-[#3c3c43]"
+          className="w-full text-[16px] outline-none placeholder:text-text-tertiary resize-none text-text-note"
         />
       </div>
 
@@ -181,7 +181,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
         </div>
 
         <div className="px-4 py-2.5 border-b border-gray-50">
-          <p className="text-[11px] text-[#86868b] font-medium uppercase tracking-wider mb-1.5">Priority</p>
+          <p className="text-[11px] text-text-secondary font-medium uppercase tracking-wider mb-1.5">Priority</p>
           <PriorityPicker value={priority} onChange={setPriority} compact />
         </div>
 
@@ -230,7 +230,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
                       key={c}
                       type="button"
                       onClick={() => setNewLabelColour(c)}
-                      className={`w-4 h-4 rounded-full ${newLabelColour === c ? 'ring-2 ring-offset-1 ring-[#007aff]/40' : ''}`}
+                      className={`w-4 h-4 rounded-full ${newLabelColour === c ? 'ring-2 ring-offset-1 ring-accent/40' : ''}`}
                       style={{ backgroundColor: c }}
                     />
                   ))}
@@ -243,14 +243,14 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
                   className="text-[12px] outline-none border-b border-gray-200 py-0.5 w-20"
                   autoFocus
                 />
-                <button type="submit" className="text-[11px] text-[#007aff] font-medium">Add</button>
-                <button type="button" onClick={() => setCreatingLabel(false)} className="text-[11px] text-[#86868b]">✕</button>
+                <button type="submit" className="text-[11px] text-accent font-medium">Add</button>
+                <button type="button" onClick={() => setCreatingLabel(false)} className="text-[11px] text-text-secondary">✕</button>
               </form>
             ) : (
               <button
                 type="button"
                 onClick={() => setCreatingLabel(true)}
-                className="text-[12px] px-2.5 py-1 rounded-full font-medium text-[#007aff] bg-[#007aff]/8 hover:bg-[#007aff]/15 transition-all"
+                className="text-[12px] px-2.5 py-1 rounded-full font-medium text-accent bg-accent/8 hover:bg-accent/15 transition-all"
               >
                 + New
               </button>

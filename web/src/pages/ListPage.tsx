@@ -19,7 +19,7 @@ export function ListPage() {
         {list?.colour && (
           <span className="w-3 h-3 rounded-full" style={{ backgroundColor: list.colour }} />
         )}
-        <h1 className="text-2xl font-semibold text-[#1d1d1f]">{list?.name || 'List'}</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">{list?.name || 'List'}</h1>
       </div>
       <QuickAdd listId={id} lists={lists} labels={labels} onCreated={refreshAll} onListsChanged={refreshLists} onLabelsChanged={refreshLabels} />
       <TaskList

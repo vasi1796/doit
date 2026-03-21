@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --color-accent: #007aff;
+  --color-danger: #ff3b30;
+  --color-warning: #ff9500;
+  --color-success: #4cd964;
+  --color-text-primary: #1d1d1f;
+  --color-text-secondary: #86868b;
+  --color-text-tertiary: #c7c7cc;
+  --color-text-note: #3c3c43;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;

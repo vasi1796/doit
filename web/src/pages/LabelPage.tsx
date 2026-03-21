@@ -18,7 +18,7 @@ export function LabelPage() {
         {label?.colour && (
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: label.colour }} />
         )}
-        <h1 className="text-2xl font-semibold text-[#1d1d1f]">{label?.name || 'Label'}</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">{label?.name || 'Label'}</h1>
       </div>
       <TaskList
         tasks={tasks}

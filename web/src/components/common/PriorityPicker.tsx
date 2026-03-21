@@ -30,7 +30,7 @@ export function PriorityPicker({ value, onChange, compact = false }: PriorityPic
             }`}
           >
             {p.value === 0 ? (
-              <span className="text-[#86868b]">—</span>
+              <span className="text-text-secondary">—</span>
             ) : (
               <svg width="14" height="14" viewBox="0 0 24 24" fill={p.color} stroke={p.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
@@ -60,7 +60,7 @@ export function PriorityPicker({ value, onChange, compact = false }: PriorityPic
           }`}
         >
           {p.value === 0 ? (
-            <span className="text-[#86868b]">—</span>
+            <span className="text-text-secondary">—</span>
           ) : (
             <svg width="16" height="16" viewBox="0 0 24 24" fill={p.color} stroke={p.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />

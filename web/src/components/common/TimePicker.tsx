@@ -46,13 +46,13 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
         </svg>
-        <span className={value ? 'text-[#1d1d1f]' : 'text-[#86868b]'}>
+        <span className={value ? 'text-text-primary' : 'text-text-secondary'}>
           {value ? formatDisplayTime(value) : 'Time'}
         </span>
         {value && onClear && (
           <span
             onClick={(e) => { e.stopPropagation(); onClear() }}
-            className="text-[#86868b] hover:text-[#ff3b30]"
+            className="text-text-secondary hover:text-danger"
           >
             ×
           </span>
@@ -68,7 +68,7 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
           >
             <div className="flex gap-2 mb-3">
               <div className="flex-1">
-                <p className="text-[10px] text-[#86868b] font-medium uppercase mb-1">Hour</p>
+                <p className="text-[10px] text-text-secondary font-medium uppercase mb-1">Hour</p>
                 <div className="grid grid-cols-4 gap-1">
                   {HOURS.map(h => (
                     <button
@@ -76,7 +76,7 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
                       type="button"
                       onClick={() => { setSelHour(h); applyTime(h, selMin, selAmPm) }}
                       className={`py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
-                        selHour === h ? 'bg-[#007aff] text-white' : 'hover:bg-gray-100 text-[#1d1d1f]'
+                        selHour === h ? 'bg-accent text-white' : 'hover:bg-gray-100 text-text-primary'
                       }`}
                     >
                       {h}
@@ -87,7 +87,7 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
             </div>
 
             <div className="mb-3">
-              <p className="text-[10px] text-[#86868b] font-medium uppercase mb-1">Minute</p>
+              <p className="text-[10px] text-text-secondary font-medium uppercase mb-1">Minute</p>
               <div className="grid grid-cols-6 gap-1">
                 {MINUTES.map(m => (
                   <button
@@ -95,7 +95,7 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
                     type="button"
                     onClick={() => { setSelMin(m); applyTime(selHour, m, selAmPm) }}
                     className={`py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
-                      selMin === m ? 'bg-[#007aff] text-white' : 'hover:bg-gray-100 text-[#1d1d1f]'
+                      selMin === m ? 'bg-accent text-white' : 'hover:bg-gray-100 text-text-primary'
                     }`}
                   >
                     {m.toString().padStart(2, '0')}
@@ -111,7 +111,7 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
                   type="button"
                   onClick={() => { setSelAmPm(p); applyTime(selHour, selMin, p) }}
                   className={`flex-1 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
-                    selAmPm === p ? 'bg-[#007aff] text-white' : 'hover:bg-gray-100 text-[#1d1d1f]'
+                    selAmPm === p ? 'bg-accent text-white' : 'hover:bg-gray-100 text-text-primary'
                   }`}
                 >
                   {p}
@@ -122,7 +122,7 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
             <button
               type="button"
               onClick={() => close()}
-              className="w-full mt-2 py-2 text-[13px] font-semibold text-[#007aff] hover:bg-gray-50 rounded-lg"
+              className="w-full mt-2 py-2 text-[13px] font-semibold text-accent hover:bg-gray-50 rounded-lg"
             >
               Done
             </button>

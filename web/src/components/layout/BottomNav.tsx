@@ -23,7 +23,7 @@ export function BottomNav({ taskCounts }: BottomNavProps) {
             to={tab.to}
             className={({ isActive }) =>
               `flex-1 flex flex-col items-center justify-center min-h-[50px] pt-1.5 pb-1 transition-colors relative ${
-                isActive ? 'text-[#007aff]' : 'text-[#86868b]'
+                isActive ? 'text-accent' : 'text-text-secondary'
               }`
             }
           >
@@ -32,7 +32,7 @@ export function BottomNav({ taskCounts }: BottomNavProps) {
                 <path d={tab.icon} />
               </svg>
               {count > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-[#007aff] text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1">
+                <span className="absolute -top-1.5 -right-2 bg-accent text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1">
                   {count}
                 </span>
               )}
