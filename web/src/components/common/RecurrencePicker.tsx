@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { usePopover } from '../../hooks/usePopover'
 
 const RULES = [
