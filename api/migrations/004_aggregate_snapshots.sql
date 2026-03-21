@@ -1,5 +1,5 @@
 -- +goose Up
-CREATE TABLE aggregate_snapshots (
+CREATE TABLE IF NOT EXISTS aggregate_snapshots (
     aggregate_id UUID NOT NULL PRIMARY KEY,
     aggregate_type TEXT NOT NULL,
     user_id UUID NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE aggregate_snapshots (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_snapshots_user ON aggregate_snapshots (user_id, aggregate_type);
+CREATE INDEX IF NOT EXISTS idx_snapshots_user ON aggregate_snapshots (user_id, aggregate_type);
 
 -- +goose Down
 DROP TABLE IF EXISTS aggregate_snapshots;
