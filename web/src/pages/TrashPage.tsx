@@ -2,7 +2,7 @@ import { api } from '../api/client'
 import { useTasks } from '../hooks/useTasks'
 import { useToast } from '../components/common/Toast'
 import { EmptyState } from '../components/common/EmptyState'
-import { PriorityDot } from '../components/common/PriorityDot'
+import { PriorityFlag } from '../components/common/PriorityDot'
 import type { Task } from '../api/types'
 
 function TrashItem({ task, onRestored }: { task: Task; onRestored: () => void }) {
@@ -20,7 +20,7 @@ function TrashItem({ task, onRestored }: { task: Task; onRestored: () => void })
 
   return (
     <div className="flex items-center gap-3 px-4 min-h-[44px] py-2 border-b border-gray-100">
-      <PriorityDot priority={task.priority} />
+      <PriorityFlag priority={task.priority} size={12} />
       <span className="flex-1 text-[15px] text-[#86868b] line-through truncate">{task.title}</span>
       <button
         onClick={handleRestore}

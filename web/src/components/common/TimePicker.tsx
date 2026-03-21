@@ -67,7 +67,6 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
             style={{ top: pos.top, left: pos.left }}
           >
             <div className="flex gap-2 mb-3">
-              {/* Hour */}
               <div className="flex-1">
                 <p className="text-[10px] text-[#86868b] font-medium uppercase mb-1">Hour</p>
                 <div className="grid grid-cols-4 gap-1">
@@ -87,7 +86,6 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
               </div>
             </div>
 
-            {/* Minutes */}
             <div className="mb-3">
               <p className="text-[10px] text-[#86868b] font-medium uppercase mb-1">Minute</p>
               <div className="grid grid-cols-6 gap-1">
@@ -106,7 +104,6 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
               </div>
             </div>
 
-            {/* AM/PM */}
             <div className="flex gap-1">
               {['AM', 'PM'].map(p => (
                 <button
@@ -122,7 +119,6 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
               ))}
             </div>
 
-            {/* Done */}
             <button
               type="button"
               onClick={() => close()}

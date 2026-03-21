@@ -119,7 +119,6 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
       ref={formRef}
       className="mx-4 my-3 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.1)] border border-gray-200"
     >
-      {/* Header: Cancel + Add */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
         <button
           type="button"
@@ -139,7 +138,6 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
         </button>
       </div>
 
-      {/* Title */}
       <div className="px-4 pt-3 pb-1">
         <input
           ref={inputRef}
@@ -153,7 +151,6 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
         />
       </div>
 
-      {/* Notes */}
       <div className="px-4 pb-3">
         <textarea
           value={description}
@@ -165,15 +162,12 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
         />
       </div>
 
-      {/* Properties */}
       <div className="border-t border-gray-100">
-        {/* Date + Time row */}
         <div className="flex items-center px-1 border-b border-gray-50">
           <DatePicker value={dueDate} onChange={setDueDate} onClear={() => setDueDate('')} />
           <TimePicker value={dueTime} onChange={setDueTime} onClear={() => setDueTime('')} />
         </div>
 
-        {/* Recurrence + List row */}
         <div className="flex items-center px-1 border-b border-gray-50">
           <RecurrencePicker value={recurrence} onChange={setRecurrence} />
           {lists && !listId && (
@@ -186,13 +180,11 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
           )}
         </div>
 
-        {/* Priority */}
         <div className="px-4 py-2.5 border-b border-gray-50">
           <p className="text-[11px] text-[#86868b] font-medium uppercase tracking-wider mb-1.5">Priority</p>
           <PriorityPicker value={priority} onChange={setPriority} compact />
         </div>
 
-        {/* Labels */}
         {labels && (
           <div className="px-4 py-2.5 flex flex-wrap gap-1.5 items-center">
             {labels.map((label) => {

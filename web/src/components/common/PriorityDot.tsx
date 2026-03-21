@@ -15,8 +15,3 @@ export function PriorityFlag({ priority, size = 14 }: { priority: number; size?:
     </svg>
   )
 }
-
-// Keep backward compat
-export function PriorityDot({ priority }: { priority: number }) {
-  return <PriorityFlag priority={priority} size={12} />
-}
