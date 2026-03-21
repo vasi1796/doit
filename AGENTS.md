@@ -44,8 +44,8 @@ HTTP Request → Handler → SELECT from read model tables (pgxpool) → HTTP Re
 
 ## Tech Stack
 
-### Backend (implemented)
-- **Go 1.22+** — `api/go.mod`
+### Backend
+- **Go 1.26+** — `api/go.mod`
 - **Chi v5** — HTTP router with middleware
 - **pgx v5 + pgxpool** — Postgres driver and connection pooling
 - **goose v3** — SQL migrations
@@ -55,8 +55,11 @@ HTTP Request → Handler → SELECT from read model tables (pgxpool) → HTTP Re
 - **go-chi/cors** — CORS middleware
 - **PostgreSQL 16** — event store + read models
 
-### Frontend (not yet implemented)
-- **React 18+** with **TypeScript**, **Vite**, **Dexie.js**, **Tailwind CSS**
+### Frontend
+- **React 18** with **TypeScript** — `web/package.json`
+- **Vite** — build + dev server with API proxy
+- **Tailwind CSS v4** — utility-first styling
+- **React Router v7** — client-side routing
 
 ### Infrastructure
 - **Docker Compose** — Postgres + Caddy + API
@@ -71,7 +74,7 @@ HTTP Request → Handler → SELECT from read model tables (pgxpool) → HTTP Re
 doit/
   api/                         # Go backend
     cmd/
-      api/main.go              # Server entry point: router, auth, domain stack wiring
+      api/main.go              # Server: router, auth, domain stack wiring
       migrate/main.go          # Goose migration runner CLI
     internal/
       auth/                    # JWT (TokenService), Google OAuth, context helpers
@@ -84,10 +87,22 @@ doit/
     migrations/                # SQL files: 001_events, 002_read_models
     Dockerfile
     go.mod
-  web/                         # Frontend (not yet implemented)
+  web/                         # React frontend
+    src/
+      api/                     # Typed fetch client + TS interfaces
+      components/
+        common/                # DatePicker, TimePicker, PriorityPicker, RecurrencePicker,
+                               # ListSelect, LabelPicker, Toast, EmptyState
+        layout/                # AppLayout, Sidebar, BottomNav
+        tasks/                 # QuickAdd, TaskItem, TaskDetail, TaskList, TaskProperties,
+                               # SubtaskSection, LabelsSection
+      hooks/                   # useTasks, useLists, useLabels, useTaskDetail
+      pages/                   # Inbox, Today, Upcoming, List, Label, Completed, Trash, Login
+      constants.ts             # Shared color palette
+    public/                    # PWA manifest, app icons
     Dockerfile
   docs/
-    adr/                       # 7 Architecture Decision Records
+    adr/                       # 8 Architecture Decision Records
     design-document.md         # Full design spec
   scripts/backup.sh            # Database backup with retention
   .github/workflows/ci.yml    # GitHub Actions CI
@@ -110,12 +125,15 @@ doit/
 - **Aggregate handler naming**: `HandleCreate`, `HandleComplete`, `HandleDelete`, etc.
 
 ### Frontend (React/TypeScript)
-- **Dexie.js + `useLiveQuery`** is the sole state management approach.
-  Do NOT introduce Redux, Zustand, Jotai, or any other state library.
-- **Unidirectional data flow**:
-  `User Action → IndexedDB write (Dexie) → useLiveQuery → re-render`
+- **Hooks + fetch** for Phase 1 data fetching (replaced by Dexie.js `useLiveQuery` in Phase 2).
+- **No state management libraries** — React Context only for layout-level shared data (lists, labels, counts).
+- **Custom pickers** — DatePicker (calendar), TimePicker (grid), RecurrencePicker, ListSelect use
+  fixed-position popovers, not native `<select>` or `<input type="date">`.
+- **Toast notifications** for all user-facing feedback (success, error).
+- **Shared constants** — color palette in `constants.ts`, not duplicated across files.
 - All CSS and JS must work in **Safari/WebKit**. No Chromium-only APIs.
 - Minimum **44px tap targets** per Apple HIG.
+- All inputs ≥16px font to prevent iOS Safari zoom.
 
 ---
 
@@ -147,10 +165,11 @@ doit/
 ### `domain` — Business rules (no DB dependency)
 - **Aggregates** (`TaskAggregate`, `ListAggregate`, `LabelAggregate`): pure objects that replay events via `Apply()` and validate commands via `Handle*()` methods
 - **CommandHandler**: orchestrates load → replay → handle → append → project. Verifies user ownership on load.
-- **Commands**: `CreateTask`, `CompleteTask`, `DeleteTask`, `MoveTask`, `AddLabel`, `RemoveLabel`, `CreateSubtask`, etc.
-- **Payloads**: typed structs for `Event.Data` JSON (e.g., `TaskCreatedPayload`, `TaskCompletedPayload`)
+- **Commands**: `CreateTask`, `CompleteTask`, `DeleteTask`, `RestoreTask`, `MoveTask`, `AddLabel`, `RemoveLabel`, `CreateSubtask`, `CompleteSubtask`, `UncompleteSubtask`, `UpdateTaskTitle`, `UpdateTaskPriority`, `UpdateTaskDueDate`, `UpdateTaskDueTime`, `UpdateTaskRecurrence`, `UpdateSubtaskTitle`, etc.
+- **Payloads**: typed structs for `Event.Data` JSON
 - **EventLoader interface** (consumer-defined): `LoadByAggregate` + `Append`
 - **EventProjector interface** (consumer-defined): `Project`
+- **Recurring tasks**: completing a task with recurrence_rule + due_date auto-creates the next occurrence as a separate aggregate
 
 ### `projection` — Events → read model tables
 - `Projector.Project(ctx, []Event)` — dispatches to per-event handlers
@@ -160,6 +179,8 @@ doit/
 ### `handler` — HTTP layer
 - `TaskHandler`, `ListHandler`, `LabelHandler` — each with consumer-defined commander interfaces
 - `AuthHandler` — Google OAuth login/callback, dev login, logout
+- `scanTaskRow` helper — shared task row scanning for List and Get
+- `loadLabelsForTasks` / `loadSubtasksForTasks` — batch loaders to avoid N+1
 - Shared utils: `writeJSON`, `writeError`, `readJSON`, `parseUUID`, `requireUserID`, `mapDomainError`
 
 ### `auth` — Authentication primitives
@@ -184,30 +205,35 @@ POST /auth/logout             → clear cookie
 
 ### Tasks (authenticated via JWT cookie)
 ```
-POST   /api/v1/tasks                           → create task
-GET    /api/v1/tasks                           → list tasks (?list_id, ?is_completed, ?inbox=true)
-GET    /api/v1/tasks/{id}                      → task detail with subtasks + labels
-PATCH  /api/v1/tasks/{id}                      → update description, move to list
-DELETE /api/v1/tasks/{id}                      → soft-delete
-POST   /api/v1/tasks/{id}/complete             → mark complete
-POST   /api/v1/tasks/{id}/uncomplete           → mark incomplete
-POST   /api/v1/tasks/{id}/subtasks             → create subtask
-POST   /api/v1/tasks/{id}/subtasks/{sid}/complete → complete subtask
-POST   /api/v1/tasks/{id}/labels               → add label
-DELETE /api/v1/tasks/{id}/labels/{lid}         → remove label
+POST   /api/v1/tasks                                → create task
+GET    /api/v1/tasks                                → list tasks (?list_id, ?label_id, ?is_completed, ?is_deleted, ?inbox)
+GET    /api/v1/tasks/{id}                           → task detail with subtasks + labels
+PATCH  /api/v1/tasks/{id}                           → update (title, description, priority, due_date, due_time, recurrence_rule, list_id+position)
+DELETE /api/v1/tasks/{id}                           → soft-delete
+POST   /api/v1/tasks/{id}/complete                  → mark complete (auto-creates next for recurring)
+POST   /api/v1/tasks/{id}/uncomplete                → mark incomplete
+POST   /api/v1/tasks/{id}/restore                   → restore from trash
+POST   /api/v1/tasks/{id}/subtasks                  → create subtask
+PATCH  /api/v1/tasks/{id}/subtasks/{sid}            → update subtask title
+POST   /api/v1/tasks/{id}/subtasks/{sid}/complete   → complete subtask
+POST   /api/v1/tasks/{id}/subtasks/{sid}/uncomplete → uncomplete subtask
+POST   /api/v1/tasks/{id}/labels                    → add label
+DELETE /api/v1/tasks/{id}/labels/{lid}              → remove label
 ```
 
 ### Lists & Labels (authenticated)
 ```
-POST /api/v1/lists    → create list
-GET  /api/v1/lists    → all user lists
-POST /api/v1/labels   → create label
-GET  /api/v1/labels   → all user labels
+POST   /api/v1/lists      → create list
+GET    /api/v1/lists       → all user lists
+DELETE /api/v1/lists/{id}  → delete list (moves tasks to inbox)
+POST   /api/v1/labels      → create label
+GET    /api/v1/labels       → all user labels
+DELETE /api/v1/labels/{id}  → delete label (cascade removes from tasks)
 ```
 
 ### Infrastructure (unauthenticated)
 ```
-GET /healthz          → DB connectivity check
+GET /healthz    → DB connectivity check (supports HEAD for Docker health check)
 ```
 
 ---
@@ -215,9 +241,12 @@ GET /healthz          → DB connectivity check
 ## Event Types
 
 ```
-TaskCreated, TaskCompleted, TaskUncompleted, TaskDeleted, TaskMoved,
-TaskDescriptionUpdated, LabelAdded, LabelRemoved, LabelCreated,
-ListCreated, SubtaskCreated, SubtaskCompleted
+TaskCreated, TaskCompleted, TaskUncompleted, TaskDeleted, TaskRestored,
+TaskMoved, TaskTitleUpdated, TaskDescriptionUpdated, TaskPriorityUpdated,
+TaskDueDateUpdated, TaskDueTimeUpdated, TaskRecurrenceUpdated,
+LabelAdded, LabelRemoved, LabelCreated, LabelDeleted,
+ListCreated, ListDeleted,
+SubtaskCreated, SubtaskCompleted, SubtaskUncompleted, SubtaskTitleUpdated
 ```
 
 Aggregate types: `task`, `list`, `label`
@@ -228,15 +257,21 @@ Aggregate types: `task`, `list`, `label`
 
 ```bash
 docker compose up postgres -d                    # start Postgres
-DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable make migrate  # apply migrations
 
-# Dev mode (no Google creds needed):
-DATABASE_URL=... DEV_MODE=true JWT_SECRET=$(openssl rand -base64 32) SECURE_COOKIES=false make run
+# Dev mode (3 terminals):
+# T1: DATABASE_URL=... DEV_MODE=true SECURE_COOKIES=false make run
+# T2: cd web && npm run dev -- --host
+# T3: open http://localhost:5173
+
+# Docker (full stack):
+docker compose up -d --build                     # builds API + serves frontend via Caddy
+open https://localhost
 
 # Tests:
 make test                                        # unit tests
 make test-integration                            # needs running Postgres
 make vet                                         # go vet
+cd web && npm run build                          # frontend build
 ```
 
 ---
@@ -245,12 +280,13 @@ make vet                                         # go vet
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| **Phase 1** | Online-only MVP — event store, projections, CRUD API, Google SSO, Docker Compose | Backend done, frontend pending |
+| **Phase 1** | Online-only MVP — event store, projections, CRUD API+UI, Google SSO, Docker Compose | Backend + frontend done |
 | **Phase 2** | Offline-first + CRDT sync — Dexie.js, service worker, LWW/OR-Set merge, WebSocket push, HLC timestamps | Not started |
-| **Phase 3** | RabbitMQ + workers — transactional outbox, topic exchanges, DLQ, recurring tasks, trash purge, Prometheus/Grafana | Not started |
-| **Phase 4** | Polish — projection rebuilder CLI, calendar view, dark mode, search, subtasks, drag-and-drop, keyboard shortcuts | Not started |
+| **Phase 3** | RabbitMQ + workers — transactional outbox, topic exchanges, DLQ, recurring tasks worker, Prometheus/Grafana | Not started |
+| **Phase 4** | Polish — projection rebuilder CLI, calendar view, dark mode, search, drag-and-drop, keyboard shortcuts | Not started |
 
-See `docs/design-document.md` for full phase details including DDIA reading plan.
+See `docs/design-document.md` for full phase details.
+See `docs/adr/008-phase1-migration-risks.md` for known refactor points between phases.
 
 ---
 
