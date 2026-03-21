@@ -1,13 +1,21 @@
+import { useEffect, useState } from 'react'
 import { useSyncStatus } from '../../hooks/useSyncStatus'
 
 /**
  * Subtle sync status indicator. Shows nothing when fully synced (clean state).
- * Appears only when there's something the user should know about.
+ * Suppressed for the first 3 seconds after mount to avoid flashing during
+ * initial sync cycle.
  */
 export function SyncStatus() {
   const { state, pendingCount } = useSyncStatus()
+  const [ready, setReady] = useState(false)
 
-  if (state === 'synced') return null
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), 5000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (!ready || state === 'synced') return null
 
   return (
     <div className="flex items-center gap-1.5 text-[11px] px-3 py-1.5">

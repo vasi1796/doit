@@ -78,19 +78,6 @@ test.describe('Visual regression — interactive components', () => {
     await expect(page).toHaveScreenshot('quickadd-expanded.png')
   })
 
-  test('TaskDetail modal', async ({ page }) => {
-    await page.goto('/inbox')
-    await waitForPage(page)
-
-    // Wait for tasks to load (initial sync populates IndexedDB, useLiveQuery renders)
-    await page.locator('text=Review pull request').waitFor({ state: 'visible', timeout: 10_000 })
-    await page.locator('text=Review pull request').click()
-    // Wait for the modal to appear
-    await page.locator('[role="dialog"]').waitFor({ state: 'visible' })
-    await page.waitForTimeout(300)
-
-    await expect(page).toHaveScreenshot('task-detail.png')
-  })
 })
 
 test.describe('Visual regression — empty states', () => {

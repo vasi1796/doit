@@ -75,7 +75,7 @@ export function Sidebar({ lists, labels, taskCounts }: SidebarProps) {
   }
 
   return (
-    <aside className="w-[260px] h-screen bg-[#f5f5f7] border-r border-gray-200 flex flex-col shrink-0 overflow-y-auto">
+    <aside className="w-[280px] h-screen bg-[#f5f5f7] border-r border-gray-200 flex flex-col shrink-0 overflow-y-auto pb-[60px] md:pb-0">
       {/* App title */}
       <div className="px-4 pt-4 pb-2">
         <h1 className="text-lg font-semibold text-text-primary">DoIt</h1>

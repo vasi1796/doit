@@ -46,6 +46,10 @@ export class SyncEngine {
       clearTimeout(this.wsTimerId)
       this.wsTimerId = null
     }
+    if (this.nudgeTimer !== null) {
+      clearTimeout(this.nudgeTimer)
+      this.nudgeTimer = null
+    }
     if (this.ws) {
       this.ws.close()
       this.ws = null
@@ -93,13 +97,8 @@ export class SyncEngine {
 
       const result = await res.json()
 
-      // Only delete ops that succeeded — keep failed ones for retry
-      const failedSet = new Set<number>(result.failed_ops ?? [])
-      const succeededIds = ops
-        .filter((_, i) => !failedSet.has(i))
-        .map((op) => op.id!)
-        .filter(Boolean)
-      await db.syncQueue.bulkDelete(succeededIds)
+      const opIds = ops.map((op) => op.id!).filter(Boolean)
+      await db.syncQueue.bulkDelete(opIds)
 
       if (result.cursor) {
         await db.syncState.put({
@@ -122,6 +121,17 @@ export class SyncEngine {
       window.dispatchEvent(new Event('sync:end'))
     }
   }
+
+  /** Trigger a sync soon after a local write. Debounces rapid writes. */
+  nudge(): void {
+    if (this.nudgeTimer) return
+    this.nudgeTimer = setTimeout(() => {
+      this.nudgeTimer = null
+      this.sync()
+    }, 500) // 500ms debounce — batches rapid writes
+  }
+
+  private nudgeTimer: ReturnType<typeof setTimeout> | null = null
 
   // --- WebSocket ---
 
@@ -161,9 +171,7 @@ export class SyncEngine {
       }
     }
 
-    this.ws.onerror = () => {
-      // onclose will fire after onerror — reconnect handled there
-    }
+    this.ws.onerror = () => {}  // onclose handles reconnect
   }
 
   private scheduleWSReconnect(): void {

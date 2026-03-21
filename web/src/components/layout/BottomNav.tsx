@@ -6,14 +6,14 @@ const TABS = [
   { to: '/today', label: 'Today', countKey: 'today', icon: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' },
   { to: '/upcoming', label: 'Upcoming', countKey: 'upcoming', icon: 'M13 17l5-5-5-5M6 17l5-5-5-5' },
   { to: '/completed', label: 'Done', countKey: null, icon: 'M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z' },
-  { to: '/trash', label: 'Trash', countKey: null, icon: 'M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16' },
 ]
 
 interface BottomNavProps {
   taskCounts: { inbox: number; today: number; upcoming: number }
+  onMenuToggle: () => void
 }
 
-export function BottomNav({ taskCounts }: BottomNavProps) {
+export function BottomNav({ taskCounts, onMenuToggle }: BottomNavProps) {
   const { state } = useSyncStatus()
 
   return (
@@ -55,6 +55,21 @@ export function BottomNav({ taskCounts }: BottomNavProps) {
           </NavLink>
         )
       })}
+
+      {/* More button — opens sidebar drawer with lists, labels, trash */}
+      <button
+        type="button"
+        onClick={onMenuToggle}
+        className="flex-1 flex flex-col items-center justify-center min-h-[50px] pt-1.5 pb-1 text-text-secondary"
+        aria-label="More"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+        <span className="text-[10px] mt-0.5">More</span>
+      </button>
     </nav>
   )
 }

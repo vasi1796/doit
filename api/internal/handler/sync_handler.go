@@ -156,11 +156,6 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 			h.logger.Error().Err(err).Msg("sync: failed to load events for pull")
 		} else {
 			resp.Events = events
-			// Push events to OTHER connected WS clients (not the one that synced).
-			// The sync response already includes these events for the pushing client.
-			// Passing nil as sender broadcasts to all WS clients — the pushing client
-			// is an HTTP client, not a WS client, so nil correctly excludes no one.
-			// This is acceptable: the client-side merge is idempotent (LWW comparison).
 			h.hub.Broadcast(userID, events, nil)
 		}
 	}

@@ -50,10 +50,12 @@ export function TaskItem({ task, onSelect }: TaskItemProps) {
   const subtasksDone = subtasks.filter(s => s.is_completed).length
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(task.id)}
-      className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-[#f8f8fa] text-left transition-all duration-300 relative ${
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(task.id) }}
+      className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-[#f8f8fa] text-left transition-all duration-300 relative cursor-pointer ${
         fading ? 'opacity-0 max-h-0 py-0 overflow-hidden' : 'opacity-100'
       }`}
     >
@@ -129,6 +131,6 @@ export function TaskItem({ task, onSelect }: TaskItemProps) {
           </div>
         )}
       </div>
-    </button>
+    </div>
   )
 }
