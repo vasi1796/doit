@@ -1,0 +1,159 @@
+import { useState } from 'react'
+import { api } from '../../api/client'
+import { useToast } from '../common/Toast'
+import { PriorityFlag } from '../common/PriorityDot'
+import type { Task } from '../../api/types'
+
+const PRIORITY_COLORS: Record<number, string> = {
+  1: '#4cd964',
+  2: '#ff9500',
+  3: '#ff3b30',
+}
+
+function formatDueDate(dateStr: string, timeStr?: string): { text: string; overdue: boolean } {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const date = new Date(dateStr + 'T00:00:00')
+  const diff = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+  let dateText: string
+  if (diff < 0) dateText = 'Overdue'
+  else if (diff === 0) dateText = 'Today'
+  else if (diff === 1) dateText = 'Tomorrow'
+  else if (diff < 7) dateText = date.toLocaleDateString('en-US', { weekday: 'short' })
+  else dateText = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+
+  if (timeStr) {
+    const [h, m] = timeStr.split(':').map(Number)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const hour = h % 12 || 12
+    dateText += ` ${hour}:${m.toString().padStart(2, '0')} ${ampm}`
+  }
+
+  return { text: dateText, overdue: diff < 0 }
+}
+
+interface TaskItemProps {
+  task: Task
+  onChanged: () => void
+  onSelect: (id: string) => void
+}
+
+export function TaskItem({ task, onChanged, onSelect }: TaskItemProps) {
+  const { toast } = useToast()
+  const [completing, setCompleting] = useState(false)
+  const [fading, setFading] = useState(false)
+
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (completing) return
+    try {
+      if (task.is_completed) {
+        await api.uncompleteTask(task.id)
+        onChanged()
+      } else {
+        setCompleting(true)
+        await api.completeTask(task.id)
+        if (task.recurrence_rule) toast('Done! Next occurrence created', 'success')
+        setTimeout(() => {
+          setFading(true)
+          setTimeout(() => onChanged(), 300)
+        }, 400)
+      }
+    } catch (err) {
+      setCompleting(false)
+      setFading(false)
+      toast(err instanceof Error ? err.message : 'Failed', 'error')
+    }
+  }
+
+  const due = task.due_date ? formatDueDate(task.due_date, task.due_time) : null
+  const checked = task.is_completed || completing
+  const priorityColor = PRIORITY_COLORS[task.priority]
+  const labels = task.labels || []
+  const subtasks = task.subtasks || []
+  const subtasksDone = subtasks.filter(s => s.is_completed).length
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(task.id)}
+      className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-[#f8f8fa] text-left transition-all duration-300 relative ${
+        fading ? 'opacity-0 max-h-0 py-0 overflow-hidden' : 'opacity-100'
+      }`}
+    >
+      {priorityColor && (
+        <span className="absolute left-0 top-3 bottom-3 w-[4px] rounded-r-full" style={{ backgroundColor: priorityColor }} />
+      )}
+
+      <button
+        type="button"
+        onClick={handleToggle}
+        aria-label={checked ? 'Mark incomplete' : 'Mark complete'}
+        className={`w-[22px] h-[22px] mt-0.5 rounded-full border-2 shrink-0 flex items-center justify-center cursor-pointer transition-all duration-200 ${
+          checked ? 'bg-[#007aff] border-[#007aff] scale-110' : 'border-[#c7c7cc] hover:border-[#007aff]'
+        }`}
+      >
+        {checked && (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="animate-[check_0.2s_ease-out]">
+            <path d="m5 12 5 5L20 7" />
+          </svg>
+        )}
+      </button>
+
+      <div className="flex-1 min-w-0 py-0.5">
+        <div className="flex items-center gap-2">
+          <span className={`flex-1 text-[15px] leading-snug truncate ${checked ? 'line-through text-[#86868b]' : 'text-[#1d1d1f]'}`}>
+            {task.title}
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <PriorityFlag priority={task.priority} size={13} />
+            {due && (
+              <span className={`text-[12px] whitespace-nowrap ${due.overdue ? 'text-[#ff3b30] font-medium' : 'text-[#86868b]'}`}>
+                {due.text}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {task.description && (
+          <span className="text-[12px] text-[#86868b] block truncate mt-0.5">{task.description}</span>
+        )}
+
+        {(labels.length > 0 || task.recurrence_rule || subtasks.length > 0) && (
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {task.recurrence_rule && (
+              <span className="text-[11px] text-[#86868b] flex items-center gap-0.5">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                  <path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                </svg>
+                {task.recurrence_rule}
+              </span>
+            )}
+            {subtasks.length > 0 && (
+              <span className="text-[11px] text-[#86868b] flex items-center gap-1">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+                {subtasksDone}/{subtasks.length}
+              </span>
+            )}
+            {labels.map((label) => (
+              <span
+                key={label.id}
+                className="text-[11px] px-2 py-0.5 rounded-full font-medium"
+                style={{
+                  backgroundColor: (label.colour || '#86868b') + '18',
+                  color: label.colour || '#86868b',
+                }}
+              >
+                {label.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </button>
+  )
+}
