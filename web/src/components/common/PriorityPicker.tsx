@@ -1,4 +1,6 @@
-const PRIORITIES = [
+import type { Priority } from '../../api/types'
+
+const PRIORITIES: { value: Priority; label: string; color: string }[] = [
   { value: 0, label: 'None', color: '#86868b' },
   { value: 1, label: 'Low', color: '#4cd964' },
   { value: 2, label: 'Medium', color: '#ff9500' },
@@ -6,8 +8,8 @@ const PRIORITIES = [
 ]
 
 interface PriorityPickerProps {
-  value: number
-  onChange: (priority: number) => void
+  value: Priority
+  onChange: (priority: Priority) => void
   compact?: boolean
 }
 
@@ -72,6 +74,6 @@ export function PriorityPicker({ value, onChange, compact = false }: PriorityPic
   )
 }
 
-export function priorityLabel(value: number): string {
+export function priorityLabel(value: Priority): string {
   return PRIORITIES[value]?.label || 'None'
 }

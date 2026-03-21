@@ -3,9 +3,9 @@ import { api } from '../../api/client'
 import { useToast } from '../common/Toast'
 import { PriorityFlag } from '../common/PriorityDot'
 import { formatDueDate } from '../../utils/date'
-import type { Task } from '../../api/types'
+import type { Task, Priority } from '../../api/types'
 
-const PRIORITY_COLORS: Record<number, string> = {
+const PRIORITY_COLORS: Partial<Record<Priority, string>> = {
   1: '#4cd964',
   2: '#ff9500',
   3: '#ff3b30',

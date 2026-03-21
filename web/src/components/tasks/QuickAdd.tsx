@@ -6,7 +6,7 @@ import { DatePicker } from '../common/DatePicker'
 import { TimePicker } from '../common/TimePicker'
 import { RecurrencePicker } from '../common/RecurrencePicker'
 import { ListSelect } from '../common/ListSelect'
-import type { List, Label } from '../../api/types'
+import type { List, Label, Priority } from '../../api/types'
 import { PRESET_COLORS } from '../../constants'
 
 interface QuickAddProps {
@@ -22,7 +22,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
   const { toast } = useToast()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [priority, setPriority] = useState(0)
+  const [priority, setPriority] = useState<Priority>(0)
   const [dueDate, setDueDate] = useState('')
   const [dueTime, setDueTime] = useState('')
   const [recurrence, setRecurrence] = useState('')
@@ -32,7 +32,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
   const [submitting, setSubmitting] = useState(false)
   const [creatingLabel, setCreatingLabel] = useState(false)
   const [newLabelName, setNewLabelName] = useState('')
-  const [newLabelColor, setNewLabelColor] = useState(PRESET_COLORS[0])
+  const [newLabelColour, setNewLabelColour] = useState(PRESET_COLORS[0])
   const inputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
@@ -212,7 +212,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
                   e.preventDefault()
                   if (!newLabelName.trim()) return
                   try {
-                    const result = await api.createLabel({ name: newLabelName.trim(), colour: newLabelColor })
+                    const result = await api.createLabel({ name: newLabelName.trim(), colour: newLabelColour })
                     setSelectedLabelIds(prev => [...prev, result.id])
                     setNewLabelName('')
                     setCreatingLabel(false)
@@ -229,8 +229,8 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
                     <button
                       key={c}
                       type="button"
-                      onClick={() => setNewLabelColor(c)}
-                      className={`w-4 h-4 rounded-full ${newLabelColor === c ? 'ring-2 ring-offset-1 ring-[#007aff]/40' : ''}`}
+                      onClick={() => setNewLabelColour(c)}
+                      className={`w-4 h-4 rounded-full ${newLabelColour === c ? 'ring-2 ring-offset-1 ring-[#007aff]/40' : ''}`}
                       style={{ backgroundColor: c }}
                     />
                   ))}

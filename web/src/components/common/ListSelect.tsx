@@ -17,7 +17,7 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
   const { open, pos, triggerRef, toggle, close } = usePopover({ contentWidth: 200 })
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newColor, setNewColor] = useState(PRESET_COLORS[0])
+  const [newColour, setNewColour] = useState(PRESET_COLORS[0])
 
   const currentList = lists.find((l) => l.id === value)
   const displayName = currentList?.name || 'Inbox'
@@ -29,7 +29,7 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
     try {
       const result = await api.createList({
         name: newName.trim(),
-        colour: newColor,
+        colour: newColour,
         position: Date.now().toString(),
       })
       setNewName('')
@@ -101,8 +101,8 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
                       <button
                         key={c}
                         type="button"
-                        onClick={() => setNewColor(c)}
-                        className={`w-5 h-5 rounded-full ${newColor === c ? 'ring-2 ring-offset-1 ring-[#007aff]/40' : ''}`}
+                        onClick={() => setNewColour(c)}
+                        className={`w-5 h-5 rounded-full ${newColour === c ? 'ring-2 ring-offset-1 ring-[#007aff]/40' : ''}`}
                         style={{ backgroundColor: c }}
                       />
                     ))}

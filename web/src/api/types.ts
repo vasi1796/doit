@@ -1,9 +1,11 @@
+export type Priority = 0 | 1 | 2 | 3
+
 export interface Task {
   id: string
   list_id?: string
   title: string
   description?: string
-  priority: number
+  priority: Priority
   due_date?: string
   due_time?: string
   position: string
@@ -44,7 +46,8 @@ export interface List {
 export interface CreateTaskRequest {
   title: string
   description?: string
-  priority: number
+  priority: Priority
+  recurrence_rule?: string
   due_date?: string
   due_time?: string
   list_id?: string
@@ -54,7 +57,7 @@ export interface CreateTaskRequest {
 export interface UpdateTaskRequest {
   title?: string
   description?: string
-  priority?: number
+  priority?: Priority
   due_date?: string
   due_time?: string
   recurrence_rule?: string
