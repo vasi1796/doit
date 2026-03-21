@@ -153,13 +153,17 @@ No rollback on failure — the sync engine retries with exponential backoff.
 - **Table-driven tests** in Go — no exceptions.
 - **Integration tests** (build tag `//go:build integration`) for event store
   and projection flows against real Postgres.
+- **Full-stack integration tests** (BLOCKER for Phase 4): Must exist before
+  starting Phase 4. These run the full pipeline (API + Postgres + RabbitMQ +
+  workers) and verify core user flows:
+  1. Create task → appears in read model via projection worker
+  2. Complete recurring task with labels → next occurrence has recurrence rule + labels
+  3. Sync push from client → events reach server and project correctly
 - **Visual regression tests** (Playwright + WebKit) compare page screenshots
   against committed baselines. Run with `cd web && npm run test:visual`.
 - **Accessibility tests** (Playwright + axe-core) scan all pages for WCAG 2.0
   AA violations and 16px input font sizes.
 - **ESLint jsx-a11y** plugin enforces accessibility rules at lint time.
-- **Console error tests** verify no unexpected errors on page load.
-- **Mobile interaction tests** verify drawer navigation, task creation on mobile viewport.
 - **No flaky tests.** E2E tests must pass deterministically without retries.
   Do not use `waitForTimeout` as a fix for race conditions — wait for specific
   elements or URLs. Do not add retries to mask flakiness. If a test cannot be

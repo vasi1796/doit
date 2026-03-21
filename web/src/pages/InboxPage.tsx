@@ -20,7 +20,7 @@ export function InboxPage() {
         tasks={tasks}
         loading={loading}
         emptyMessage="Your inbox is clear"
-        emptyHint="Press Cmd+N to add a task"
+        emptyHint="Tap New task to get started"
         onTaskSelect={setSelectedId}
       />
       {selectedId && (

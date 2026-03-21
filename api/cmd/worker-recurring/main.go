@@ -130,6 +130,20 @@ func handleRecurring(ctx context.Context, store *eventstore.Store, cmdHandler *d
 		return err
 	}
 
+	// Set recurrence rule on the new task
+	if err := cmdHandler.UpdateTaskRecurrence(ctx, cmd.TaskID, em.UserID, domain.UpdateTaskRecurrence{
+		RecurrenceRule: agg.RecurrenceRule(),
+	}); err != nil {
+		logger.Warn().Err(err).Msg("failed to set recurrence on new task")
+	}
+
+	// Copy labels from original task
+	for _, labelID := range agg.Labels() {
+		if err := cmdHandler.AddLabel(ctx, cmd.TaskID, em.UserID, domain.AddLabel{LabelID: labelID}); err != nil {
+			logger.Warn().Err(err).Str("label_id", labelID.String()).Msg("failed to copy label to new task")
+		}
+	}
+
 	logger.Info().
 		Str("original_task", em.AggregateID.String()).
 		Str("new_task", cmd.TaskID.String()).

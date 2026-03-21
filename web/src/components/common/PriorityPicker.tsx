@@ -16,14 +16,14 @@ interface PriorityPickerProps {
 export function PriorityPicker({ value, onChange, compact = false }: PriorityPickerProps) {
   if (compact) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 flex-wrap">
         {PRIORITIES.map((p) => (
           <button
             key={p.value}
             type="button"
             onClick={() => onChange(p.value)}
             aria-label={`Priority: ${p.label}`}
-            className={`min-h-[36px] flex items-center justify-center rounded-lg transition-all text-[13px] font-medium gap-1.5 px-3 ${
+            className={`min-h-[36px] flex items-center justify-center rounded-lg transition-all text-[13px] font-medium gap-1 px-2 ${
               value === p.value
                 ? 'bg-gray-100 ring-1 ring-gray-200'
                 : 'hover:bg-gray-50 opacity-40 hover:opacity-70'
@@ -37,7 +37,7 @@ export function PriorityPicker({ value, onChange, compact = false }: PriorityPic
                 <line x1="4" y1="22" x2="4" y2="15" />
               </svg>
             )}
-            <span style={{ color: p.color }}>{p.label}</span>
+            <span className="hidden sm:inline" style={{ color: p.color }}>{p.label}</span>
           </button>
         ))}
       </div>
