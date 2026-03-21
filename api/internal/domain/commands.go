@@ -13,8 +13,9 @@ type CreateTask struct {
 	UserID      uuid.UUID
 	Title       string
 	Description string
-	Priority    int
+	Priority    Priority
 	DueDate     *time.Time
+	DueTime     *string
 	ListID      *uuid.UUID
 	Position    string
 }
@@ -29,6 +30,8 @@ type DeleteTask struct {
 	DeletedAt time.Time
 }
 
+type RestoreTask struct{}
+
 type MoveTask struct {
 	ListID   uuid.UUID
 	Position string
@@ -36,6 +39,18 @@ type MoveTask struct {
 
 type UpdateTaskDescription struct {
 	Description string
+}
+
+type UpdateTaskTitle struct {
+	Title string
+}
+
+type UpdateTaskPriority struct {
+	Priority Priority
+}
+
+type UpdateTaskDueDate struct {
+	DueDate *time.Time
 }
 
 type AddLabel struct {
@@ -57,6 +72,23 @@ type CompleteSubtask struct {
 	CompletedAt time.Time
 }
 
+type UpdateSubtaskTitle struct {
+	SubtaskID uuid.UUID
+	Title     string
+}
+
+type UncompleteSubtask struct {
+	SubtaskID uuid.UUID
+}
+
+type UpdateTaskRecurrence struct {
+	RecurrenceRule RecurrenceRule
+}
+
+type UpdateTaskDueTime struct {
+	DueTime *string
+}
+
 // List commands
 
 type CreateList struct {
@@ -68,6 +100,10 @@ type CreateList struct {
 	Position string
 }
 
+type DeleteList struct {
+	DeletedAt time.Time
+}
+
 // Label commands
 
 type CreateLabel struct {
@@ -75,4 +111,8 @@ type CreateLabel struct {
 	UserID  uuid.UUID
 	Name    string
 	Colour  string
+}
+
+type DeleteLabel struct {
+	DeletedAt time.Time
 }

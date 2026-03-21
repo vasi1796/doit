@@ -119,8 +119,8 @@ func TestCommandHandlerAppendError(t *testing.T) {
 	}
 
 	err := handler.CreateTask(context.Background(), cmd)
-	if !errors.Is(err, eventstore.ErrVersionConflict) {
-		t.Fatalf("got error %v, want %v", err, eventstore.ErrVersionConflict)
+	if !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("got error %v, want %v", err, ErrVersionConflict)
 	}
 	if len(proj.projected) != 0 {
 		t.Errorf("projected %d events, want 0 (append failed)", len(proj.projected))

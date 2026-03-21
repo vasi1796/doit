@@ -44,6 +44,18 @@ func (m *mockTaskCommander) UpdateTaskDescription(_ context.Context, _ uuid.UUID
 	m.lastCmd = cmd
 	return m.err
 }
+func (m *mockTaskCommander) UpdateTaskTitle(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateTaskTitle) error {
+	m.lastCmd = cmd
+	return m.err
+}
+func (m *mockTaskCommander) UpdateTaskPriority(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateTaskPriority) error {
+	m.lastCmd = cmd
+	return m.err
+}
+func (m *mockTaskCommander) UpdateTaskDueDate(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateTaskDueDate) error {
+	m.lastCmd = cmd
+	return m.err
+}
 func (m *mockTaskCommander) AddLabel(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.AddLabel) error {
 	m.lastCmd = cmd
 	return m.err
@@ -57,6 +69,26 @@ func (m *mockTaskCommander) CreateSubtask(_ context.Context, _ uuid.UUID, _ uuid
 	return m.err
 }
 func (m *mockTaskCommander) CompleteSubtask(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.CompleteSubtask) error {
+	m.lastCmd = cmd
+	return m.err
+}
+func (m *mockTaskCommander) RestoreTask(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.RestoreTask) error {
+	m.lastCmd = cmd
+	return m.err
+}
+func (m *mockTaskCommander) UpdateTaskRecurrence(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateTaskRecurrence) error {
+	m.lastCmd = cmd
+	return m.err
+}
+func (m *mockTaskCommander) UpdateTaskDueTime(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateTaskDueTime) error {
+	m.lastCmd = cmd
+	return m.err
+}
+func (m *mockTaskCommander) UncompleteSubtask(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UncompleteSubtask) error {
+	m.lastCmd = cmd
+	return m.err
+}
+func (m *mockTaskCommander) UpdateSubtaskTitle(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateSubtaskTitle) error {
 	m.lastCmd = cmd
 	return m.err
 }

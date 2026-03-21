@@ -1,0 +1,133 @@
+import { useState, useRef } from 'react'
+import { api } from '../../api/client'
+import { useToast } from '../common/Toast'
+import type { Subtask } from '../../api/types'
+
+function SubtaskItem({ subtask, taskId, onChanged }: { subtask: Subtask; taskId: string; onChanged: () => void }) {
+  const { toast } = useToast()
+  const [editing, setEditing] = useState(false)
+  const [editValue, setEditValue] = useState(subtask.title)
+
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      if (subtask.is_completed) {
+        await api.uncompleteSubtask(taskId, subtask.id)
+      } else {
+        await api.completeSubtask(taskId, subtask.id)
+      }
+      onChanged()
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed', 'error')
+    }
+  }
+
+  const handleSave = async () => {
+    setEditing(false)
+    const trimmed = editValue.trim()
+    if (!trimmed || trimmed === subtask.title) {
+      setEditValue(subtask.title)
+      return
+    }
+    try {
+      await api.updateSubtaskTitle(taskId, subtask.id, trimmed)
+      onChanged()
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to update', 'error')
+      setEditValue(subtask.title)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2 min-h-[36px] px-1 rounded hover:bg-gray-50 group">
+      <button
+        type="button"
+        onClick={handleToggle}
+        className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-colors ${
+          subtask.is_completed ? 'bg-[#007aff] border-[#007aff]' : 'border-gray-300 hover:border-[#007aff]'
+        }`}
+      >
+        {subtask.is_completed && (
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
+            <path d="m5 12 5 5L20 7" />
+          </svg>
+        )}
+      </button>
+      {editing ? (
+        <input
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false) }}
+          className="flex-1 text-base outline-none border-b border-[#007aff] py-0.5"
+          autoFocus
+        />
+      ) : (
+        <span
+          onClick={() => !subtask.is_completed && setEditing(true)}
+          className={`flex-1 text-sm cursor-text ${subtask.is_completed ? 'line-through text-[#86868b]' : ''}`}
+        >
+          {subtask.title}
+        </span>
+      )}
+    </div>
+  )
+}
+
+interface SubtaskSectionProps {
+  taskId: string
+  subtasks: Subtask[]
+  onChanged: () => void
+}
+
+export function SubtaskSection({ taskId, subtasks, onChanged }: SubtaskSectionProps) {
+  const { toast } = useToast()
+  const [newTitle, setNewTitle] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newTitle.trim()) return
+    try {
+      await api.createSubtask(taskId, {
+        title: newTitle.trim(),
+        position: Date.now().toString(),
+      })
+      setNewTitle('')
+      onChanged()
+      setTimeout(() => inputRef.current?.focus(), 50)
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to add subtask', 'error')
+    }
+  }
+
+  const completed = subtasks.filter(s => s.is_completed).length
+
+  return (
+    <div className="mb-4">
+      <h3 className="text-xs font-medium text-[#86868b] uppercase tracking-wide mb-2">
+        Subtasks{subtasks.length > 0 && ` (${completed}/${subtasks.length})`}
+      </h3>
+      <div className="space-y-0.5">
+        {subtasks.map((st) => (
+          <SubtaskItem key={st.id} subtask={st} taskId={taskId} onChanged={onChanged} />
+        ))}
+        <form onSubmit={handleAdd} className="flex items-center gap-2 min-h-[36px] px-1">
+          <span className="w-4 h-4 rounded border border-gray-200 shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Add subtask..."
+            className="flex-1 text-base outline-none placeholder:text-[#86868b]"
+          />
+          {newTitle.trim() && (
+            <button type="submit" className="text-[#007aff] text-xs font-medium">Add</button>
+          )}
+        </form>
+      </div>
+    </div>
+  )
+}

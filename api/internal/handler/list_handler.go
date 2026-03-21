@@ -15,6 +15,7 @@ import (
 // ListCommander is the interface the list handler needs from the domain.
 type ListCommander interface {
 	CreateList(ctx context.Context, cmd domain.CreateList) error
+	DeleteList(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.DeleteList) error
 }
 
 type ListHandler struct {
@@ -109,4 +110,26 @@ func (h *ListHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, h.logger, http.StatusOK, lists)
+}
+
+// Delete handles DELETE /api/v1/lists/{id}
+func (h *ListHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	userID, ok := requireUserID(w, h.logger, r)
+	if !ok {
+		return
+	}
+
+	listID, ok := parseUUID(w, h.logger, r, "id")
+	if !ok {
+		return
+	}
+
+	err := h.cmds.DeleteList(r.Context(), listID, userID, domain.DeleteList{
+		DeletedAt: time.Now().UTC(),
+	})
+	if mapDomainError(w, h.logger, err) {
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

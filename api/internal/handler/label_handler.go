@@ -15,6 +15,7 @@ import (
 // LabelCommander is the interface the label handler needs from the domain.
 type LabelCommander interface {
 	CreateLabel(ctx context.Context, cmd domain.CreateLabel) error
+	DeleteLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.DeleteLabel) error
 }
 
 type LabelHandler struct {
@@ -101,4 +102,26 @@ func (h *LabelHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, h.logger, http.StatusOK, labels)
+}
+
+// Delete handles DELETE /api/v1/labels/{id}
+func (h *LabelHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	userID, ok := requireUserID(w, h.logger, r)
+	if !ok {
+		return
+	}
+
+	labelID, ok := parseUUID(w, h.logger, r, "id")
+	if !ok {
+		return
+	}
+
+	err := h.cmds.DeleteLabel(r.Context(), labelID, userID, domain.DeleteLabel{
+		DeletedAt: time.Now().UTC(),
+	})
+	if mapDomainError(w, h.logger, err) {
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

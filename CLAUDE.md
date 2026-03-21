@@ -7,8 +7,8 @@
 ## Project Overview
 
 DoIt is a self-hosted, offline-first task management PWA for Safari/Apple
-ecosystem. Event-sourced backend in Go, React/TypeScript frontend with
-Dexie.js for local state. See AGENTS.md for full architectural context.
+ecosystem. Event-sourced backend in Go, React/TypeScript frontend.
+See AGENTS.md for full architectural context.
 
 ---
 
@@ -27,8 +27,14 @@ api/              Go backend
     middleware/     JWT auth middleware
     projection/    Event → read model table updates
   migrations/     SQL migration files
-web/              React frontend (not yet implemented)
-docs/adr/         Architecture Decision Records
+web/              React frontend
+  src/
+    api/           Typed fetch client + TypeScript interfaces
+    components/    Common pickers, layout (sidebar/bottom nav), task components
+    hooks/         Data fetching hooks (useTasks, useLists, useLabels, useTaskDetail)
+    pages/         Route pages (Inbox, Today, Upcoming, List, Label, Completed, Trash, Login)
+    constants.ts   Shared color palette
+docs/adr/         Architecture Decision Records (8 total)
 scripts/          Backup and utility scripts
 ```
 
@@ -45,19 +51,24 @@ scripts/          Backup and utility scripts
   that return errors unless there is a documented reason.
 - Interfaces are defined by the consumer package, not the provider.
 - Keep functions short and focused. Prefer composition over inheritance.
+- Extract helpers when functions exceed ~80 lines (`scanTaskRow`, `loadLabelsForTasks`, etc.).
 
 ### Frontend (TypeScript/React)
 - Use functional components with hooks.
 - Tailwind CSS for styling. No CSS modules or styled-components.
-- All browser APIs must work in Safari/WebKit. Test assumptions against
-  WebKit compatibility.
+- All browser APIs must work in Safari/WebKit. No Chromium-only APIs.
 - Minimum 44px touch targets (Apple HIG).
+- All text inputs ≥16px font size to prevent iOS Safari auto-zoom.
+- Custom pickers (DatePicker, TimePicker, RecurrencePicker, ListSelect) — use
+  fixed-position popovers, not native `<select>` or `<input type="date/time">`.
+- Toast notifications for all user-facing feedback.
+- Shared color constants in `constants.ts`.
+- `aria-label` on all icon-only buttons and placeholder-only inputs.
 
 ### Commit Messages
 - Use conventional commit format: `type(scope): description`
 - Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`
-- Scope examples: `eventstore`, `projection`, `sync`, `ui`, `auth`, `domain`
-- Example: `feat(eventstore): add aggregate snapshot support`
+- Scope examples: `eventstore`, `projection`, `sync`, `ui`, `auth`, `domain`, `web`
 - Keep the subject line under 72 characters.
 
 ---
@@ -70,24 +81,23 @@ These rules are non-negotiable. Violating them will break the architecture.
 Never write directly to read model tables (`tasks`, `lists`, `labels`, etc.).
 All changes produce events that are appended to the `events` table. Projection
 handlers then update read models from those events.
+Exception: list/label deletion uses direct SQL in Phase 1 (not event-sourced).
 
 ### 2. Every event handler must be idempotent
 Event handlers (projections, workers) may receive the same event more than once.
 They must produce the same result regardless of how many times they process an
 event. Use `ON CONFLICT` for inserts, plain `UPDATE` for modifications.
 
-### 3. Frontend state comes only from Dexie.js useLiveQuery
-Do NOT introduce Redux, Zustand, Jotai, React Context for state management,
-or any other state library. The data flow is:
-```
-User action -> Dexie.js write to IndexedDB -> useLiveQuery auto-updates -> React re-renders
-```
+### 3. Frontend state comes only from hooks (Phase 1) or Dexie.js useLiveQuery (Phase 2)
+Do NOT introduce Redux, Zustand, Jotai, or any other state library.
+React Context is used only for layout-level shared data (lists, labels, counts).
 
 ### 4. Safari/WebKit only — no Chromium-only APIs
 This is a Safari PWA. Do not use:
 - Background Sync API (not available in Safari)
 - Web Bluetooth, Web USB, or other Chromium-only APIs
 - CSS features without WebKit support
+- Native `<input type="date/time">` — use custom pickers instead (Safari PWA compatibility)
 
 ### 5. Minimum 44px tap targets
 All interactive elements must have at least 44x44px touch targets per Apple
@@ -105,7 +115,7 @@ verify the aggregate belongs to the requesting user (done in `loadTaskAggregate`
 - **Table-driven tests** in Go — no exceptions.
 - **Integration tests** (build tag `//go:build integration`) for event store
   and projection flows against real Postgres.
-- Frontend: test Dexie.js database operations and sync logic.
+- Frontend: no tests yet (Phase 1). Add when Dexie.js is introduced (Phase 2).
 
 ---
 
@@ -115,17 +125,16 @@ verify the aggregate belongs to the requesting user (done in `loadTaskAggregate`
 # Start Postgres
 docker compose up postgres -d
 
-# Run migrations
-DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable make migrate
+# Run API locally (dev mode)
+set -a && source .env && set +a
+DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable \
+DEV_MODE=true SECURE_COOKIES=false make run
 
-# Run API (dev mode)
-DATABASE_URL=... DEV_MODE=true JWT_SECRET=... SECURE_COOKIES=false make run
+# Run frontend dev server (hot reload)
+cd web && npm run dev -- --host
 
 # Run Go tests
 make test
-
-# Run Go tests with verbose output
-make test-verbose
 
 # Run integration tests (needs Postgres)
 make test-integration
@@ -133,11 +142,11 @@ make test-integration
 # Run Go vet
 make vet
 
-# Run frontend dev server
-cd web && npm run dev
+# Build frontend
+cd web && npm run build
 
-# Build everything
-make build
+# Docker full stack
+docker compose up -d --build
 ```
 
 ---
@@ -156,13 +165,17 @@ make build
 ## Event Naming Reference
 
 Events: `TaskCreated`, `TaskCompleted`, `TaskUncompleted`, `TaskDeleted`,
-`TaskMoved`, `TaskDescriptionUpdated`, `LabelAdded`, `LabelRemoved`,
-`LabelCreated`, `ListCreated`, `SubtaskCreated`, `SubtaskCompleted`
+`TaskRestored`, `TaskMoved`, `TaskTitleUpdated`, `TaskDescriptionUpdated`,
+`TaskPriorityUpdated`, `TaskDueDateUpdated`, `TaskDueTimeUpdated`,
+`TaskRecurrenceUpdated`, `LabelAdded`, `LabelRemoved`, `LabelCreated`,
+`LabelDeleted`, `ListCreated`, `ListDeleted`, `SubtaskCreated`,
+`SubtaskCompleted`, `SubtaskUncompleted`, `SubtaskTitleUpdated`
 
 ---
 
 ## Useful Context Files
 
 - `AGENTS.md` — full architecture overview, package guide, API endpoints
-- `docs/adr/` — Architecture Decision Records explaining key design choices
+- `docs/adr/` — Architecture Decision Records (8 total)
+- `docs/adr/008-phase1-migration-risks.md` — known refactor points for Phase 2-4
 - `docs/design-document.md` — complete design specification

@@ -11,7 +11,6 @@ import (
 
 	"github.com/vasi1796/doit/internal/auth"
 	"github.com/vasi1796/doit/internal/domain"
-	"github.com/vasi1796/doit/internal/eventstore"
 )
 
 func writeJSON(w http.ResponseWriter, logger zerolog.Logger, status int, data any) {
@@ -32,6 +31,7 @@ func writeError(w http.ResponseWriter, logger zerolog.Logger, status int, msg st
 func readJSON(w http.ResponseWriter, logger zerolog.Logger, r *http.Request, dst any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		logger.Debug().Err(err).Str("content_type", r.Header.Get("Content-Type")).Int64("content_length", r.ContentLength).Msg("readJSON failed")
 		writeError(w, logger, http.StatusBadRequest, "invalid JSON body")
 		return false
 	}
@@ -78,20 +78,27 @@ func mapDomainError(w http.ResponseWriter, logger zerolog.Logger, err error) boo
 
 	// 400 Bad Request
 	case errors.Is(err, domain.ErrEmptyTitle),
-		errors.Is(err, domain.ErrInvalidPriority):
+		errors.Is(err, domain.ErrEmptyName),
+		errors.Is(err, domain.ErrInvalidPriority),
+		errors.Is(err, domain.ErrInvalidRecurrenceRule),
+		errors.Is(err, domain.ErrInvalidDueTime):
 		writeError(w, logger, http.StatusBadRequest, err.Error())
 
 	// 409 Conflict
 	case errors.Is(err, domain.ErrTaskAlreadyCompleted),
 		errors.Is(err, domain.ErrTaskAlreadyDeleted),
 		errors.Is(err, domain.ErrTaskNotCompleted),
+		errors.Is(err, domain.ErrTaskNotDeleted),
 		errors.Is(err, domain.ErrTaskAlreadyCreated),
 		errors.Is(err, domain.ErrListAlreadyCreated),
 		errors.Is(err, domain.ErrLabelAlreadyCreated),
+		errors.Is(err, domain.ErrListAlreadyDeleted),
+		errors.Is(err, domain.ErrLabelAlreadyDeleted),
 		errors.Is(err, domain.ErrLabelAlreadyAttached),
 		errors.Is(err, domain.ErrLabelNotAttached),
 		errors.Is(err, domain.ErrSubtaskAlreadyCompleted),
-		errors.Is(err, eventstore.ErrVersionConflict):
+		errors.Is(err, domain.ErrSubtaskNotCompleted),
+		errors.Is(err, domain.ErrVersionConflict):
 		writeError(w, logger, http.StatusConflict, err.Error())
 
 	// 500 Internal Server Error

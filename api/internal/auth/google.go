@@ -59,11 +59,7 @@ func (g *GoogleOAuth) Exchange(ctx context.Context, code string) (*GoogleUser, e
 	if err != nil {
 		return nil, fmt.Errorf("fetching user info: %w", err)
 	}
-	defer func() {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			fmt.Printf("auth: failed to close response body: %v\n", closeErr)
-		}
-	}()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body) //nolint:errcheck

@@ -9,8 +9,9 @@ import (
 type TaskCreatedPayload struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description,omitempty"`
-	Priority    int        `json:"priority"`
+	Priority    Priority   `json:"priority"`
 	DueDate     *time.Time `json:"due_date,omitempty"`
+	DueTime     *string    `json:"due_time,omitempty"`
 	ListID      *uuid.UUID `json:"list_id,omitempty"`
 	Position    string     `json:"position"`
 }
@@ -32,6 +33,18 @@ type TaskMovedPayload struct {
 
 type TaskDescriptionUpdatedPayload struct {
 	Description string `json:"description"`
+}
+
+type TaskTitleUpdatedPayload struct {
+	Title string `json:"title"`
+}
+
+type TaskPriorityUpdatedPayload struct {
+	Priority Priority `json:"priority"`
+}
+
+type TaskDueDateUpdatedPayload struct {
+	DueDate *time.Time `json:"due_date,omitempty"`
 }
 
 type LabelAddedPayload struct {
@@ -63,4 +76,31 @@ type SubtaskCreatedPayload struct {
 type SubtaskCompletedPayload struct {
 	SubtaskID   uuid.UUID `json:"subtask_id"`
 	CompletedAt time.Time `json:"completed_at"`
+}
+
+type SubtaskTitleUpdatedPayload struct {
+	SubtaskID uuid.UUID `json:"subtask_id"`
+	Title     string    `json:"title"`
+}
+
+type SubtaskUncompletedPayload struct {
+	SubtaskID uuid.UUID `json:"subtask_id"`
+}
+
+type TaskRestoredPayload struct{}
+
+type TaskRecurrenceUpdatedPayload struct {
+	RecurrenceRule RecurrenceRule `json:"recurrence_rule"`
+}
+
+type TaskDueTimeUpdatedPayload struct {
+	DueTime *string `json:"due_time,omitempty"`
+}
+
+type ListDeletedPayload struct {
+	DeletedAt time.Time `json:"deleted_at"`
+}
+
+type LabelDeletedPayload struct {
+	DeletedAt time.Time `json:"deleted_at"`
 }

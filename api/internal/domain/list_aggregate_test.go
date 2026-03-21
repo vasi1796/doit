@@ -22,7 +22,7 @@ func TestListHandleCreate(t *testing.T) {
 		{
 			name:    "empty name",
 			cmd:     CreateList{ListID: uuid.New(), UserID: testUserID, Name: "", Colour: "#ff0000", Position: "a"},
-			wantErr: ErrEmptyTitle,
+			wantErr: ErrEmptyName,
 		},
 	}
 

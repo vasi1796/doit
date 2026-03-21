@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,14 +14,17 @@ type LabelAggregate struct {
 	userID  uuid.UUID
 	version int
 	created bool
+	deleted bool
 }
 
 func NewLabelAggregate() *LabelAggregate {
 	return &LabelAggregate{}
 }
 
-func (a *LabelAggregate) ID() uuid.UUID { return a.id }
-func (a *LabelAggregate) Version() int  { return a.version }
+func (a *LabelAggregate) ID() uuid.UUID      { return a.id }
+func (a *LabelAggregate) Version() int        { return a.version }
+func (a *LabelAggregate) UserID() uuid.UUID   { return a.userID }
+func (a *LabelAggregate) IsDeleted() bool     { return a.deleted }
 
 func (a *LabelAggregate) Apply(e eventstore.Event) {
 	a.version = e.Version
@@ -33,6 +34,8 @@ func (a *LabelAggregate) Apply(e eventstore.Event) {
 	switch e.EventType {
 	case eventstore.EventLabelCreated:
 		a.created = true
+	case eventstore.EventLabelDeleted:
+		a.deleted = true
 	}
 }
 
@@ -41,30 +44,39 @@ func (a *LabelAggregate) HandleCreate(cmd CreateLabel, now time.Time) ([]eventst
 		return nil, ErrLabelAlreadyCreated
 	}
 	if cmd.Name == "" {
-		return nil, ErrEmptyTitle
+		return nil, ErrEmptyName
 	}
 
 	a.id = cmd.LabelID
 	a.userID = cmd.UserID
 
-	data, err := json.Marshal(LabelCreatedPayload{
+	e, err := a.newEvent(eventstore.EventLabelCreated, LabelCreatedPayload{
 		Name:   cmd.Name,
 		Colour: cmd.Colour,
-	})
+	}, now)
 	if err != nil {
-		return nil, fmt.Errorf("marshaling event payload: %w", err)
-	}
-
-	a.version++
-	e := eventstore.Event{
-		ID:            uuid.New(),
-		AggregateID:   a.id,
-		AggregateType: eventstore.AggregateTypeLabel,
-		EventType:     eventstore.EventLabelCreated,
-		UserID:        a.userID,
-		Data:          data,
-		Timestamp:     now,
-		Version:       a.version,
+		return nil, err
 	}
 	return []eventstore.Event{e}, nil
+}
+
+func (a *LabelAggregate) HandleDelete(cmd DeleteLabel) ([]eventstore.Event, error) {
+	if !a.created {
+		return nil, ErrLabelNotFound
+	}
+	if a.deleted {
+		return nil, ErrLabelAlreadyDeleted
+	}
+
+	e, err := a.newEvent(eventstore.EventLabelDeleted, LabelDeletedPayload{
+		DeletedAt: cmd.DeletedAt,
+	}, cmd.DeletedAt)
+	if err != nil {
+		return nil, err
+	}
+	return []eventstore.Event{e}, nil
+}
+
+func (a *LabelAggregate) newEvent(eventType eventstore.EventType, payload any, now time.Time) (eventstore.Event, error) {
+	return buildEvent(a.id, eventstore.AggregateTypeLabel, a.userID, &a.version, eventType, payload, now)
 }
