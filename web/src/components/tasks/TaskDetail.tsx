@@ -98,7 +98,7 @@ export function TaskDetail({ taskId, lists, onClose }: TaskDetailProps) {
     <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 animate-[fade-in_0.15s_ease-out]" onClick={onClose} role="dialog" aria-modal="true" aria-label="Task detail">
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
-        className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 shadow-xl max-h-[85vh] overflow-y-auto"
+        className="bg-white rounded-xl p-4 sm:p-6 w-full max-w-lg mx-3 sm:mx-4 shadow-xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

@@ -2,6 +2,18 @@ import { db } from './database'
 import { clock } from './clock'
 import type { CreateTaskRequest, UpdateTaskRequest, CreateListRequest, CreateLabelRequest } from '../api/types'
 
+/** Generate a UUID v4. Falls back to manual generation on insecure contexts (HTTP). */
+function uuid(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  // Fallback for non-HTTPS contexts (e.g., local dev on phone over HTTP)
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+  })
+}
+
 /** HLC fields to write alongside every task mutation for proper LWW merge. */
 function hlcFields() {
   const now = clock.now()
@@ -11,8 +23,8 @@ function hlcFields() {
   }
 }
 
-function queueOp(operationType: string, aggregateId: string, hlc: { time: number; counter: number }, data: Record<string, unknown> = {}) {
-  return db.syncQueue.add({
+async function queueOp(operationType: string, aggregateId: string, hlc: { time: number; counter: number }, data: Record<string, unknown> = {}) {
+  await db.syncQueue.add({
     operationType,
     aggregateId,
     data: JSON.stringify(data),
@@ -20,6 +32,9 @@ function queueOp(operationType: string, aggregateId: string, hlc: { time: number
     hlcCounter: hlc.counter,
     createdAt: Date.now(),
   })
+  // Nudge the sync engine to flush soon (500ms debounce)
+  const engine = (window as unknown as { __syncEngine?: { nudge(): void } }).__syncEngine
+  engine?.nudge()
 }
 
 // ---------------------------------------------------------------------------
@@ -27,7 +42,7 @@ function queueOp(operationType: string, aggregateId: string, hlc: { time: number
 // ---------------------------------------------------------------------------
 
 export async function createTask(data: CreateTaskRequest): Promise<string> {
-  const id = crypto.randomUUID()
+  const id = uuid()
   const { hlc, fields } = hlcFields()
 
   await db.tasks.put({
@@ -108,7 +123,7 @@ export async function removeLabel(taskId: string, labelId: string): Promise<void
 // ---------------------------------------------------------------------------
 
 export async function createSubtask(taskId: string, data: { title: string; position: string }): Promise<string> {
-  const id = crypto.randomUUID()
+  const id = uuid()
   const { hlc } = hlcFields()
   await db.subtasks.put({ id, taskId, title: data.title, is_completed: false, position: data.position })
   await queueOp('CreateSubtask', taskId, hlc, { subtask_id: id, ...data })
@@ -138,7 +153,7 @@ export async function updateSubtaskTitle(taskId: string, subtaskId: string, titl
 // ---------------------------------------------------------------------------
 
 export async function createList(data: CreateListRequest): Promise<string> {
-  const id = crypto.randomUUID()
+  const id = uuid()
   const { hlc } = hlcFields()
   await db.lists.put({
     id,
@@ -164,7 +179,7 @@ export async function deleteList(id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function createLabel(data: CreateLabelRequest): Promise<string> {
-  const id = crypto.randomUUID()
+  const id = uuid()
   const { hlc } = hlcFields()
   await db.labels.put({ id, name: data.name, colour: data.colour })
   await queueOp('CreateLabel', id, hlc, data)

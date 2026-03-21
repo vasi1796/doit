@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useRef } from 'react'
-import { Outlet } from 'react-router'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Outlet, useLocation } from 'react-router'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { useLists } from '../../hooks/useLists'
@@ -90,18 +90,46 @@ export function AppLayout() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [])
 
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const toggleDrawer = useCallback(() => setDrawerOpen((v) => !v), [])
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+  const location = useLocation()
+
+  // Close drawer on navigation (user tapped a list/label link)
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [location.pathname])
+
   return (
     <LayoutCtx.Provider value={useMemo(() => ({ lists, labels, quickAddRef, taskCounts }), [lists, labels, quickAddRef, taskCounts])}>
       <div className="flex h-screen">
+        {/* Desktop sidebar */}
         <div className="hidden md:block">
           <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} />
+        </div>
+
+        {/* Mobile drawer */}
+        <div
+          className={`fixed inset-0 z-50 md:hidden transition-opacity duration-200 ${
+            drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className="absolute inset-0 bg-black/30" onClick={closeDrawer} />
+          <div
+            className={`absolute left-0 top-0 h-full transition-transform duration-200 ${
+              drawerOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} />
+          </div>
         </div>
 
         <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0">
           <Outlet />
         </main>
 
-        <BottomNav taskCounts={taskCounts} />
+        <BottomNav taskCounts={taskCounts} onMenuToggle={toggleDrawer} />
       </div>
     </LayoutCtx.Provider>
   )

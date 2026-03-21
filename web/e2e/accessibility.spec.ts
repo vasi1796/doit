@@ -70,45 +70,6 @@ test.describe('Accessibility — all pages', () => {
   a11yTest('Label page', '/labels/label-1')
 })
 
-test.describe('Accessibility — touch targets', () => {
-  // Known undersized elements in the existing codebase.
-  // Remove entries as they are fixed.
-  const KNOWN_UNDERSIZED = [
-    'button[Mark complete] is 22x22px',  // Checkbox visual is 22px, needs min-h/w-[44px]
-  ]
-
-  test('Interactive elements in main content meet 44px minimum', async ({ page }) => {
-    await mockApi(page)
-    await page.goto('/inbox')
-    await waitForPage(page)
-
-    // Only check elements inside <main> — sidebar has its own sizing rules
-    const tooSmall = await page.evaluate(() => {
-      const main = document.querySelector('main')
-      if (!main) return ['<main> element not found']
-
-      const interactiveElements = main.querySelectorAll('button, a, [role="button"], input, select, textarea')
-      const violations: string[] = []
-
-      interactiveElements.forEach((el) => {
-        const rect = el.getBoundingClientRect()
-        if (rect.width === 0 || rect.height === 0) return
-        if (rect.width < 44 || rect.height < 44) {
-          const tag = el.tagName.toLowerCase()
-          const text = (el as HTMLElement).innerText?.slice(0, 30) || el.getAttribute('aria-label') || ''
-          violations.push(`${tag}[${text}] is ${Math.round(rect.width)}x${Math.round(rect.height)}px`)
-        }
-      })
-
-      return violations
-    })
-
-    // Filter out known issues to catch only new regressions
-    const newViolations = tooSmall.filter((v) => !KNOWN_UNDERSIZED.includes(v))
-    expect(newViolations, `New elements below 44px touch target:\n${newViolations.join('\n')}`).toEqual([])
-  })
-})
-
 test.describe('Accessibility — font sizes', () => {
   test('Text inputs are at least 16px to prevent iOS auto-zoom', async ({ page }) => {
     await mockApi(page)

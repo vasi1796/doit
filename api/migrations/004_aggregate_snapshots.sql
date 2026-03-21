@@ -1,14 +1,5 @@
 -- +goose Up
-CREATE TABLE IF NOT EXISTS aggregate_snapshots (
-    aggregate_id UUID NOT NULL PRIMARY KEY,
-    aggregate_type TEXT NOT NULL,
-    user_id UUID NOT NULL,
-    version INTEGER NOT NULL,
-    data JSONB NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_snapshots_user ON aggregate_snapshots (user_id, aggregate_type);
+-- No-op: table created in 002
 
 -- +goose Down
-DROP TABLE IF EXISTS aggregate_snapshots;
+-- No-op

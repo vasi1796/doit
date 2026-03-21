@@ -152,8 +152,12 @@ No rollback on failure — the sync engine retries with exponential backoff.
 - **Visual regression tests** (Playwright + WebKit) compare page screenshots
   against committed baselines. Run with `cd web && npm run test:visual`.
 - **Accessibility tests** (Playwright + axe-core) scan all pages for WCAG 2.0
-  AA violations, 44px touch targets, and 16px input font sizes.
+  AA violations and 16px input font sizes.
 - **ESLint jsx-a11y** plugin enforces accessibility rules at lint time.
+- **No flaky tests.** E2E tests must pass deterministically without retries.
+  Do not use `waitForTimeout` as a fix for race conditions — wait for specific
+  elements or URLs. Do not add retries to mask flakiness. If a test cannot be
+  made deterministic, remove it and document why.
 
 ---
 

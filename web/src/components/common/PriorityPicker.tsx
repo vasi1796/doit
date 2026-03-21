@@ -44,16 +44,15 @@ export function PriorityPicker({ value, onChange, compact = false }: PriorityPic
     )
   }
 
-  // Full property row style
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 flex-wrap">
       {PRIORITIES.map((p) => (
         <button
           key={p.value}
           type="button"
           onClick={() => onChange(p.value)}
           aria-label={`Priority: ${p.label}`}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[40px] ${
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all min-h-[36px] ${
             value === p.value
               ? 'bg-gray-100 ring-1 ring-gray-200'
               : 'opacity-40 hover:opacity-80 hover:bg-gray-50'
@@ -62,12 +61,12 @@ export function PriorityPicker({ value, onChange, compact = false }: PriorityPic
           {p.value === 0 ? (
             <span className="text-text-secondary">—</span>
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={p.color} stroke={p.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill={p.color} stroke={p.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
               <line x1="4" y1="22" x2="4" y2="15" />
             </svg>
           )}
-          <span style={{ color: p.value === 0 ? '#86868b' : p.color }}>{p.label}</span>
+          <span className="hidden sm:inline" style={{ color: p.value === 0 ? '#86868b' : p.color }}>{p.label}</span>
         </button>
       ))}
     </div>

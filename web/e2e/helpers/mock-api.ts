@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { Page, ConsoleMessage } from '@playwright/test'
 import {
   MOCK_TASKS,
   MOCK_COMPLETED_TASKS,
@@ -6,6 +6,21 @@ import {
   MOCK_LISTS,
   MOCK_LABELS,
 } from '../fixtures/mock-data'
+
+/**
+ * Collect console errors from the page.
+ * Call before navigating so no errors are missed.
+ * Returns a `getErrors()` function that returns collected error messages.
+ */
+export function failOnConsoleErrors(page: Page) {
+  const errors: string[] = []
+  page.on('console', (msg: ConsoleMessage) => {
+    if (msg.type() === 'error') {
+      errors.push(msg.text())
+    }
+  })
+  return { getErrors: () => errors }
+}
 
 /**
  * Intercept all /api/v1/* calls and return mock data.

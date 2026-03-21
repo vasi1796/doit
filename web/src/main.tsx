@@ -5,8 +5,8 @@ import { ToastProvider } from './components/common/Toast'
 import './index.css'
 import App from './App'
 
-// Register service worker for offline app shell caching
-if ('serviceWorker' in navigator) {
+// Register service worker for offline app shell caching (production only)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   navigator.serviceWorker.register('/sw.js').catch(() => {})
 }
 

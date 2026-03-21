@@ -16,7 +16,7 @@ import (
 const upsertSnapshotSQL = `
 INSERT INTO aggregate_snapshots (aggregate_id, aggregate_type, user_id, version, data, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (aggregate_id)
+ON CONFLICT (aggregate_id, aggregate_type)
 DO UPDATE SET version = $4, data = $5, updated_at = $6`
 
 // SnapshotWriter saves aggregate state snapshots for client rehydration.
@@ -40,10 +40,12 @@ func (s *SnapshotWriter) SaveTaskSnapshot(ctx context.Context, taskID, userID uu
 
 	var jsonData json.RawMessage
 	if err := jsonRow.Scan(&jsonData); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil // Task may have been deleted
+		}
 		return fmt.Errorf("snapshot task json: %w", err)
 	}
 
-	// Version 0 is a placeholder — will be used for optimistic concurrency in a future phase.
 	_, err := s.pool.Exec(ctx, upsertSnapshotSQL, taskID, "task", userID, 0, jsonData, time.Now().UTC())
 	return err
 }
@@ -64,7 +66,6 @@ func (s *SnapshotWriter) SaveListSnapshot(ctx context.Context, listID, userID uu
 		return fmt.Errorf("snapshot list json: %w", err)
 	}
 
-	// Version 0 is a placeholder — will be used for optimistic concurrency in a future phase.
 	_, err := s.pool.Exec(ctx, upsertSnapshotSQL, listID, "list", userID, 0, jsonData, time.Now().UTC())
 	return err
 }
@@ -85,7 +86,6 @@ func (s *SnapshotWriter) SaveLabelSnapshot(ctx context.Context, labelID, userID 
 		return fmt.Errorf("snapshot label json: %w", err)
 	}
 
-	// Version 0 is a placeholder — will be used for optimistic concurrency in a future phase.
 	_, err := s.pool.Exec(ctx, upsertSnapshotSQL, labelID, "label", userID, 0, jsonData, time.Now().UTC())
 	return err
 }
