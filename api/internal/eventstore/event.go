@@ -58,3 +58,15 @@ type Event struct {
 	Counter       int             `json:"counter"`
 	Version       int             `json:"version"`
 }
+
+// OutboxEntry represents a pending event waiting to be published to the message broker.
+type OutboxEntry struct {
+	ID            int64
+	EventID       uuid.UUID
+	AggregateID   uuid.UUID
+	AggregateType AggregateType
+	EventType     EventType
+	UserID        uuid.UUID
+	Data          json.RawMessage
+	CreatedAt     time.Time
+}

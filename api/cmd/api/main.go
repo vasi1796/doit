@@ -15,13 +15,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 
+	"time"
+
 	"github.com/vasi1796/doit/internal/auth"
+	"github.com/vasi1796/doit/internal/broker"
 	"github.com/vasi1796/doit/internal/config"
 	"github.com/vasi1796/doit/internal/domain"
 	"github.com/vasi1796/doit/internal/eventstore"
 	"github.com/vasi1796/doit/internal/handler"
 	"github.com/vasi1796/doit/internal/hlc"
 	"github.com/vasi1796/doit/internal/middleware"
+	"github.com/vasi1796/doit/internal/outbox"
 	"github.com/vasi1796/doit/internal/projection"
 )
 
@@ -47,11 +51,28 @@ func main() {
 		logger.Warn().Msg("DEV_MODE is enabled — do not use in production")
 	}
 
-	r := newRouter(pool, logger, cfg)
+	store := eventstore.New(pool, logger)
+	r := newRouter(pool, store, logger, cfg)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
 		Handler: r,
+	}
+
+	// Start outbox poller if RabbitMQ is configured
+	rabbitURL := os.Getenv("RABBITMQ_URL")
+	if rabbitURL != "" {
+		b, err := broker.New(rabbitURL, logger)
+		if err != nil {
+			logger.Fatal().Err(err).Msg("failed to connect to RabbitMQ")
+		}
+		defer b.Close()
+		if err := b.Setup(); err != nil {
+			logger.Fatal().Err(err).Msg("failed to setup RabbitMQ")
+		}
+		poller := outbox.NewPoller(pool, store, b, logger)
+		go poller.Run(ctx, 200*time.Millisecond)
+		logger.Info().Msg("outbox poller started")
 	}
 
 	go func() {
@@ -113,7 +134,7 @@ func connectDB(ctx context.Context, cfg *config.Config, logger zerolog.Logger) (
 	return pool, nil
 }
 
-func newRouter(pool *pgxpool.Pool, logger zerolog.Logger, cfg *config.Config) *chi.Mux {
+func newRouter(pool *pgxpool.Pool, store *eventstore.Store, logger zerolog.Logger, cfg *config.Config) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
 	r.Use(requestLogger(logger))
@@ -150,10 +171,9 @@ func newRouter(pool *pgxpool.Pool, logger zerolog.Logger, cfg *config.Config) *c
 	})
 
 	// Domain stack
-	store := eventstore.New(pool, logger)
-	projector := projection.New(pool, logger)
+	_ = projection.New(pool, logger) // Projector used by worker, not inline
 	clock := hlc.New()
-	cmdHandler := domain.NewCommandHandler(store, projector, clock)
+	cmdHandler := domain.NewCommandHandler(store, pool, clock)
 
 	// Protected API routes
 	r.Route("/api/v1", func(r chi.Router) {

@@ -6,47 +6,56 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/vasi1796/doit/internal/eventstore"
 	"github.com/vasi1796/doit/internal/hlc"
 )
 
-// EventLoader is the interface the domain needs from the event store.
-// Defined here (consumer-side) per project conventions.
-type EventLoader interface {
+// EventStore is the interface the domain needs from the event store.
+type EventStore interface {
 	LoadByAggregate(ctx context.Context, aggregateID uuid.UUID) ([]eventstore.Event, error)
+	AppendTx(ctx context.Context, tx pgx.Tx, events []eventstore.Event) error
+	InsertOutbox(ctx context.Context, tx pgx.Tx, events []eventstore.Event) error
 	Append(ctx context.Context, events []eventstore.Event) error
 }
 
-// EventProjector updates read models from events.
-type EventProjector interface {
-	Project(ctx context.Context, events []eventstore.Event) error
+// TxBeginner starts database transactions.
+type TxBeginner interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
-// CommandHandler orchestrates the load-validate-append-project cycle for all commands.
+// CommandHandler orchestrates the load-validate-append cycle for all commands.
+// Projections are no longer called inline — events flow through the outbox
+// to RabbitMQ where workers project them asynchronously.
 type CommandHandler struct {
-	store     EventLoader
-	projector EventProjector
-	clock     *hlc.Clock
+	store EventStore
+	pool  TxBeginner
+	clock *hlc.Clock
 }
 
-func NewCommandHandler(store EventLoader, projector EventProjector, clock *hlc.Clock) *CommandHandler {
-	return &CommandHandler{store: store, projector: projector, clock: clock}
+func NewCommandHandler(store EventStore, pool TxBeginner, clock *hlc.Clock) *CommandHandler {
+	return &CommandHandler{store: store, pool: pool, clock: clock}
 }
 
-func (h *CommandHandler) appendAndProject(ctx context.Context, events []eventstore.Event) error {
-	if err := h.store.Append(ctx, events); err != nil {
+// appendWithOutbox atomically appends events and creates outbox rows in a single transaction.
+func (h *CommandHandler) appendWithOutbox(ctx context.Context, events []eventstore.Event) error {
+	tx, err := h.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := h.store.AppendTx(ctx, tx, events); err != nil {
 		if errors.Is(err, eventstore.ErrVersionConflict) {
 			return ErrVersionConflict
 		}
 		return err
 	}
-	if err := h.projector.Project(ctx, events); err != nil {
-		// Events are stored but read models are stale.
-		// Recovery: rebuild projections from the event store.
-		return fmt.Errorf("projection failed (events stored, read models may be stale): %w", err)
+	if err := h.store.InsertOutbox(ctx, tx, events); err != nil {
+		return fmt.Errorf("inserting outbox: %w", err)
 	}
-	return nil
+	return tx.Commit(ctx)
 }
 
 // Task commands
@@ -57,7 +66,7 @@ func (h *CommandHandler) CreateTask(ctx context.Context, cmd CreateTask) error {
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) CompleteTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd CompleteTask) error {
@@ -65,20 +74,11 @@ func (h *CommandHandler) CompleteTask(ctx context.Context, aggregateID uuid.UUID
 	if err != nil {
 		return err
 	}
-	events, recurring, err := agg.HandleComplete(cmd, h.clock.Now())
+	events, err := agg.HandleComplete(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
-	if err := h.appendAndProject(ctx, events); err != nil {
-		return err
-	}
-	// Append recurring task events separately (different aggregate)
-	if recurring != nil {
-		if err := h.appendAndProject(ctx, recurring.Events); err != nil {
-			return fmt.Errorf("creating recurring task: %w", err)
-		}
-	}
-	return nil
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) UncompleteTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UncompleteTask) error {
@@ -90,7 +90,7 @@ func (h *CommandHandler) UncompleteTask(ctx context.Context, aggregateID uuid.UU
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) DeleteTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd DeleteTask) error {
@@ -102,7 +102,7 @@ func (h *CommandHandler) DeleteTask(ctx context.Context, aggregateID uuid.UUID, 
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) RestoreTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd RestoreTask) error {
@@ -114,7 +114,7 @@ func (h *CommandHandler) RestoreTask(ctx context.Context, aggregateID uuid.UUID,
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) MoveTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd MoveTask) error {
@@ -126,7 +126,7 @@ func (h *CommandHandler) MoveTask(ctx context.Context, aggregateID uuid.UUID, us
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) UpdateTaskDescription(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskDescription) error {
@@ -138,7 +138,7 @@ func (h *CommandHandler) UpdateTaskDescription(ctx context.Context, aggregateID 
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) UpdateTaskTitle(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskTitle) error {
@@ -150,7 +150,7 @@ func (h *CommandHandler) UpdateTaskTitle(ctx context.Context, aggregateID uuid.U
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) UpdateTaskPriority(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskPriority) error {
@@ -162,7 +162,7 @@ func (h *CommandHandler) UpdateTaskPriority(ctx context.Context, aggregateID uui
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) UpdateTaskDueDate(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskDueDate) error {
@@ -174,7 +174,7 @@ func (h *CommandHandler) UpdateTaskDueDate(ctx context.Context, aggregateID uuid
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) UpdateTaskDueTime(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskDueTime) error {
@@ -186,7 +186,7 @@ func (h *CommandHandler) UpdateTaskDueTime(ctx context.Context, aggregateID uuid
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) UpdateTaskRecurrence(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskRecurrence) error {
@@ -198,7 +198,7 @@ func (h *CommandHandler) UpdateTaskRecurrence(ctx context.Context, aggregateID u
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) AddLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd AddLabel) error {
@@ -210,7 +210,7 @@ func (h *CommandHandler) AddLabel(ctx context.Context, aggregateID uuid.UUID, us
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) RemoveLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd RemoveLabel) error {
@@ -222,7 +222,7 @@ func (h *CommandHandler) RemoveLabel(ctx context.Context, aggregateID uuid.UUID,
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) CreateSubtask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd CreateSubtask) error {
@@ -234,7 +234,7 @@ func (h *CommandHandler) CreateSubtask(ctx context.Context, aggregateID uuid.UUI
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) UpdateSubtaskTitle(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateSubtaskTitle) error {
@@ -246,7 +246,7 @@ func (h *CommandHandler) UpdateSubtaskTitle(ctx context.Context, aggregateID uui
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) CompleteSubtask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd CompleteSubtask) error {
@@ -258,7 +258,7 @@ func (h *CommandHandler) CompleteSubtask(ctx context.Context, aggregateID uuid.U
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) UncompleteSubtask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UncompleteSubtask) error {
@@ -270,7 +270,7 @@ func (h *CommandHandler) UncompleteSubtask(ctx context.Context, aggregateID uuid
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 // List commands
@@ -281,7 +281,7 @@ func (h *CommandHandler) CreateList(ctx context.Context, cmd CreateList) error {
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) DeleteList(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd DeleteList) error {
@@ -293,7 +293,7 @@ func (h *CommandHandler) DeleteList(ctx context.Context, aggregateID uuid.UUID, 
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 // Label commands
@@ -304,7 +304,7 @@ func (h *CommandHandler) CreateLabel(ctx context.Context, cmd CreateLabel) error
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 func (h *CommandHandler) DeleteLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd DeleteLabel) error {
@@ -316,7 +316,7 @@ func (h *CommandHandler) DeleteLabel(ctx context.Context, aggregateID uuid.UUID,
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	return h.appendWithOutbox(ctx, events)
 }
 
 // Aggregate loaders

@@ -8,7 +8,7 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
-  # rabbitmq_data:  # Phase 3
+  rabbitmq_data:
 
 services:
   # ---------------------------------------------------------------------------
@@ -91,30 +91,29 @@ services:
       timeout: 5s
       retries: 3
 
-  # ===========================================================================
-  # Phase 3 services — uncomment when ready
-  # ===========================================================================
-
-  # rabbitmq:
-  #   image: rabbitmq:3.13-management-alpine
-  #   container_name: doit-rabbitmq
-  #   restart: unless-stopped
-  #   networks:
-  #     - doit
-  #   ports:
-  #     - "127.0.0.1:5672:5672"
-  #     - "127.0.0.1:15672:15672"
-  #   environment:
-  #     RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-  #     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
-  #   volumes:
-  #     - rabbitmq_data:/var/lib/rabbitmq
-  #   healthcheck:
-  #     test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-  #     interval: 15s
-  #     timeout: 10s
-  #     retries: 5
-  #     start_period: 30s
+  # ---------------------------------------------------------------------------
+  # RabbitMQ — event broker for async projections
+  # ---------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: doit-rabbitmq
+    restart: unless-stopped
+    networks:
+      - doit
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-doit}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-changeme}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   # worker-recurring:
   #   build:

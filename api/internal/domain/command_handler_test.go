@@ -6,23 +6,24 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/vasi1796/doit/internal/eventstore"
 	"github.com/vasi1796/doit/internal/hlc"
 )
 
-type mockEventLoader struct {
+type mockEventStore struct {
 	events    []eventstore.Event
 	loadErr   error
 	appendErr error
 	appended  []eventstore.Event
 }
 
-func (m *mockEventLoader) LoadByAggregate(_ context.Context, _ uuid.UUID) ([]eventstore.Event, error) {
+func (m *mockEventStore) LoadByAggregate(_ context.Context, _ uuid.UUID) ([]eventstore.Event, error) {
 	return m.events, m.loadErr
 }
 
-func (m *mockEventLoader) Append(_ context.Context, events []eventstore.Event) error {
+func (m *mockEventStore) Append(_ context.Context, events []eventstore.Event) error {
 	if m.appendErr != nil {
 		return m.appendErr
 	}
@@ -30,23 +31,33 @@ func (m *mockEventLoader) Append(_ context.Context, events []eventstore.Event) e
 	return nil
 }
 
-type mockProjector struct {
-	projected  []eventstore.Event
-	projectErr error
-}
-
-func (m *mockProjector) Project(_ context.Context, events []eventstore.Event) error {
-	if m.projectErr != nil {
-		return m.projectErr
+func (m *mockEventStore) AppendTx(_ context.Context, _ pgx.Tx, events []eventstore.Event) error {
+	if m.appendErr != nil {
+		return m.appendErr
 	}
-	m.projected = append(m.projected, events...)
+	m.appended = append(m.appended, events...)
 	return nil
 }
 
+func (m *mockEventStore) InsertOutbox(_ context.Context, _ pgx.Tx, _ []eventstore.Event) error {
+	return nil
+}
+
+// mockTx implements pgx.Tx for testing (no-op transaction).
+type mockTx struct{ pgx.Tx }
+
+func (m mockTx) Commit(_ context.Context) error   { return nil }
+func (m mockTx) Rollback(_ context.Context) error { return nil }
+
+type mockPool struct{}
+
+func (m *mockPool) Begin(_ context.Context) (pgx.Tx, error) {
+	return mockTx{}, nil
+}
+
 func TestCommandHandlerCreateTask(t *testing.T) {
-	store := &mockEventLoader{}
-	proj := &mockProjector{}
-	handler := NewCommandHandler(store, proj, hlc.New())
+	store := &mockEventStore{}
+	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
 
 	cmd := CreateTask{
 		TaskID:   uuid.New(),
@@ -66,20 +77,16 @@ func TestCommandHandlerCreateTask(t *testing.T) {
 	if store.appended[0].EventType != eventstore.EventTaskCreated {
 		t.Errorf("EventType = %q, want %q", store.appended[0].EventType, eventstore.EventTaskCreated)
 	}
-	if len(proj.projected) != 1 {
-		t.Fatalf("projected %d events, want 1", len(proj.projected))
-	}
 }
 
 func TestCommandHandlerCompleteTask(t *testing.T) {
 	aggID := uuid.New()
-	store := &mockEventLoader{
+	store := &mockEventStore{
 		events: []eventstore.Event{
 			taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 		},
 	}
-	proj := &mockProjector{}
-	handler := NewCommandHandler(store, proj, hlc.New())
+	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
 
 	err := handler.CompleteTask(context.Background(), aggID, testUserID, CompleteTask{CompletedAt: testNow})
 	if err != nil {
@@ -94,9 +101,8 @@ func TestCommandHandlerCompleteTask(t *testing.T) {
 }
 
 func TestCommandHandlerTaskNotFound(t *testing.T) {
-	store := &mockEventLoader{events: []eventstore.Event{}}
-	proj := &mockProjector{}
-	handler := NewCommandHandler(store, proj, hlc.New())
+	store := &mockEventStore{events: []eventstore.Event{}}
+	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
 
 	err := handler.CompleteTask(context.Background(), uuid.New(), testUserID, CompleteTask{CompletedAt: testNow})
 	if !errors.Is(err, ErrTaskNotFound) {
@@ -105,11 +111,10 @@ func TestCommandHandlerTaskNotFound(t *testing.T) {
 }
 
 func TestCommandHandlerAppendError(t *testing.T) {
-	store := &mockEventLoader{
+	store := &mockEventStore{
 		appendErr: eventstore.ErrVersionConflict,
 	}
-	proj := &mockProjector{}
-	handler := NewCommandHandler(store, proj, hlc.New())
+	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
 
 	cmd := CreateTask{
 		TaskID:   uuid.New(),
@@ -123,42 +128,15 @@ func TestCommandHandlerAppendError(t *testing.T) {
 	if !errors.Is(err, ErrVersionConflict) {
 		t.Fatalf("got error %v, want %v", err, ErrVersionConflict)
 	}
-	if len(proj.projected) != 0 {
-		t.Errorf("projected %d events, want 0 (append failed)", len(proj.projected))
-	}
 }
 
 func TestCommandHandlerLoadError(t *testing.T) {
 	loadErr := errors.New("db connection failed")
-	store := &mockEventLoader{loadErr: loadErr}
-	proj := &mockProjector{}
-	handler := NewCommandHandler(store, proj, hlc.New())
+	store := &mockEventStore{loadErr: loadErr}
+	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
 
 	err := handler.CompleteTask(context.Background(), uuid.New(), testUserID, CompleteTask{CompletedAt: testNow})
 	if !errors.Is(err, loadErr) {
 		t.Fatalf("got error %v, want %v", err, loadErr)
-	}
-}
-
-func TestCommandHandlerProjectionError(t *testing.T) {
-	store := &mockEventLoader{}
-	projErr := errors.New("projection failed")
-	proj := &mockProjector{projectErr: projErr}
-	handler := NewCommandHandler(store, proj, hlc.New())
-
-	cmd := CreateTask{
-		TaskID:   uuid.New(),
-		UserID:   uuid.New(),
-		Title:    "Test",
-		Priority: 0,
-		Position: "a",
-	}
-
-	err := handler.CreateTask(context.Background(), cmd)
-	if !errors.Is(err, projErr) {
-		t.Fatalf("got error %v, want %v", err, projErr)
-	}
-	if len(store.appended) != 1 {
-		t.Errorf("appended %d events, want 1 (append should succeed before projection)", len(store.appended))
 	}
 }

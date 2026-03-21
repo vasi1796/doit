@@ -164,7 +164,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
 			command: func(agg *TaskAggregate) ([]eventstore.Event, error) {
-				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
+				evts, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
 				return evts, err
 			},
 			wantEvtType: eventstore.EventTaskCompleted,
@@ -176,7 +176,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCompleted, 2, TaskCompletedPayload{CompletedAt: testNow}),
 			},
 			command: func(agg *TaskAggregate) ([]eventstore.Event, error) {
-				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
+				evts, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
 				return evts, err
 			},
 			wantErr: ErrTaskAlreadyCompleted,
@@ -188,7 +188,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskDeleted, 2, TaskDeletedPayload{DeletedAt: testNow}),
 			},
 			command: func(agg *TaskAggregate) ([]eventstore.Event, error) {
-				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
+				evts, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
 				return evts, err
 			},
 			wantErr: ErrTaskAlreadyDeleted,
@@ -382,7 +382,7 @@ func TestVersionTracking(t *testing.T) {
 	}
 
 	// Next event should be version 4
-	events, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
+	events, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -396,7 +396,7 @@ func TestCommandOnNonexistentTask(t *testing.T) {
 		name    string
 		command func(agg *TaskAggregate) ([]eventstore.Event, error)
 	}{
-		{"complete", func(agg *TaskAggregate) ([]eventstore.Event, error) { e, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC); return e, err }},
+		{"complete", func(agg *TaskAggregate) ([]eventstore.Event, error) { e, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC); return e, err }},
 		{"delete", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleDelete(DeleteTask{DeletedAt: testNow}, testHLC) }},
 		{"move", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleMove(MoveTask{}, testHLC) }},
 		{"update description", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUpdateDescription(UpdateTaskDescription{}, testHLC) }},

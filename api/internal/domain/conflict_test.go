@@ -161,7 +161,7 @@ func TestConflictCompleteVsDelete(t *testing.T) {
 	evtsB, _ := aggB.HandleCreate(createCmd, createHLC)
 	aggB.Apply(evtsB[0])
 	hlcB := hlc.Timestamp{Time: testNow.Add(2 * time.Second), Counter: 0}
-	completeEvts, _, err := aggB.HandleComplete(CompleteTask{CompletedAt: hlcB.Time}, hlcB)
+	completeEvts, err := aggB.HandleComplete(CompleteTask{CompletedAt: hlcB.Time}, hlcB)
 	if err != nil {
 		t.Fatalf("complete: %v", err)
 	}

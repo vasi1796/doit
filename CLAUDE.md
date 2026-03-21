@@ -16,18 +16,22 @@ See AGENTS.md for full architectural context.
 
 ```
 api/              Go backend
-  cmd/api/        Server entry point (router, auth, domain stack wiring)
+  cmd/api/        Server entry point (router, auth, domain stack, outbox poller)
   cmd/migrate/    Migration runner CLI (goose)
+  cmd/worker/     Projection worker (consumes RabbitMQ, runs projections)
+  cmd/worker-recurring/  Recurring tasks worker (creates next occurrences)
   internal/
     auth/          JWT tokens, Google OAuth, context helpers
+    broker/        RabbitMQ client (exchange, queues, publish, consume)
     config/        Env var loading
     crdt/          CRDT merge functions (LWW-Register, OR-Set, Fractional Indexing)
-    domain/        Aggregates, commands, payloads, CommandHandler
-    eventstore/    Event store (append/load/query, HLC counter)
+    domain/        Aggregates, commands, payloads, CommandHandler (outbox-aware)
+    eventstore/    Event store (append/load/query, HLC counter, outbox)
     handler/       HTTP handlers (task, list, label, auth, sync, response utils)
     hlc/           Hybrid Logical Clock (causal ordering for sync)
     middleware/     JWT auth middleware
-    projection/    Event → read model table updates
+    outbox/        Outbox poller (publishes events to RabbitMQ)
+    projection/    Event → read model table updates (called by worker, not inline)
   migrations/     SQL migration files
   openapi.yaml    API contract (source of truth for Go + TS type generation)
 web/              React frontend

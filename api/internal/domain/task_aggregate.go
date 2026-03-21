@@ -2,7 +2,6 @@ package domain
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -52,6 +51,24 @@ func (a *TaskAggregate) Version() int { return a.version }
 
 // UserID returns the aggregate's owning user ID.
 func (a *TaskAggregate) UserID() uuid.UUID { return a.userID }
+
+// Getters for recurring task worker
+func (a *TaskAggregate) Title() string              { return a.title }
+func (a *TaskAggregate) Description() string        { return a.description }
+func (a *TaskAggregate) Priority() Priority         { return a.priority }
+func (a *TaskAggregate) RecurrenceRule() RecurrenceRule { return a.recurrenceRule }
+func (a *TaskAggregate) DueDate() *time.Time        { return a.dueDate }
+func (a *TaskAggregate) DueTime() *string           { return a.dueTime }
+func (a *TaskAggregate) ListID() *uuid.UUID         { return a.listID }
+func (a *TaskAggregate) Position() string           { return a.position }
+
+// NewID generates a new UUID for aggregate creation.
+func NewID() uuid.UUID { return uuid.New() }
+
+// NextDueDate calculates the next due date based on a recurrence rule.
+func NextDueDate(current time.Time, rule RecurrenceRule) time.Time {
+	return nextDueDate(current, rule)
+}
 
 // Apply replays a historical event to rebuild aggregate state.
 // Events are trusted facts — no validation is performed.
@@ -173,70 +190,24 @@ func (a *TaskAggregate) HandleCreate(cmd CreateTask, now hlc.Timestamp) ([]event
 	return []eventstore.Event{e}, nil
 }
 
-// RecurringTaskEvents holds the events for a new recurring task occurrence.
-// These must be appended separately since they belong to a different aggregate.
-type RecurringTaskEvents struct {
-	Events []eventstore.Event
-}
-
-func (a *TaskAggregate) HandleComplete(cmd CompleteTask, now hlc.Timestamp) ([]eventstore.Event, *RecurringTaskEvents, error) {
+// HandleComplete marks the task as completed.
+// Recurring task creation is handled asynchronously by the recurring tasks worker.
+func (a *TaskAggregate) HandleComplete(cmd CompleteTask, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if a.completed {
-		return nil, nil, ErrTaskAlreadyCompleted
+		return nil, ErrTaskAlreadyCompleted
 	}
 
 	e, err := a.newEvent(eventstore.EventTaskCompleted, TaskCompletedPayload{
 		CompletedAt: cmd.CompletedAt,
 	}, now)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	events := []eventstore.Event{e}
-	var recurring *RecurringTaskEvents
-
-	// If the task has a recurrence rule and a due date, create the next occurrence.
-	if a.recurrenceRule != "" && a.dueDate != nil {
-		nextDue := nextDueDate(*a.dueDate, a.recurrenceRule)
-		newAgg := NewTaskAggregate()
-		newAgg.id = uuid.New()
-		newAgg.userID = a.userID
-
-		createEvents, err := newAgg.HandleCreate(CreateTask{
-			TaskID:      newAgg.id,
-			UserID:      a.userID,
-			Title:       a.title,
-			Description: a.description,
-			Priority:    a.priority,
-			DueDate:     &nextDue,
-			DueTime:     a.dueTime,
-			ListID:      a.listID,
-			Position:    a.position,
-		}, now)
-		if err != nil {
-			return nil, nil, fmt.Errorf("creating recurring task: %w", err)
-		}
-
-		// Apply the create event so the aggregate state is "created" for the next command
-		for _, ev := range createEvents {
-			newAgg.Apply(ev)
-		}
-
-		recEvents, err := newAgg.HandleUpdateRecurrence(UpdateTaskRecurrence{
-			RecurrenceRule: a.recurrenceRule,
-		}, now)
-		if err != nil {
-			return nil, nil, fmt.Errorf("setting recurrence on recurring task: %w", err)
-		}
-
-		recurring = &RecurringTaskEvents{
-			Events: append(createEvents, recEvents...),
-		}
-	}
-
-	return events, recurring, nil
+	return []eventstore.Event{e}, nil
 }
 
 func (a *TaskAggregate) HandleUncomplete(cmd UncompleteTask, now hlc.Timestamp) ([]eventstore.Event, error) {
