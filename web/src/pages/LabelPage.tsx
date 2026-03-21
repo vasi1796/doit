@@ -1,13 +1,15 @@
+import { useState } from 'react'
 import { useParams, Navigate } from 'react-router'
-import { usePageTasks } from '../hooks/usePageTasks'
+import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { TaskDetail } from '../components/tasks/TaskDetail'
 
 export function LabelPage() {
   const { id } = useParams<{ id: string }>()
-  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ label_id: id ?? '', is_completed: 'false' })
-  const { lists, labels, refreshLists } = useLayoutContext()
+  const { tasks, loading } = useTasks({ label_id: id ?? '', is_completed: 'false' })
+  const { lists, labels } = useLayoutContext()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   if (!id) return <Navigate to="/inbox" replace />
 
@@ -25,7 +27,6 @@ export function LabelPage() {
         tasks={tasks}
         loading={loading}
         emptyMessage="No tasks with this label"
-        onTaskChanged={refreshAll}
         onTaskSelect={setSelectedId}
       />
       {selectedId && (
@@ -33,8 +34,6 @@ export function LabelPage() {
           taskId={selectedId}
           lists={lists}
           onClose={() => setSelectedId(null)}
-          onChanged={refreshAll}
-          onListsChanged={refreshLists}
         />
       )}
     </div>

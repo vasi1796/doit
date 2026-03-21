@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api } from '../../api/client'
+import * as operations from '../../db/operations'
 import { useToast } from './Toast'
 import { PRESET_COLORS } from '../../constants'
 
@@ -17,9 +17,9 @@ export function InlineLabelCreator({ onCreated, onCancel }: InlineLabelCreatorPr
     e.preventDefault()
     if (!name.trim()) return
     try {
-      const result = await api.createLabel({ name: name.trim(), colour })
+      const id = await operations.createLabel({ name: name.trim(), colour })
       toast('Label created', 'success')
-      onCreated(result.id)
+      onCreated(id)
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed', 'error')
     }
@@ -48,7 +48,7 @@ export function InlineLabelCreator({ onCreated, onCancel }: InlineLabelCreatorPr
         autoFocus
       />
       <button type="submit" className="text-[11px] text-accent font-medium">Add</button>
-      <button type="button" onClick={onCancel} className="text-[11px] text-text-secondary">✕</button>
+      <button type="button" onClick={onCancel} className="text-[11px] text-text-secondary">&#x2715;</button>
     </form>
   )
 }

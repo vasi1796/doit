@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { usePopover } from '../../hooks/usePopover'
-import { api } from '../../api/client'
+import * as operations from '../../db/operations'
 import { useToast } from './Toast'
 import type { List } from '../../api/types'
 import { PRESET_COLORS } from '../../constants'
@@ -9,10 +9,9 @@ interface ListSelectProps {
   value: string
   lists: List[]
   onChange: (listId: string) => void
-  onListCreated: () => void
 }
 
-export function ListSelect({ value, lists, onChange, onListCreated }: ListSelectProps) {
+export function ListSelect({ value, lists, onChange }: ListSelectProps) {
   const { toast } = useToast()
   const { open, pos, triggerRef, toggle, close } = usePopover({ contentWidth: 200 })
   const [creating, setCreating] = useState(false)
@@ -27,7 +26,7 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
     e.preventDefault()
     if (!newName.trim()) return
     try {
-      const result = await api.createList({
+      const id = await operations.createList({
         name: newName.trim(),
         colour: newColour,
         position: Date.now().toString(),
@@ -36,8 +35,7 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
       setCreating(false)
       close()
       toast('List created', 'success')
-      onListCreated()
-      onChange(result.id)
+      onChange(id)
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed', 'error')
     }

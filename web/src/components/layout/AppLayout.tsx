@@ -5,14 +5,13 @@ import { BottomNav } from './BottomNav'
 import { useLists } from '../../hooks/useLists'
 import { useLabels } from '../../hooks/useLabels'
 import { useTasks } from '../../hooks/useTasks'
+import { initialSync } from '../../db/initial-sync'
+import { SyncEngine } from '../../db/sync-engine'
 import type { List, Label } from '../../api/types'
 
 interface LayoutContext {
   lists: List[]
   labels: Label[]
-  refreshLists: () => void
-  refreshLabels: () => void
-  refreshCounts: () => void
   quickAddRef: React.RefObject<{ focus: () => void } | null>
   taskCounts: {
     inbox: number
@@ -25,9 +24,6 @@ interface LayoutContext {
 const LayoutCtx = createContext<LayoutContext>({
   lists: [],
   labels: [],
-  refreshLists: () => {},
-  refreshLabels: () => {},
-  refreshCounts: () => {},
   quickAddRef: { current: null },
   taskCounts: { inbox: 0, today: 0, upcoming: 0, byList: {} },
 })
@@ -37,10 +33,26 @@ export function useLayoutContext() {
 }
 
 export function AppLayout() {
-  const { lists, refresh: refreshLists } = useLists()
-  const { labels, refresh: refreshLabels } = useLabels()
-  const { tasks, refresh: refreshTasks } = useTasks({ is_completed: 'false' })
+  const { lists } = useLists()
+  const { labels } = useLabels()
+  const { tasks } = useTasks({ is_completed: 'false' })
   const quickAddRef = useRef<{ focus: () => void } | null>(null)
+
+  // Populate IndexedDB from server, then start sync engine.
+  useEffect(() => {
+    const engine = new SyncEngine()
+    initialSync()
+      .then(() => engine.start())
+      .catch(() => engine.start()) // Start sync even if initial load fails (may be offline)
+
+    // Expose for testing — allows Playwright to trigger sync on demand
+    ;(window as unknown as { __syncEngine?: SyncEngine }).__syncEngine = engine
+
+    return () => {
+      engine.stop()
+      delete (window as unknown as { __syncEngine?: SyncEngine }).__syncEngine
+    }
+  }, [])
 
   // Compute task counts
   const today = new Date().toISOString().split('T')[0]
@@ -48,7 +60,7 @@ export function AppLayout() {
   nextWeek.setDate(nextWeek.getDate() + 7)
   const nextWeekStr = nextWeek.toISOString().split('T')[0]
 
-  const taskCounts = {
+  const taskCounts = useMemo(() => ({
     inbox: tasks.filter((t) => !t.list_id).length,
     today: tasks.filter((t) => t.due_date === today).length,
     upcoming: tasks.filter((t) => t.due_date && t.due_date > today && t.due_date <= nextWeekStr).length,
@@ -56,7 +68,7 @@ export function AppLayout() {
       if (t.list_id) acc[t.list_id] = (acc[t.list_id] || 0) + 1
       return acc
     }, {}),
-  }
+  }), [tasks, today, nextWeekStr])
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -79,10 +91,10 @@ export function AppLayout() {
   }, [])
 
   return (
-    <LayoutCtx.Provider value={useMemo(() => ({ lists, labels, refreshLists, refreshLabels, refreshCounts: refreshTasks, quickAddRef, taskCounts }), [lists, labels, refreshLists, refreshLabels, refreshTasks, quickAddRef, taskCounts])}>
+    <LayoutCtx.Provider value={useMemo(() => ({ lists, labels, quickAddRef, taskCounts }), [lists, labels, quickAddRef, taskCounts])}>
       <div className="flex h-screen">
         <div className="hidden md:block">
-          <Sidebar lists={lists} labels={labels} onListsChanged={refreshLists} onLabelsChanged={refreshLabels} taskCounts={taskCounts} />
+          <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} />
         </div>
 
         <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0">

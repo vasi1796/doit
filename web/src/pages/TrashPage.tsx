@@ -1,18 +1,17 @@
-import { api } from '../api/client'
+import * as operations from '../db/operations'
 import { useTasks } from '../hooks/useTasks'
 import { useToast } from '../components/common/Toast'
 import { EmptyState } from '../components/common/EmptyState'
 import { PriorityFlag } from '../components/common/PriorityDot'
 import type { Task } from '../api/types'
 
-function TrashItem({ task, onRestored }: { task: Task; onRestored: () => void }) {
+function TrashItem({ task }: { task: Task }) {
   const { toast } = useToast()
 
   const handleRestore = async () => {
     try {
-      await api.restoreTask(task.id)
+      await operations.restoreTask(task.id)
       toast('Task restored', 'success')
-      onRestored()
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to restore', 'error')
     }
@@ -33,7 +32,7 @@ function TrashItem({ task, onRestored }: { task: Task; onRestored: () => void })
 }
 
 export function TrashPage() {
-  const { tasks, loading, refresh } = useTasks({ is_deleted: 'true' })
+  const { tasks, loading } = useTasks({ is_deleted: 'true' })
 
   return (
     <div>
@@ -51,7 +50,7 @@ export function TrashPage() {
         <EmptyState message="Trash is empty" hint="Deleted tasks will appear here" />
       ) : (
         tasks.map((task) => (
-          <TrashItem key={task.id} task={task} onRestored={refresh} />
+          <TrashItem key={task.id} task={task} />
         ))
       )}
     </div>

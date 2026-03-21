@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useParams, Navigate } from 'react-router'
-import { usePageTasks } from '../hooks/usePageTasks'
+import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { TaskDetail } from '../components/tasks/TaskDetail'
@@ -7,8 +8,9 @@ import { QuickAdd } from '../components/tasks/QuickAdd'
 
 export function ListPage() {
   const { id } = useParams<{ id: string }>()
-  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ list_id: id ?? '', is_completed: 'false' })
-  const { lists, labels, refreshLists, refreshLabels } = useLayoutContext()
+  const { tasks, loading } = useTasks({ list_id: id ?? '', is_completed: 'false' })
+  const { lists, labels } = useLayoutContext()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   if (!id) return <Navigate to="/inbox" replace />
 
@@ -22,16 +24,15 @@ export function ListPage() {
         )}
         <h1 className="text-2xl font-semibold text-text-primary">{list?.name || 'List'}</h1>
       </div>
-      <QuickAdd listId={id} lists={lists} labels={labels} onCreated={refreshAll} onListsChanged={refreshLists} onLabelsChanged={refreshLabels} />
+      <QuickAdd listId={id} lists={lists} labels={labels} />
       <TaskList
         tasks={tasks}
         loading={loading}
         emptyMessage="No tasks in this list"
-        onTaskChanged={refreshAll}
         onTaskSelect={setSelectedId}
       />
       {selectedId && (
-        <TaskDetail taskId={selectedId} lists={lists} onClose={() => setSelectedId(null)} onChanged={refreshAll} onListsChanged={refreshLists} />
+        <TaskDetail taskId={selectedId} lists={lists} onClose={() => setSelectedId(null)} />
       )}
     </div>
   )

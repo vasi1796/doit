@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router'
+import { useSyncStatus } from '../../hooks/useSyncStatus'
 
 const TABS = [
   { to: '/inbox', label: 'Inbox', countKey: 'inbox', icon: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z' },
@@ -13,8 +14,21 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ taskCounts }: BottomNavProps) {
+  const { state } = useSyncStatus()
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      {state !== 'synced' && (
+        <div className="absolute top-0 left-0 right-0 flex justify-center -translate-y-full pb-1">
+          <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+            state === 'offline' ? 'bg-gray-100 text-text-secondary' :
+            state === 'syncing' ? 'bg-accent/10 text-accent' :
+            'bg-warning/10 text-warning'
+          }`}>
+            {state === 'offline' ? 'Offline' : state === 'syncing' ? 'Syncing...' : 'Pending changes'}
+          </span>
+        </div>
+      )}
       {TABS.map((tab) => {
         const count = tab.countKey ? taskCounts[tab.countKey as keyof typeof taskCounts] : 0
         return (

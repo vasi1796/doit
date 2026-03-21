@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { api } from '../../api/client'
+import * as operations from '../../db/operations'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
 import { useLabels } from '../../hooks/useLabels'
 import { useToast } from '../common/Toast'
@@ -12,13 +12,11 @@ interface TaskDetailProps {
   taskId: string
   lists?: List[]
   onClose: () => void
-  onChanged: () => void
-  onListsChanged?: () => void
 }
 
-export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }: TaskDetailProps) {
-  const { task, loading, refresh } = useTaskDetail(taskId)
-  const { labels: allLabels, refresh: refreshLabels } = useLabels()
+export function TaskDetail({ taskId, lists, onClose }: TaskDetailProps) {
+  const { task, loading } = useTaskDetail(taskId)
+  const { labels: allLabels } = useLabels()
   const { toast } = useToast()
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleValue, setTitleValue] = useState('')
@@ -53,9 +51,7 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
 
   const save = async (field: string, value: unknown) => {
     try {
-      await api.updateTask(task.id, { [field]: value })
-      refresh()
-      onChanged()
+      await operations.updateTask(task.id, { [field]: value })
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to save', 'error')
     }
@@ -73,9 +69,8 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
 
   const handleDelete = async () => {
     try {
-      await api.deleteTask(task.id)
+      await operations.deleteTask(task.id)
       toast('Task deleted', 'success')
-      onChanged()
       onClose()
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to delete', 'error')
@@ -85,21 +80,18 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
   const handleToggleComplete = async () => {
     try {
       if (task.is_completed) {
-        await api.uncompleteTask(task.id)
+        await operations.uncompleteTask(task.id)
       } else {
         const openSubtasks = (task.subtasks || []).filter(s => !s.is_completed)
-        await Promise.allSettled(openSubtasks.map(st => api.completeSubtask(task.id, st.id)))
-        await api.completeTask(task.id)
+        await Promise.allSettled(openSubtasks.map(st => operations.completeSubtask(task.id, st.id)))
+        await operations.completeTask(task.id)
         toast(task.recurrence_rule ? 'Done! Next occurrence created' : 'Task completed', 'success')
       }
-      onChanged()
       onClose()
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to update', 'error')
     }
   }
-
-  const refreshAll = () => { refresh(); onChanged() }
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
@@ -159,7 +151,7 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
           </button>
         </div>
 
-        <TaskProperties task={task} lists={lists} onSave={save} onListsChanged={onListsChanged} />
+        <TaskProperties task={task} lists={lists} onSave={save} />
 
         <textarea
           defaultValue={task.description || ''}
@@ -171,14 +163,12 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
           className="w-full min-h-[80px] text-base text-text-primary placeholder:text-text-secondary outline-none resize-none border border-gray-200 rounded-lg p-3 mb-4 focus:border-accent"
         />
 
-        <SubtaskSection taskId={task.id} subtasks={task.subtasks || []} onChanged={refreshAll} />
+        <SubtaskSection taskId={task.id} subtasks={task.subtasks || []} />
 
         <LabelsSection
           taskId={task.id}
           taskLabels={task.labels || []}
           allLabels={allLabels}
-          onChanged={refreshAll}
-          onLabelsChanged={refreshLabels}
         />
 
         <div className="flex justify-end pt-2 border-t border-gray-100">

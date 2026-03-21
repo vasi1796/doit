@@ -1,32 +1,27 @@
-import { useState, useEffect, useCallback } from 'react'
-import { api } from '../api/client'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../db/database'
 import type { Task } from '../api/types'
 
 export function useTaskDetail(id: string | null) {
-  const [task, setTask] = useState<Task | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const task = useLiveQuery(async (): Promise<Task | null> => {
+    if (!id) return null
 
-  const refresh = useCallback(async () => {
-    if (!id) {
-      setTask(null)
-      return
-    }
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await api.getTask(id)
-      setTask(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load task')
-    } finally {
-      setLoading(false)
-    }
+    const t = await db.tasks.get(id)
+    if (!t) return null
+
+    const [subtasks, taskLabelLinks] = await Promise.all([
+      db.subtasks.where('taskId').equals(id).sortBy('position'),
+      db.taskLabels.where('taskId').equals(id).toArray(),
+    ])
+    const labels = taskLabelLinks.length > 0
+      ? await db.labels.where('id').anyOf(taskLabelLinks.map((tl) => tl.labelId)).toArray()
+      : []
+
+    return { ...t, subtasks, labels } as Task
   }, [id])
 
-  useEffect(() => {
-    refresh()
-  }, [refresh])
-
-  return { task, loading, error, refresh }
+  return {
+    task: task ?? null,
+    loading: task === undefined,
+  }
 }

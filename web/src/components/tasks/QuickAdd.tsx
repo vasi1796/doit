@@ -1,5 +1,5 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
-import { api } from '../../api/client'
+import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { PriorityPicker } from '../common/PriorityPicker'
 import { DatePicker } from '../common/DatePicker'
@@ -13,12 +13,9 @@ interface QuickAddProps {
   listId?: string
   lists?: List[]
   labels?: Label[]
-  onCreated: () => void
-  onListsChanged?: () => void
-  onLabelsChanged?: () => void
 }
 
-export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(function QuickAdd({ listId, lists, labels, onCreated, onListsChanged, onLabelsChanged }, ref) {
+export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(function QuickAdd({ listId, lists, labels }, ref) {
   const { toast } = useToast()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -67,7 +64,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
 
     setSubmitting(true)
     try {
-      const result = await api.createTask({
+      const taskId = await operations.createTask({
         title: trimmed,
         description: description.trim() || undefined,
         priority,
@@ -79,16 +76,15 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
 
       // Recurrence is set via update after creation (not supported on create endpoint)
       if (recurrence) {
-        await api.updateTask(result.id, { recurrence_rule: recurrence })
+        await operations.updateTask(taskId, { recurrence_rule: recurrence })
       }
 
       if (selectedLabelIds.length > 0) {
-        await Promise.allSettled(selectedLabelIds.map(id => api.addLabel(result.id, id)))
+        await Promise.allSettled(selectedLabelIds.map(id => operations.addLabel(taskId, id)))
       }
 
       resetForm()
       toast('Task created', 'success')
-      onCreated()
       setTimeout(() => inputRef.current?.focus(), 50)
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to create task', 'error')
@@ -179,7 +175,6 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
               value={selectedListId}
               lists={lists}
               onChange={setSelectedListId}
-              onListCreated={onListsChanged || (() => {})}
             />
           )}
         </div>
@@ -215,7 +210,6 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
                 onCreated={(labelId) => {
                   setSelectedLabelIds(prev => [...prev, labelId])
                   setCreatingLabel(false)
-                  onLabelsChanged?.()
                 }}
                 onCancel={() => setCreatingLabel(false)}
               />

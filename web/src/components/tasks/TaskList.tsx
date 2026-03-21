@@ -8,11 +8,10 @@ interface TaskListProps {
   emptyMessage?: string
   emptyHint?: string
   emptyAction?: { label: string; onClick: () => void }
-  onTaskChanged: () => void
   onTaskSelect: (id: string) => void
 }
 
-export function TaskList({ tasks, loading, emptyMessage, emptyHint, emptyAction, onTaskChanged, onTaskSelect }: TaskListProps) {
+export function TaskList({ tasks, loading, emptyMessage, emptyHint, emptyAction, onTaskSelect }: TaskListProps) {
   if (loading) {
     return (
       <div className="space-y-1 px-4 py-2">
@@ -33,7 +32,6 @@ export function TaskList({ tasks, loading, emptyMessage, emptyHint, emptyAction,
         <TaskItem
           key={task.id}
           task={task}
-          onChanged={onTaskChanged}
           onSelect={onTaskSelect}
         />
       ))}

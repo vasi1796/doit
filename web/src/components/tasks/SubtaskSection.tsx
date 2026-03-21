@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react'
-import { api } from '../../api/client'
+import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import type { Subtask } from '../../api/types'
 
-function SubtaskItem({ subtask, taskId, onChanged }: { subtask: Subtask; taskId: string; onChanged: () => void }) {
+function SubtaskItem({ subtask, taskId }: { subtask: Subtask; taskId: string }) {
   const { toast } = useToast()
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(subtask.title)
@@ -12,11 +12,10 @@ function SubtaskItem({ subtask, taskId, onChanged }: { subtask: Subtask; taskId:
     e.stopPropagation()
     try {
       if (subtask.is_completed) {
-        await api.uncompleteSubtask(taskId, subtask.id)
+        await operations.uncompleteSubtask(taskId, subtask.id)
       } else {
-        await api.completeSubtask(taskId, subtask.id)
+        await operations.completeSubtask(taskId, subtask.id)
       }
-      onChanged()
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed', 'error')
     }
@@ -30,8 +29,7 @@ function SubtaskItem({ subtask, taskId, onChanged }: { subtask: Subtask; taskId:
       return
     }
     try {
-      await api.updateSubtaskTitle(taskId, subtask.id, trimmed)
-      onChanged()
+      await operations.updateSubtaskTitle(taskId, subtask.id, trimmed)
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to update', 'error')
       setEditValue(subtask.title)
@@ -82,10 +80,9 @@ function SubtaskItem({ subtask, taskId, onChanged }: { subtask: Subtask; taskId:
 interface SubtaskSectionProps {
   taskId: string
   subtasks: Subtask[]
-  onChanged: () => void
 }
 
-export function SubtaskSection({ taskId, subtasks, onChanged }: SubtaskSectionProps) {
+export function SubtaskSection({ taskId, subtasks }: SubtaskSectionProps) {
   const { toast } = useToast()
   const [newTitle, setNewTitle] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -94,12 +91,11 @@ export function SubtaskSection({ taskId, subtasks, onChanged }: SubtaskSectionPr
     e.preventDefault()
     if (!newTitle.trim()) return
     try {
-      await api.createSubtask(taskId, {
+      await operations.createSubtask(taskId, {
         title: newTitle.trim(),
         position: Date.now().toString(),
       })
       setNewTitle('')
-      onChanged()
       setTimeout(() => inputRef.current?.focus(), 50)
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to add subtask', 'error')
@@ -115,7 +111,7 @@ export function SubtaskSection({ taskId, subtasks, onChanged }: SubtaskSectionPr
       </h3>
       <div className="space-y-0.5">
         {subtasks.map((st) => (
-          <SubtaskItem key={st.id} subtask={st} taskId={taskId} onChanged={onChanged} />
+          <SubtaskItem key={st.id} subtask={st} taskId={taskId} />
         ))}
         <form onSubmit={handleAdd} className="flex items-center gap-2 min-h-[36px] px-1">
           <span className="w-4 h-4 rounded border border-gray-200 shrink-0" />

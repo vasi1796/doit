@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router'
-import { api } from '../../api/client'
+import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
+import { SyncStatus } from '../common/SyncStatus'
 import type { List, Label } from '../../api/types'
 import { PRESET_COLORS } from '../../constants'
 
@@ -19,8 +20,6 @@ const BOTTOM_ITEMS = [
 interface SidebarProps {
   lists: List[]
   labels: Label[]
-  onListsChanged: () => void
-  onLabelsChanged: () => void
   taskCounts: {
     inbox: number
     today: number
@@ -52,7 +51,7 @@ function NavItem({ to, label, icon, count }: { to: string; label: string; icon: 
   )
 }
 
-export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCounts }: SidebarProps) {
+export function Sidebar({ lists, labels, taskCounts }: SidebarProps) {
   const { toast } = useToast()
   const navigate = useNavigate()
   const [addingList, setAddingList] = useState(false)
@@ -63,14 +62,13 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
     e.preventDefault()
     if (!newListName.trim()) return
     try {
-      await api.createList({
+      await operations.createList({
         name: newListName.trim(),
         colour: newListColour,
         position: Date.now().toString(),
       })
       setNewListName('')
       setAddingList(false)
-      onListsChanged()
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed', 'error')
     }
@@ -164,9 +162,8 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
                 onClick={async (e) => {
                   e.stopPropagation()
                   try {
-                    await api.deleteList(list.id)
+                    await operations.deleteList(list.id)
                     toast('List deleted', 'success')
-                    onListsChanged()
                     navigate('/inbox')
                   } catch (err) {
                     toast(err instanceof Error ? err.message : 'Failed to delete', 'error')
@@ -213,9 +210,8 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
                   onClick={async (e) => {
                     e.stopPropagation()
                     try {
-                      await api.deleteLabel(label.id)
+                      await operations.deleteLabel(label.id)
                       toast('Label deleted', 'success')
-                      onLabelsChanged()
                       navigate('/inbox')
                     } catch (err) {
                       toast(err instanceof Error ? err.message : 'Failed to delete', 'error')
@@ -241,6 +237,9 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
           <NavItem key={item.to} {...item} />
         ))}
       </nav>
+
+      {/* Sync status */}
+      <SyncStatus />
 
       {/* Logout */}
       <div className="px-2 pb-4">

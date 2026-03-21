@@ -1,11 +1,13 @@
-import { usePageTasks } from '../hooks/usePageTasks'
+import { useState } from 'react'
+import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { TaskDetail } from '../components/tasks/TaskDetail'
 
 export function TodayPage() {
-  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ is_completed: 'false' })
+  const { tasks, loading } = useTasks({ is_completed: 'false' })
   const { lists } = useLayoutContext()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const today = new Date().toISOString().split('T')[0]
   const todayTasks = tasks.filter((t) => t.due_date === today)
@@ -23,11 +25,10 @@ export function TodayPage() {
         loading={loading}
         emptyMessage="Nothing due today"
         emptyHint="Set due dates on tasks to see them here"
-        onTaskChanged={refreshAll}
         onTaskSelect={setSelectedId}
       />
       {selectedId && (
-        <TaskDetail taskId={selectedId} lists={lists} onClose={() => setSelectedId(null)} onChanged={refreshAll} />
+        <TaskDetail taskId={selectedId} lists={lists} onClose={() => setSelectedId(null)} />
       )}
     </div>
   )

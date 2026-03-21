@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api } from '../../api/client'
+import * as operations from '../../db/operations'
 import { useToast } from './Toast'
 import type { Label } from '../../api/types'
 import { PRESET_COLORS } from '../../constants'
@@ -8,11 +8,9 @@ interface LabelPickerProps {
   allLabels: Label[]
   attachedIds: Set<string>
   taskId: string
-  onChanged: () => void
-  onLabelsChanged: () => void
 }
 
-export function LabelPicker({ allLabels, attachedIds, taskId, onChanged, onLabelsChanged }: LabelPickerProps) {
+export function LabelPicker({ allLabels, attachedIds, taskId }: LabelPickerProps) {
   const { toast } = useToast()
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
@@ -21,11 +19,10 @@ export function LabelPicker({ allLabels, attachedIds, taskId, onChanged, onLabel
   const handleToggle = async (label: Label) => {
     try {
       if (attachedIds.has(label.id)) {
-        await api.removeLabel(taskId, label.id)
+        await operations.removeLabel(taskId, label.id)
       } else {
-        await api.addLabel(taskId, label.id)
+        await operations.addLabel(taskId, label.id)
       }
-      onChanged()
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed', 'error')
     }
@@ -35,10 +32,9 @@ export function LabelPicker({ allLabels, attachedIds, taskId, onChanged, onLabel
     e.preventDefault()
     if (!newName.trim()) return
     try {
-      await api.createLabel({ name: newName.trim(), colour: newColour })
+      await operations.createLabel({ name: newName.trim(), colour: newColour })
       setNewName('')
       setCreating(false)
-      onLabelsChanged()
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed', 'error')
     }

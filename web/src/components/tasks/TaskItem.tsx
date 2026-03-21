@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api } from '../../api/client'
+import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { PriorityFlag } from '../common/PriorityDot'
 import { formatDueDate } from '../../utils/date'
@@ -13,11 +13,10 @@ const PRIORITY_COLORS: Partial<Record<Priority, string>> = {
 
 interface TaskItemProps {
   task: Task
-  onChanged: () => void
   onSelect: (id: string) => void
 }
 
-export function TaskItem({ task, onChanged, onSelect }: TaskItemProps) {
+export function TaskItem({ task, onSelect }: TaskItemProps) {
   const { toast } = useToast()
   const [completing, setCompleting] = useState(false)
   const [fading, setFading] = useState(false)
@@ -27,15 +26,13 @@ export function TaskItem({ task, onChanged, onSelect }: TaskItemProps) {
     if (completing) return
     try {
       if (task.is_completed) {
-        await api.uncompleteTask(task.id)
-        onChanged()
+        await operations.uncompleteTask(task.id)
       } else {
         setCompleting(true)
-        await api.completeTask(task.id)
+        await operations.completeTask(task.id)
         if (task.recurrence_rule) toast('Done! Next occurrence created', 'success')
         setTimeout(() => {
           setFading(true)
-          setTimeout(() => onChanged(), 300)
         }, 400)
       }
     } catch (err) {

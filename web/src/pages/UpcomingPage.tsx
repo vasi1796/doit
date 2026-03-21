@@ -1,4 +1,5 @@
-import { usePageTasks } from '../hooks/usePageTasks'
+import { useState } from 'react'
+import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { TaskDetail } from '../components/tasks/TaskDetail'
@@ -26,8 +27,9 @@ function formatDayHeader(dateStr: string): string {
 }
 
 export function UpcomingPage() {
-  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ is_completed: 'false' })
+  const { tasks, loading } = useTasks({ is_completed: 'false' })
   const { lists } = useLayoutContext()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const days = getUpcomingDays()
   const grouped = days
@@ -56,14 +58,13 @@ export function UpcomingPage() {
             <TaskList
               tasks={group.tasks}
               loading={false}
-              onTaskChanged={refreshAll}
               onTaskSelect={setSelectedId}
             />
           </div>
         ))
       )}
       {selectedId && (
-        <TaskDetail taskId={selectedId} lists={lists} onClose={() => setSelectedId(null)} onChanged={refreshAll} />
+        <TaskDetail taskId={selectedId} lists={lists} onClose={() => setSelectedId(null)} />
       )}
     </div>
   )

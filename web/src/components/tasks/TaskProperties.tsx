@@ -9,10 +9,9 @@ interface TaskPropertiesProps {
   task: Task
   lists?: List[]
   onSave: (field: string, value: unknown) => void
-  onListsChanged?: () => void
 }
 
-export function TaskProperties({ task, lists, onSave, onListsChanged }: TaskPropertiesProps) {
+export function TaskProperties({ task, lists, onSave }: TaskPropertiesProps) {
   return (
     <div className="space-y-2 mb-4 bg-gray-50 rounded-lg p-3">
       <div className="flex items-center gap-3">
@@ -53,7 +52,6 @@ export function TaskProperties({ task, lists, onSave, onListsChanged }: TaskProp
             value={task.list_id || ''}
             lists={lists}
             onChange={(id) => onSave('list_id', id)}
-            onListCreated={onListsChanged || (() => {})}
           />
         </div>
       )}

@@ -6,11 +6,9 @@ interface LabelsSectionProps {
   taskId: string
   taskLabels: Label[]
   allLabels: Label[]
-  onChanged: () => void
-  onLabelsChanged: () => void
 }
 
-export function LabelsSection({ taskId, taskLabels, allLabels, onChanged, onLabelsChanged }: LabelsSectionProps) {
+export function LabelsSection({ taskId, taskLabels, allLabels }: LabelsSectionProps) {
   const [showPicker, setShowPicker] = useState(false)
   const attachedIds = new Set(taskLabels.map((l) => l.id))
 
@@ -32,8 +30,6 @@ export function LabelsSection({ taskId, taskLabels, allLabels, onChanged, onLabe
           allLabels={allLabels}
           attachedIds={attachedIds}
           taskId={taskId}
-          onChanged={onChanged}
-          onLabelsChanged={onLabelsChanged}
         />
       ) : (
         <div

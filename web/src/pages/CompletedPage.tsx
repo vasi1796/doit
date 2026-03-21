@@ -1,11 +1,13 @@
-import { usePageTasks } from '../hooks/usePageTasks'
+import { useState } from 'react'
+import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { TaskDetail } from '../components/tasks/TaskDetail'
 
 export function CompletedPage() {
-  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ is_completed: 'true' })
+  const { tasks, loading } = useTasks({ is_completed: 'true' })
   const { lists } = useLayoutContext()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   return (
     <div>
@@ -16,11 +18,10 @@ export function CompletedPage() {
         tasks={tasks}
         loading={loading}
         emptyMessage="No completed tasks"
-        onTaskChanged={refreshAll}
         onTaskSelect={setSelectedId}
       />
       {selectedId && (
-        <TaskDetail taskId={selectedId} lists={lists} onClose={() => setSelectedId(null)} onChanged={refreshAll} />
+        <TaskDetail taskId={selectedId} lists={lists} onClose={() => setSelectedId(null)} />
       )}
     </div>
   )

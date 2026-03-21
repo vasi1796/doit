@@ -1,25 +1,26 @@
-import { usePageTasks } from '../hooks/usePageTasks'
+import { useState } from 'react'
+import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { TaskDetail } from '../components/tasks/TaskDetail'
 import { QuickAdd } from '../components/tasks/QuickAdd'
 
 export function InboxPage() {
-  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ inbox: 'true', is_completed: 'false' })
-  const { lists, labels, quickAddRef, refreshLists, refreshLabels } = useLayoutContext()
+  const { tasks, loading } = useTasks({ inbox: 'true', is_completed: 'false' })
+  const { lists, labels, quickAddRef } = useLayoutContext()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   return (
     <div>
       <div className="px-4 pt-6 pb-2">
         <h1 className="text-2xl font-semibold text-text-primary">Inbox</h1>
       </div>
-      <QuickAdd ref={quickAddRef} lists={lists} labels={labels} onCreated={refreshAll} onListsChanged={refreshLists} onLabelsChanged={refreshLabels} />
+      <QuickAdd ref={quickAddRef} lists={lists} labels={labels} />
       <TaskList
         tasks={tasks}
         loading={loading}
         emptyMessage="Your inbox is clear"
         emptyHint="Press Cmd+N to add a task"
-        onTaskChanged={refreshAll}
         onTaskSelect={setSelectedId}
       />
       {selectedId && (
@@ -27,8 +28,6 @@ export function InboxPage() {
           taskId={selectedId}
           lists={lists}
           onClose={() => setSelectedId(null)}
-          onChanged={refreshAll}
-          onListsChanged={refreshLists}
         />
       )}
     </div>
