@@ -1,16 +1,12 @@
-import { useState, useCallback } from 'react'
-import { useTasks } from '../hooks/useTasks'
+import { usePageTasks } from '../hooks/usePageTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { TaskDetail } from '../components/tasks/TaskDetail'
 import { QuickAdd } from '../components/tasks/QuickAdd'
 
 export function InboxPage() {
-  const { tasks, loading, refresh } = useTasks({ inbox: 'true', is_completed: 'false' })
-  const { lists, labels, quickAddRef, refreshLists, refreshLabels, refreshCounts } = useLayoutContext()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-
-  const refreshAll = useCallback(() => { refresh(); refreshCounts() }, [refresh, refreshCounts])
+  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ inbox: 'true', is_completed: 'false' })
+  const { lists, labels, quickAddRef, refreshLists, refreshLabels } = useLayoutContext()
 
   return (
     <div>

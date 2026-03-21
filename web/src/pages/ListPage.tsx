@@ -1,6 +1,5 @@
-import { useState, useCallback } from 'react'
-import { useParams } from 'react-router'
-import { useTasks } from '../hooks/useTasks'
+import { useParams, Navigate } from 'react-router'
+import { usePageTasks } from '../hooks/usePageTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { TaskDetail } from '../components/tasks/TaskDetail'
@@ -8,11 +7,10 @@ import { QuickAdd } from '../components/tasks/QuickAdd'
 
 export function ListPage() {
   const { id } = useParams<{ id: string }>()
-  const { tasks, loading, refresh } = useTasks({ list_id: id!, is_completed: 'false' })
-  const { lists, labels, refreshLists, refreshLabels, refreshCounts } = useLayoutContext()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  if (!id) return <Navigate to="/inbox" replace />
 
-  const refreshAll = useCallback(() => { refresh(); refreshCounts() }, [refresh, refreshCounts])
+  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ list_id: id, is_completed: 'false' })
+  const { lists, labels, refreshLists, refreshLabels } = useLayoutContext()
   const list = lists.find((l) => l.id === id)
 
   return (

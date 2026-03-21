@@ -1,15 +1,11 @@
-import { useState, useCallback } from 'react'
-import { useTasks } from '../hooks/useTasks'
+import { usePageTasks } from '../hooks/usePageTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { TaskDetail } from '../components/tasks/TaskDetail'
 
 export function TodayPage() {
-  const { tasks, loading, refresh } = useTasks({ is_completed: 'false' })
-  const { lists, refreshCounts } = useLayoutContext()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-
-  const refreshAll = useCallback(() => { refresh(); refreshCounts() }, [refresh, refreshCounts])
+  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ is_completed: 'false' })
+  const { lists } = useLayoutContext()
 
   const today = new Date().toISOString().split('T')[0]
   const todayTasks = tasks.filter((t) => t.due_date === today)
