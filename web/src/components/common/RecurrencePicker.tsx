@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
+import { usePopover } from '../../hooks/usePopover'
 
 const RULES = [
   { value: '', label: 'No repeat' },
@@ -14,24 +15,15 @@ interface RecurrencePickerProps {
 }
 
 export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
-  const btnRef = useRef<HTMLButtonElement>(null)
+  const { open, pos, triggerRef, toggle, close } = usePopover({ contentWidth: 160 })
   const current = RULES.find((r) => r.value === value) || RULES[0]
-
-  useEffect(() => {
-    if (open && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      setPos({ top: rect.bottom + 4, left: Math.max(8, rect.left) })
-    }
-  }, [open])
 
   return (
     <>
       <button
-        ref={btnRef}
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         className="flex items-center gap-2 min-h-[40px] px-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={value ? '#007aff' : '#86868b'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -45,7 +37,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-[60]" onClick={() => close()} />
           <div
             className="fixed bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-[61] min-w-[160px]"
             style={{ top: pos.top, left: pos.left }}
@@ -54,7 +46,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
               <button
                 key={r.value}
                 type="button"
-                onClick={() => { onChange(r.value); setOpen(false) }}
+                onClick={() => { onChange(r.value); close() }}
                 className={`w-full text-left px-4 py-2.5 text-[15px] hover:bg-gray-50 transition-colors ${
                   value === r.value ? 'text-[#007aff] font-medium' : 'text-[#1d1d1f]'
                 }`}

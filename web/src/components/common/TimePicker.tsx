@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import { usePopover } from '../../hooks/usePopover'
 
 function formatDisplayTime(timeStr: string): string {
   const [h, m] = timeStr.split(':').map(Number)
@@ -17,31 +18,19 @@ interface TimePickerProps {
 }
 
 export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
-  const btnRef = useRef<HTMLButtonElement>(null)
+  const { open, pos, triggerRef, toggle, close } = usePopover({ contentWidth: 220 })
 
-  // Parse current value
   const parsed = value ? value.split(':').map(Number) : [9, 0]
   const [selHour, setSelHour] = useState(parsed[0] > 12 ? parsed[0] - 12 : parsed[0] || 12)
   const [selMin, setSelMin] = useState(parsed[1] || 0)
   const [selAmPm, setSelAmPm] = useState(parsed[0] >= 12 ? 'PM' : 'AM')
 
-  // Sync internal state when value prop changes
   useEffect(() => {
     const p = value ? value.split(':').map(Number) : [9, 0]
     setSelHour(p[0] > 12 ? p[0] - 12 : p[0] || 12)
     setSelMin(p[1] || 0)
     setSelAmPm(p[0] >= 12 ? 'PM' : 'AM')
   }, [value])
-
-  useEffect(() => {
-    if (open && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      const left = Math.min(rect.left, window.innerWidth - 220)
-      setPos({ top: rect.bottom + 4, left: Math.max(8, left) })
-    }
-  }, [open])
 
   const applyTime = (h: number, m: number, ampm: string) => {
     let hour24 = h
@@ -54,9 +43,9 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
   return (
     <>
       <button
-        ref={btnRef}
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         className="flex items-center gap-2 min-h-[40px] px-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={value ? '#007aff' : '#86868b'} strokeWidth="1.5" strokeLinecap="round">
@@ -78,7 +67,7 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-[60]" onClick={() => close()} />
           <div
             className="fixed bg-white rounded-xl shadow-xl border border-gray-200 p-3 z-[61] w-[210px]"
             style={{ top: pos.top, left: pos.left }}
@@ -142,7 +131,7 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
             {/* Done */}
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => close()}
               className="w-full mt-2 py-2 text-[13px] font-semibold text-[#007aff] hover:bg-gray-50 rounded-lg"
             >
               Done

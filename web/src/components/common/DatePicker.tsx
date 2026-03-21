@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import { usePopover } from '../../hooks/usePopover'
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -35,9 +36,7 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
-  const btnRef = useRef<HTMLButtonElement>(null)
+  const { open, pos, triggerRef, toggle, close } = usePopover({ contentWidth: 280, contentHeight: 340 })
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -47,21 +46,11 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
   const [viewYear, setViewYear] = useState(initial.getFullYear())
   const [viewMonth, setViewMonth] = useState(initial.getMonth())
 
-  // Sync view when value changes externally
   useEffect(() => {
     const d = value ? new Date(value + 'T00:00:00') : new Date()
     setViewYear(d.getFullYear())
     setViewMonth(d.getMonth())
   }, [value])
-
-  useEffect(() => {
-    if (open && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      const left = Math.min(rect.left, window.innerWidth - 280)
-      const top = rect.bottom + 4
-      setPos({ top: Math.min(top, window.innerHeight - 340), left: Math.max(8, left) })
-    }
-  }, [open])
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1) }
@@ -76,7 +65,7 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
   const selectDate = (day: number) => {
     const d = new Date(viewYear, viewMonth, day)
     onChange(toDateStr(d))
-    setOpen(false)
+    close()
   }
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth)
@@ -91,9 +80,9 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
   return (
     <>
       <button
-        ref={btnRef}
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         className="flex items-center gap-2 min-h-[40px] px-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={value ? '#007aff' : '#86868b'} strokeWidth="1.5" strokeLinecap="round">
@@ -117,7 +106,7 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-[60]" onClick={close} />
           <div
             className="fixed bg-white rounded-xl shadow-xl border border-gray-200 p-3 z-[61] w-[270px]"
             style={{ top: pos.top, left: pos.left }}
@@ -126,21 +115,21 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
             <div className="flex gap-1.5 mb-3">
               <button
                 type="button"
-                onClick={() => { onChange(todayStr); setOpen(false) }}
+                onClick={() => { onChange(todayStr); close() }}
                 className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-[#007aff]/8 text-[#007aff] hover:bg-[#007aff]/15"
               >
                 Today
               </button>
               <button
                 type="button"
-                onClick={() => { onChange(toDateStr(tomorrow)); setOpen(false) }}
+                onClick={() => { onChange(toDateStr(tomorrow)); close() }}
                 className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-gray-100 text-[#1d1d1f] hover:bg-gray-200"
               >
                 Tomorrow
               </button>
               <button
                 type="button"
-                onClick={() => { onChange(toDateStr(nextWeek)); setOpen(false) }}
+                onClick={() => { onChange(toDateStr(nextWeek)); close() }}
                 className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-gray-100 text-[#1d1d1f] hover:bg-gray-200"
               >
                 Next week
