@@ -48,7 +48,7 @@ web/              React frontend
   e2e/            Playwright visual regression + accessibility tests
   public/sw.js    Service worker (app shell caching for offline launch)
 docs/adr/         Architecture Decision Records (9 total)
-docs/diagrams/    Mermaid architecture diagrams (6 total)
+docs/diagrams/    Mermaid architecture diagrams (7 total)
 scripts/          Backup and utility scripts
 ```
 
