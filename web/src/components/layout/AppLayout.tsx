@@ -7,6 +7,7 @@ import { useLabels } from '../../hooks/useLabels'
 import { useTasks } from '../../hooks/useTasks'
 import { initialSync } from '../../db/initial-sync'
 import { SyncEngine } from '../../db/sync-engine'
+import { InstallBanner } from '../common/InstallBanner'
 import type { List, Label } from '../../api/types'
 
 interface LayoutContext {
@@ -132,6 +133,7 @@ export function AppLayout() {
         </div>
 
         <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0">
+          <InstallBanner />
           <Outlet />
         </main>
 
