@@ -20,6 +20,7 @@ api/              Go backend
   cmd/migrate/    Migration runner CLI (goose)
   cmd/worker/     Projection worker (consumes RabbitMQ, runs projections)
   cmd/worker-recurring/  Recurring tasks worker (creates next occurrences)
+  cmd/rebuild/    Projection rebuilder CLI (replays event log → read models)
   internal/
     auth/          JWT tokens, Google OAuth, context helpers
     broker/        RabbitMQ client (exchange, queues, publish, consume)
@@ -46,7 +47,8 @@ web/              React frontend
     constants.ts   Shared color palette
   e2e/            Playwright visual regression + accessibility tests
   public/sw.js    Service worker (app shell caching for offline launch)
-docs/adr/         Architecture Decision Records (8 total)
+docs/adr/         Architecture Decision Records (9 total)
+docs/diagrams/    Mermaid architecture diagrams (6 total)
 scripts/          Backup and utility scripts
 ```
 

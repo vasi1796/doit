@@ -98,6 +98,7 @@ doit/
     cmd/
       api/main.go              # Server: router, auth, domain stack wiring
       migrate/main.go          # Goose migration runner CLI
+      rebuild/main.go          # Projection rebuilder CLI (replays event log)
     internal/
       auth/                    # JWT (TokenService), Google OAuth, context helpers
       config/                  # Env var loading → Config struct
@@ -124,7 +125,8 @@ doit/
     public/                    # PWA manifest, app icons
     Dockerfile
   docs/
-    adr/                       # 8 Architecture Decision Records
+    adr/                       # 9 Architecture Decision Records
+    diagrams/                  # 6 Mermaid architecture diagrams
     design-document.md         # Full design spec
   scripts/backup.sh            # Database backup with retention
   .github/workflows/ci.yml    # GitHub Actions CI
