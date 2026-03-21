@@ -154,6 +154,8 @@ No rollback on failure — the sync engine retries with exponential backoff.
 - **Accessibility tests** (Playwright + axe-core) scan all pages for WCAG 2.0
   AA violations and 16px input font sizes.
 - **ESLint jsx-a11y** plugin enforces accessibility rules at lint time.
+- **Console error tests** verify no unexpected errors on page load.
+- **Mobile interaction tests** verify drawer navigation, task creation on mobile viewport.
 - **No flaky tests.** E2E tests must pass deterministically without retries.
   Do not use `waitForTimeout` as a fix for race conditions — wait for specific
   elements or URLs. Do not add retries to mask flakiness. If a test cannot be
