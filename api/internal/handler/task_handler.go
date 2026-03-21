@@ -32,6 +32,7 @@ type TaskCommander interface {
 	RemoveLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.RemoveLabel) error
 	CreateSubtask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.CreateSubtask) error
 	CompleteSubtask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.CompleteSubtask) error
+	UncompleteSubtask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UncompleteSubtask) error
 	UpdateTaskRecurrence(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateTaskRecurrence) error
 	UpdateSubtaskTitle(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateSubtaskTitle) error
 }
@@ -138,23 +139,15 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		UserID:      userID,
 		Title:       req.Title,
 		Description: req.Description,
-		Priority:    req.Priority,
+		Priority:    domain.Priority(req.Priority),
 		DueDate:     dueDate,
+		DueTime:     req.DueTime,
 		ListID:      req.ListID,
 		Position:    req.Position,
 	}
 
 	if mapDomainError(w, h.logger, h.cmds.CreateTask(r.Context(), cmd)) {
 		return
-	}
-
-	if req.DueTime != nil {
-		err := h.cmds.UpdateTaskDueTime(r.Context(), taskID, userID, domain.UpdateTaskDueTime{
-			DueTime: req.DueTime,
-		})
-		if mapDomainError(w, h.logger, err) {
-			return
-		}
 	}
 
 	writeJSON(w, h.logger, http.StatusCreated, map[string]string{"id": taskID.String()})
@@ -191,7 +184,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Priority != nil {
 		v := *req.Priority
-		cmds = append(cmds, func() error { return h.cmds.UpdateTaskPriority(ctx, taskID, userID, domain.UpdateTaskPriority{Priority: v}) })
+		cmds = append(cmds, func() error { return h.cmds.UpdateTaskPriority(ctx, taskID, userID, domain.UpdateTaskPriority{Priority: domain.Priority(v)}) })
 	}
 	if req.DueDate != nil {
 		var dueDate *time.Time
@@ -211,7 +204,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.RecurrenceRule != nil {
 		v := *req.RecurrenceRule
-		cmds = append(cmds, func() error { return h.cmds.UpdateTaskRecurrence(ctx, taskID, userID, domain.UpdateTaskRecurrence{RecurrenceRule: v}) })
+		cmds = append(cmds, func() error { return h.cmds.UpdateTaskRecurrence(ctx, taskID, userID, domain.UpdateTaskRecurrence{RecurrenceRule: domain.RecurrenceRule(v)}) })
 	}
 	if req.ListID != nil && req.Position != nil {
 		lid, pos := *req.ListID, *req.Position
@@ -359,6 +352,31 @@ func (h *TaskHandler) CompleteSubtask(w http.ResponseWriter, r *http.Request) {
 	err := h.cmds.CompleteSubtask(r.Context(), taskID, userID, domain.CompleteSubtask{
 		SubtaskID:   subtaskID,
 		CompletedAt: time.Now().UTC(),
+	})
+	if mapDomainError(w, h.logger, err) {
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// UncompleteSubtask handles POST /api/v1/tasks/{id}/subtasks/{sid}/uncomplete
+func (h *TaskHandler) UncompleteSubtask(w http.ResponseWriter, r *http.Request) {
+	userID, ok := requireUserID(w, h.logger, r)
+	if !ok {
+		return
+	}
+
+	taskID, ok := parseUUID(w, h.logger, r, "id")
+	if !ok {
+		return
+	}
+	subtaskID, ok := parseUUID(w, h.logger, r, "sid")
+	if !ok {
+		return
+	}
+	err := h.cmds.UncompleteSubtask(r.Context(), taskID, userID, domain.UncompleteSubtask{
+		SubtaskID: subtaskID,
 	})
 	if mapDomainError(w, h.logger, err) {
 		return
@@ -534,8 +552,16 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.loadLabelsForTasks(r.Context(), tasks)
-	h.loadSubtasksForTasks(r.Context(), tasks)
+	if err := h.loadLabelsForTasks(r.Context(), tasks); err != nil {
+		h.logger.Error().Err(err).Msg("loading labels for tasks")
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
+		return
+	}
+	if err := h.loadSubtasksForTasks(r.Context(), tasks); err != nil {
+		h.logger.Error().Err(err).Msg("loading subtasks for tasks")
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
+		return
+	}
 
 	writeJSON(w, h.logger, http.StatusOK, tasks)
 }
@@ -571,8 +597,16 @@ func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	// Reuse batch loaders with a single-element slice
 	tasks := []taskResponse{t}
-	h.loadLabelsForTasks(r.Context(), tasks)
-	h.loadSubtasksForTasks(r.Context(), tasks)
+	if err := h.loadLabelsForTasks(r.Context(), tasks); err != nil {
+		h.logger.Error().Err(err).Msg("loading labels for task")
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
+		return
+	}
+	if err := h.loadSubtasksForTasks(r.Context(), tasks); err != nil {
+		h.logger.Error().Err(err).Msg("loading subtasks for task")
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
+		return
+	}
 
 	writeJSON(w, h.logger, http.StatusOK, tasks[0])
 }
@@ -613,9 +647,9 @@ func scanTaskRow(rows interface{ Scan(dest ...any) error }) (taskResponse, error
 }
 
 // loadLabelsForTasks batch-loads labels for a slice of tasks.
-func (h *TaskHandler) loadLabelsForTasks(ctx context.Context, tasks []taskResponse) {
+func (h *TaskHandler) loadLabelsForTasks(ctx context.Context, tasks []taskResponse) error {
 	if len(tasks) == 0 {
-		return
+		return nil
 	}
 	taskIDs := make([]uuid.UUID, len(tasks))
 	for i, t := range tasks {
@@ -627,8 +661,7 @@ func (h *TaskHandler) loadLabelsForTasks(ctx context.Context, tasks []taskRespon
 		 JOIN task_labels tl ON tl.label_id = l.id
 		 WHERE tl.task_id = ANY($1)`, taskIDs)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("batch loading labels")
-		return
+		return fmt.Errorf("batch loading labels: %w", err)
 	}
 	defer rows.Close()
 
@@ -637,8 +670,7 @@ func (h *TaskHandler) loadLabelsForTasks(ctx context.Context, tasks []taskRespon
 		var taskID uuid.UUID
 		var l labelResponse
 		if err := rows.Scan(&taskID, &l.ID, &l.Name, &l.Colour); err != nil {
-			h.logger.Error().Err(err).Msg("scanning batch label")
-			return
+			return fmt.Errorf("scanning batch label: %w", err)
 		}
 		labelMap[taskID] = append(labelMap[taskID], l)
 	}
@@ -647,12 +679,13 @@ func (h *TaskHandler) loadLabelsForTasks(ctx context.Context, tasks []taskRespon
 			tasks[i].Labels = labels
 		}
 	}
+	return nil
 }
 
 // loadSubtasksForTasks batch-loads subtasks for a slice of tasks.
-func (h *TaskHandler) loadSubtasksForTasks(ctx context.Context, tasks []taskResponse) {
+func (h *TaskHandler) loadSubtasksForTasks(ctx context.Context, tasks []taskResponse) error {
 	if len(tasks) == 0 {
-		return
+		return nil
 	}
 	taskIDs := make([]uuid.UUID, len(tasks))
 	for i, t := range tasks {
@@ -663,8 +696,7 @@ func (h *TaskHandler) loadSubtasksForTasks(ctx context.Context, tasks []taskResp
 		`SELECT task_id, id, title, is_completed, position FROM subtasks
 		 WHERE task_id = ANY($1) ORDER BY position ASC`, taskIDs)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("batch loading subtasks")
-		return
+		return fmt.Errorf("batch loading subtasks: %w", err)
 	}
 	defer rows.Close()
 
@@ -673,8 +705,7 @@ func (h *TaskHandler) loadSubtasksForTasks(ctx context.Context, tasks []taskResp
 		var taskID uuid.UUID
 		var s subtaskResponse
 		if err := rows.Scan(&taskID, &s.ID, &s.Title, &s.IsCompleted, &s.Position); err != nil {
-			h.logger.Error().Err(err).Msg("scanning batch subtask")
-			return
+			return fmt.Errorf("scanning batch subtask: %w", err)
 		}
 		subtaskMap[taskID] = append(subtaskMap[taskID], s)
 	}
@@ -683,4 +714,5 @@ func (h *TaskHandler) loadSubtasksForTasks(ctx context.Context, tasks []taskResp
 			tasks[i].Subtasks = subs
 		}
 	}
+	return nil
 }

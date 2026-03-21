@@ -11,7 +11,6 @@ import (
 
 	"github.com/vasi1796/doit/internal/auth"
 	"github.com/vasi1796/doit/internal/domain"
-	"github.com/vasi1796/doit/internal/eventstore"
 )
 
 func writeJSON(w http.ResponseWriter, logger zerolog.Logger, status int, data any) {
@@ -79,8 +78,10 @@ func mapDomainError(w http.ResponseWriter, logger zerolog.Logger, err error) boo
 
 	// 400 Bad Request
 	case errors.Is(err, domain.ErrEmptyTitle),
+		errors.Is(err, domain.ErrEmptyName),
 		errors.Is(err, domain.ErrInvalidPriority),
-		errors.Is(err, domain.ErrInvalidRecurrenceRule):
+		errors.Is(err, domain.ErrInvalidRecurrenceRule),
+		errors.Is(err, domain.ErrInvalidDueTime):
 		writeError(w, logger, http.StatusBadRequest, err.Error())
 
 	// 409 Conflict
@@ -91,10 +92,13 @@ func mapDomainError(w http.ResponseWriter, logger zerolog.Logger, err error) boo
 		errors.Is(err, domain.ErrTaskAlreadyCreated),
 		errors.Is(err, domain.ErrListAlreadyCreated),
 		errors.Is(err, domain.ErrLabelAlreadyCreated),
+		errors.Is(err, domain.ErrListAlreadyDeleted),
+		errors.Is(err, domain.ErrLabelAlreadyDeleted),
 		errors.Is(err, domain.ErrLabelAlreadyAttached),
 		errors.Is(err, domain.ErrLabelNotAttached),
 		errors.Is(err, domain.ErrSubtaskAlreadyCompleted),
-		errors.Is(err, eventstore.ErrVersionConflict):
+		errors.Is(err, domain.ErrSubtaskNotCompleted),
+		errors.Is(err, domain.ErrVersionConflict):
 		writeError(w, logger, http.StatusConflict, err.Error())
 
 	// 500 Internal Server Error

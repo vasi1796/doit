@@ -21,6 +21,10 @@ func (m *mockListCommander) CreateList(_ context.Context, _ domain.CreateList) e
 	return m.err
 }
 
+func (m *mockListCommander) DeleteList(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ domain.DeleteList) error {
+	return m.err
+}
+
 func TestListHandlerCreate(t *testing.T) {
 	userID := uuid.New()
 
@@ -40,7 +44,7 @@ func TestListHandlerCreate(t *testing.T) {
 		{
 			name:       "empty name",
 			body:       `{"name":"","colour":"#ff0000","position":"a"}`,
-			cmdErr:     domain.ErrEmptyTitle,
+			cmdErr:     domain.ErrEmptyName,
 			hasUser:    true,
 			wantStatus: http.StatusBadRequest,
 		},

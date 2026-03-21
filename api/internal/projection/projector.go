@@ -12,12 +12,12 @@ import (
 	"github.com/vasi1796/doit/internal/eventstore"
 )
 
-const upsertTaskSQL = `INSERT INTO tasks (id, user_id, list_id, title, description, priority, due_date, position, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+const upsertTaskSQL = `INSERT INTO tasks (id, user_id, list_id, title, description, priority, due_date, due_time, position, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
 ON CONFLICT (id) DO UPDATE SET
 	user_id = EXCLUDED.user_id, list_id = EXCLUDED.list_id, title = EXCLUDED.title,
 	description = EXCLUDED.description, priority = EXCLUDED.priority, due_date = EXCLUDED.due_date,
-	position = EXCLUDED.position, updated_at = EXCLUDED.updated_at`
+	due_time = EXCLUDED.due_time, position = EXCLUDED.position, updated_at = EXCLUDED.updated_at`
 
 const updateTaskCompletedSQL = `UPDATE tasks SET is_completed = true, completed_at = $2, updated_at = $3 WHERE id = $1`
 const updateTaskUncompletedSQL = `UPDATE tasks SET is_completed = false, completed_at = NULL, updated_at = $2 WHERE id = $1`
@@ -52,6 +52,12 @@ ON CONFLICT (id) DO UPDATE SET
 
 const updateSubtaskTitleSQL = `UPDATE subtasks SET title = $2 WHERE id = $1`
 const updateSubtaskCompletedSQL = `UPDATE subtasks SET is_completed = true WHERE id = $1`
+const updateSubtaskUncompletedSQL = `UPDATE subtasks SET is_completed = false WHERE id = $1`
+
+const deleteListSQL = `DELETE FROM lists WHERE id = $1`
+const moveTasksToInboxSQL = `UPDATE tasks SET list_id = NULL WHERE list_id = $1`
+const deleteLabelSQL = `DELETE FROM labels WHERE id = $1`
+const deleteTaskLabelsByLabelSQL = `DELETE FROM task_labels WHERE label_id = $1`
 
 // Projector consumes events and updates read model tables.
 type Projector struct {
@@ -102,14 +108,20 @@ func (p *Projector) handleEvent(ctx context.Context, e eventstore.Event) error {
 		return p.handleLabelRemoved(ctx, e)
 	case eventstore.EventListCreated:
 		return p.handleListCreated(ctx, e)
+	case eventstore.EventListDeleted:
+		return p.handleListDeleted(ctx, e)
 	case eventstore.EventLabelCreated:
 		return p.handleLabelCreated(ctx, e)
+	case eventstore.EventLabelDeleted:
+		return p.handleLabelDeleted(ctx, e)
 	case eventstore.EventSubtaskCreated:
 		return p.handleSubtaskCreated(ctx, e)
 	case eventstore.EventSubtaskTitleUpdated:
 		return p.handleSubtaskTitleUpdated(ctx, e)
 	case eventstore.EventSubtaskCompleted:
 		return p.handleSubtaskCompleted(ctx, e)
+	case eventstore.EventSubtaskUncompleted:
+		return p.handleSubtaskUncompleted(ctx, e)
 	case eventstore.EventTaskRecurrenceUpdated:
 		return p.handleTaskRecurrenceUpdated(ctx, e)
 	case eventstore.EventTaskDueTimeUpdated:
@@ -128,7 +140,7 @@ func (p *Projector) handleTaskCreated(ctx context.Context, e eventstore.Event) e
 	_, err := p.pool.Exec(ctx, upsertTaskSQL,
 		e.AggregateID, e.UserID, payload.ListID, payload.Title,
 		payload.Description, payload.Priority, payload.DueDate,
-		payload.Position, e.Timestamp,
+		payload.DueTime, payload.Position, e.Timestamp,
 	)
 	if err != nil {
 		return fmt.Errorf("upserting task: %w", err)
@@ -345,6 +357,21 @@ func (p *Projector) handleSubtaskCompleted(ctx context.Context, e eventstore.Eve
 	return nil
 }
 
+func (p *Projector) handleSubtaskUncompleted(ctx context.Context, e eventstore.Event) error {
+	var payload domain.SubtaskUncompletedPayload
+	if err := json.Unmarshal(e.Data, &payload); err != nil {
+		return fmt.Errorf("unmarshaling SubtaskUncompletedPayload: %w", err)
+	}
+	tag, err := p.pool.Exec(ctx, updateSubtaskUncompletedSQL, payload.SubtaskID)
+	if err != nil {
+		return fmt.Errorf("updating subtask uncompleted: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("subtask_id", payload.SubtaskID).Msg("projection: SubtaskUncompleted affected 0 rows")
+	}
+	return nil
+}
+
 func (p *Projector) handleTaskRecurrenceUpdated(ctx context.Context, e eventstore.Event) error {
 	var payload domain.TaskRecurrenceUpdatedPayload
 	if err := json.Unmarshal(e.Data, &payload); err != nil {
@@ -386,6 +413,28 @@ func (p *Projector) handleSubtaskTitleUpdated(ctx context.Context, e eventstore.
 	}
 	if tag.RowsAffected() == 0 {
 		p.logger.Warn().Stringer("subtask_id", payload.SubtaskID).Msg("projection: SubtaskTitleUpdated affected 0 rows")
+	}
+	return nil
+}
+
+func (p *Projector) handleListDeleted(ctx context.Context, e eventstore.Event) error {
+	// Move tasks belonging to this list to inbox before deleting
+	if _, err := p.pool.Exec(ctx, moveTasksToInboxSQL, e.AggregateID); err != nil {
+		return fmt.Errorf("moving tasks to inbox on list delete: %w", err)
+	}
+	if _, err := p.pool.Exec(ctx, deleteListSQL, e.AggregateID); err != nil {
+		return fmt.Errorf("deleting list: %w", err)
+	}
+	return nil
+}
+
+func (p *Projector) handleLabelDeleted(ctx context.Context, e eventstore.Event) error {
+	// Remove label associations before deleting the label
+	if _, err := p.pool.Exec(ctx, deleteTaskLabelsByLabelSQL, e.AggregateID); err != nil {
+		return fmt.Errorf("deleting task label associations: %w", err)
+	}
+	if _, err := p.pool.Exec(ctx, deleteLabelSQL, e.AggregateID); err != nil {
+		return fmt.Errorf("deleting label: %w", err)
 	}
 	return nil
 }

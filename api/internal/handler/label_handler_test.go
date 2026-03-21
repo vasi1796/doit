@@ -21,6 +21,10 @@ func (m *mockLabelCommander) CreateLabel(_ context.Context, _ domain.CreateLabel
 	return m.err
 }
 
+func (m *mockLabelCommander) DeleteLabel(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ domain.DeleteLabel) error {
+	return m.err
+}
+
 func TestLabelHandlerCreate(t *testing.T) {
 	userID := uuid.New()
 
@@ -40,7 +44,7 @@ func TestLabelHandlerCreate(t *testing.T) {
 		{
 			name:       "empty name",
 			body:       `{"name":"","colour":"#ff0000"}`,
-			cmdErr:     domain.ErrEmptyTitle,
+			cmdErr:     domain.ErrEmptyName,
 			hasUser:    true,
 			wantStatus: http.StatusBadRequest,
 		},

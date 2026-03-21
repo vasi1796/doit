@@ -26,12 +26,12 @@ type TaskAggregate struct {
 	deleted        bool
 	labels         map[uuid.UUID]bool
 	subtasks       map[uuid.UUID]*subtaskState
-	recurrenceRule string
+	recurrenceRule RecurrenceRule
 	dueDate        *time.Time
 	dueTime        *string
 	title          string
 	description    string
-	priority       int
+	priority       Priority
 	listID         *uuid.UUID
 	position       string
 }
@@ -68,6 +68,7 @@ func (a *TaskAggregate) Apply(e eventstore.Event) {
 		a.description = p.Description
 		a.priority = p.Priority
 		a.dueDate = p.DueDate
+		a.dueTime = p.DueTime
 		a.listID = p.ListID
 		a.position = p.Position
 	case eventstore.EventTaskRecurrenceUpdated:
@@ -128,6 +129,12 @@ func (a *TaskAggregate) Apply(e eventstore.Event) {
 		if st, ok := a.subtasks[p.SubtaskID]; ok {
 			st.completed = true
 		}
+	case eventstore.EventSubtaskUncompleted:
+		var p SubtaskUncompletedPayload
+		_ = json.Unmarshal(e.Data, &p) //nolint:errcheck
+		if st, ok := a.subtasks[p.SubtaskID]; ok {
+			st.completed = false
+		}
 	case eventstore.EventSubtaskTitleUpdated:
 		// Title is tracked only in the read model; no aggregate state to update.
 	}
@@ -140,8 +147,11 @@ func (a *TaskAggregate) HandleCreate(cmd CreateTask, now time.Time) ([]eventstor
 	if cmd.Title == "" {
 		return nil, ErrEmptyTitle
 	}
-	if cmd.Priority < 0 || cmd.Priority > 3 {
+	if !cmd.Priority.Valid() {
 		return nil, ErrInvalidPriority
+	}
+	if invalidOptionalDueTime(cmd.DueTime) {
+		return nil, ErrInvalidDueTime
 	}
 
 	a.id = cmd.TaskID
@@ -152,6 +162,7 @@ func (a *TaskAggregate) HandleCreate(cmd CreateTask, now time.Time) ([]eventstor
 		Description: cmd.Description,
 		Priority:    cmd.Priority,
 		DueDate:     cmd.DueDate,
+		DueTime:     cmd.DueTime,
 		ListID:      cmd.ListID,
 		Position:    cmd.Position,
 	}, now)
@@ -188,50 +199,39 @@ func (a *TaskAggregate) HandleComplete(cmd CompleteTask) ([]eventstore.Event, *R
 	// If the task has a recurrence rule and a due date, create the next occurrence.
 	if a.recurrenceRule != "" && a.dueDate != nil {
 		nextDue := nextDueDate(*a.dueDate, a.recurrenceRule)
-		newTaskID := uuid.New()
-		payload := TaskCreatedPayload{
+		newAgg := NewTaskAggregate()
+		newAgg.id = uuid.New()
+		newAgg.userID = a.userID
+
+		createEvents, err := newAgg.HandleCreate(CreateTask{
+			TaskID:      newAgg.id,
+			UserID:      a.userID,
 			Title:       a.title,
 			Description: a.description,
 			Priority:    a.priority,
 			DueDate:     &nextDue,
+			DueTime:     a.dueTime,
 			ListID:      a.listID,
 			Position:    a.position,
-		}
-		data, err := json.Marshal(payload)
+		}, cmd.CompletedAt)
 		if err != nil {
-			return nil, nil, fmt.Errorf("marshaling event payload: %w", err)
+			return nil, nil, fmt.Errorf("creating recurring task: %w", err)
 		}
 
-		newTaskEvent := eventstore.Event{
-			ID:            uuid.New(),
-			AggregateID:   newTaskID,
-			AggregateType: eventstore.AggregateTypeTask,
-			EventType:     eventstore.EventTaskCreated,
-			UserID:        a.userID,
-			Data:          data,
-			Timestamp:     cmd.CompletedAt,
-			Version:       1,
+		// Apply the create event so the aggregate state is "created" for the next command
+		for _, ev := range createEvents {
+			newAgg.Apply(ev)
 		}
 
-		recPayload := TaskRecurrenceUpdatedPayload{
+		recEvents, err := newAgg.HandleUpdateRecurrence(UpdateTaskRecurrence{
 			RecurrenceRule: a.recurrenceRule,
-		}
-		recData, err := json.Marshal(recPayload)
+		}, cmd.CompletedAt)
 		if err != nil {
-			return nil, nil, fmt.Errorf("marshaling event payload: %w", err)
+			return nil, nil, fmt.Errorf("setting recurrence on recurring task: %w", err)
 		}
-		recEvent := eventstore.Event{
-			ID:            uuid.New(),
-			AggregateID:   newTaskID,
-			AggregateType: eventstore.AggregateTypeTask,
-			EventType:     eventstore.EventTaskRecurrenceUpdated,
-			UserID:        a.userID,
-			Data:          recData,
-			Timestamp:     cmd.CompletedAt,
-			Version:       2,
-		}
+
 		recurring = &RecurringTaskEvents{
-			Events: []eventstore.Event{newTaskEvent, recEvent},
+			Events: append(createEvents, recEvents...),
 		}
 	}
 
@@ -335,7 +335,7 @@ func (a *TaskAggregate) HandleUpdatePriority(cmd UpdateTaskPriority, now time.Ti
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
-	if cmd.Priority < 0 || cmd.Priority > 3 {
+	if !cmd.Priority.Valid() {
 		return nil, ErrInvalidPriority
 	}
 
@@ -365,6 +365,9 @@ func (a *TaskAggregate) HandleUpdateDueDate(cmd UpdateTaskDueDate, now time.Time
 func (a *TaskAggregate) HandleUpdateDueTime(cmd UpdateTaskDueTime, now time.Time) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
+	}
+	if invalidOptionalDueTime(cmd.DueTime) {
+		return nil, ErrInvalidDueTime
 	}
 
 	e, err := a.newEvent(eventstore.EventTaskDueTimeUpdated, TaskDueTimeUpdatedPayload{
@@ -451,6 +454,27 @@ func (a *TaskAggregate) HandleCompleteSubtask(cmd CompleteSubtask) ([]eventstore
 	return []eventstore.Event{e}, nil
 }
 
+func (a *TaskAggregate) HandleUncompleteSubtask(cmd UncompleteSubtask, now time.Time) ([]eventstore.Event, error) {
+	if err := a.requireActive(); err != nil {
+		return nil, err
+	}
+	st, ok := a.subtasks[cmd.SubtaskID]
+	if !ok {
+		return nil, ErrSubtaskNotFound
+	}
+	if !st.completed {
+		return nil, ErrSubtaskNotCompleted
+	}
+
+	e, err := a.newEvent(eventstore.EventSubtaskUncompleted, SubtaskUncompletedPayload{
+		SubtaskID: cmd.SubtaskID,
+	}, now)
+	if err != nil {
+		return nil, err
+	}
+	return []eventstore.Event{e}, nil
+}
+
 func (a *TaskAggregate) HandleUpdateSubtaskTitle(cmd UpdateSubtaskTitle, now time.Time) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
@@ -487,7 +511,7 @@ func (a *TaskAggregate) HandleUpdateRecurrence(cmd UpdateTaskRecurrence, now tim
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
-	if cmd.RecurrenceRule != "" && cmd.RecurrenceRule != "daily" && cmd.RecurrenceRule != "weekly" && cmd.RecurrenceRule != "monthly" && cmd.RecurrenceRule != "yearly" {
+	if !cmd.RecurrenceRule.Valid() {
 		return nil, ErrInvalidRecurrenceRule
 	}
 
@@ -501,37 +525,21 @@ func (a *TaskAggregate) HandleUpdateRecurrence(cmd UpdateTaskRecurrence, now tim
 }
 
 // nextDueDate calculates the next due date by advancing current according to the rule.
-func nextDueDate(current time.Time, rule string) time.Time {
+func nextDueDate(current time.Time, rule RecurrenceRule) time.Time {
 	switch rule {
-	case "daily":
+	case RecurrenceDaily:
 		return current.AddDate(0, 0, 1)
-	case "weekly":
+	case RecurrenceWeekly:
 		return current.AddDate(0, 0, 7)
-	case "monthly":
+	case RecurrenceMonthly:
 		return current.AddDate(0, 1, 0)
-	case "yearly":
+	case RecurrenceYearly:
 		return current.AddDate(1, 0, 0)
 	default:
 		return current
 	}
 }
 
-// newEvent builds an event with the next version, marshaling the payload to JSON.
 func (a *TaskAggregate) newEvent(eventType eventstore.EventType, payload any, now time.Time) (eventstore.Event, error) {
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return eventstore.Event{}, fmt.Errorf("marshaling event payload: %w", err)
-	}
-
-	a.version++
-	return eventstore.Event{
-		ID:            uuid.New(),
-		AggregateID:   a.id,
-		AggregateType: eventstore.AggregateTypeTask,
-		EventType:     eventType,
-		UserID:        a.userID,
-		Data:          data,
-		Timestamp:     now,
-		Version:       a.version,
-	}, nil
+	return buildEvent(a.id, eventstore.AggregateTypeTask, a.userID, &a.version, eventType, payload, now)
 }

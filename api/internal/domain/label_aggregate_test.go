@@ -22,7 +22,7 @@ func TestLabelHandleCreate(t *testing.T) {
 		{
 			name:    "empty name",
 			cmd:     CreateLabel{LabelID: uuid.New(), UserID: testUserID, Name: "", Colour: "#ff0000"},
-			wantErr: ErrEmptyTitle,
+			wantErr: ErrEmptyName,
 		},
 	}
 

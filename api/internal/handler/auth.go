@@ -77,7 +77,7 @@ func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	stateBytes := make([]byte, 16)
 	if _, err := rand.Read(stateBytes); err != nil {
 		h.logger.Error().Err(err).Msg("generating oauth state")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 		return
 	}
 	state := hex.EncodeToString(stateBytes)
@@ -109,14 +109,14 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil || stateCookie.Value != r.URL.Query().Get("state") {
 		h.logger.Debug().Msg("oauth state mismatch")
-		http.Error(w, "invalid oauth state", http.StatusForbidden)
+		writeError(w, h.logger, http.StatusForbidden, "invalid oauth state")
 		return
 	}
 
 	// Check for OAuth error
 	if errParam := r.URL.Query().Get("error"); errParam != "" {
 		h.logger.Warn().Str("error", errParam).Msg("oauth error from google")
-		http.Error(w, "authentication failed", http.StatusForbidden)
+		writeError(w, h.logger, http.StatusForbidden, "authentication failed")
 		return
 	}
 
@@ -125,14 +125,14 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	googleUser, err := h.google.Exchange(r.Context(), code)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("exchanging oauth code")
-		http.Error(w, "authentication failed", http.StatusInternalServerError)
+		writeError(w, h.logger, http.StatusInternalServerError, "authentication failed")
 		return
 	}
 
 	// Check allowlist
 	if !h.isAllowed(googleUser.Email) {
 		h.logger.Warn().Str("email", googleUser.Email).Msg("email not in allowlist")
-		http.Error(w, "email not allowed", http.StatusForbidden)
+		writeError(w, h.logger, http.StatusForbidden, "email not allowed")
 		return
 	}
 
@@ -140,7 +140,7 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.upsertUser(r.Context(), googleUser)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("upserting user")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 		return
 	}
 
@@ -171,7 +171,7 @@ func (h *AuthHandler) DevLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Body != nil && r.ContentLength > 0 {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, "invalid JSON body", http.StatusBadRequest)
+			writeError(w, h.logger, http.StatusBadRequest, "invalid JSON body")
 			return
 		}
 		if body.Email != "" {
@@ -185,7 +185,7 @@ func (h *AuthHandler) DevLogin(w http.ResponseWriter, r *http.Request) {
 	// Check allowlist (if no allowlist is configured, all emails are allowed)
 	if !h.isAllowed(email) {
 		h.logger.Warn().Str("email", email).Msg("dev login email not in allowlist")
-		http.Error(w, "email not allowed", http.StatusForbidden)
+		writeError(w, h.logger, http.StatusForbidden, "email not allowed")
 		return
 	}
 
@@ -198,7 +198,7 @@ func (h *AuthHandler) DevLogin(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.upsertUser(r.Context(), googleUser)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("upserting dev user")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 		return
 	}
 
@@ -263,7 +263,7 @@ func (h *AuthHandler) issueTokenCookie(w http.ResponseWriter, userID uuid.UUID, 
 	tokenStr, expiry, err := h.tokens.Issue(userID, email)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("issuing JWT")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 		return false
 	}
 

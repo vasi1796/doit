@@ -84,6 +84,10 @@ func (m *mockTaskCommander) UpdateTaskDueTime(_ context.Context, _ uuid.UUID, _ 
 	m.lastCmd = cmd
 	return m.err
 }
+func (m *mockTaskCommander) UncompleteSubtask(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UncompleteSubtask) error {
+	m.lastCmd = cmd
+	return m.err
+}
 func (m *mockTaskCommander) UpdateSubtaskTitle(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateSubtaskTitle) error {
 	m.lastCmd = cmd
 	return m.err

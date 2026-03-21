@@ -15,6 +15,7 @@ import (
 // LabelCommander is the interface the label handler needs from the domain.
 type LabelCommander interface {
 	CreateLabel(ctx context.Context, cmd domain.CreateLabel) error
+	DeleteLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.DeleteLabel) error
 }
 
 type LabelHandler struct {
@@ -115,19 +116,10 @@ func (h *LabelHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// task_labels rows are cascade-deleted automatically via FK constraint
-	tag, err := h.pool.Exec(r.Context(),
-		`DELETE FROM labels WHERE id = $1 AND user_id = $2`,
-		labelID, userID,
-	)
-	if err != nil {
-		h.logger.Error().Err(err).Msg("deleting label")
-		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
-		return
-	}
-
-	if tag.RowsAffected() == 0 {
-		writeError(w, h.logger, http.StatusNotFound, "label not found")
+	err := h.cmds.DeleteLabel(r.Context(), labelID, userID, domain.DeleteLabel{
+		DeletedAt: time.Now().UTC(),
+	})
+	if mapDomainError(w, h.logger, err) {
 		return
 	}
 

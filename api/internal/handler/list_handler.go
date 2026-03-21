@@ -15,6 +15,7 @@ import (
 // ListCommander is the interface the list handler needs from the domain.
 type ListCommander interface {
 	CreateList(ctx context.Context, cmd domain.CreateList) error
+	DeleteList(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.DeleteList) error
 }
 
 type ListHandler struct {
@@ -123,47 +124,10 @@ func (h *ListHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := h.pool.Begin(r.Context())
-	if err != nil {
-		h.logger.Error().Err(err).Msg("beginning transaction for list delete")
-		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
-		return
-	}
-	defer func() {
-		if err := tx.Rollback(r.Context()); err != nil && err.Error() != "tx is closed" {
-			h.logger.Error().Err(err).Msg("rolling back list delete transaction")
-		}
-	}()
-
-	// Move tasks belonging to this list to Inbox (list_id = NULL)
-	if _, err := tx.Exec(r.Context(),
-		`UPDATE tasks SET list_id = NULL WHERE list_id = $1 AND user_id = $2`,
-		listID, userID,
-	); err != nil {
-		h.logger.Error().Err(err).Msg("moving tasks to inbox on list delete")
-		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
-		return
-	}
-
-	// Delete the list
-	tag, err := tx.Exec(r.Context(),
-		`DELETE FROM lists WHERE id = $1 AND user_id = $2`,
-		listID, userID,
-	)
-	if err != nil {
-		h.logger.Error().Err(err).Msg("deleting list")
-		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
-		return
-	}
-
-	if tag.RowsAffected() == 0 {
-		writeError(w, h.logger, http.StatusNotFound, "list not found")
-		return
-	}
-
-	if err := tx.Commit(r.Context()); err != nil {
-		h.logger.Error().Err(err).Msg("committing list delete transaction")
-		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
+	err := h.cmds.DeleteList(r.Context(), listID, userID, domain.DeleteList{
+		DeletedAt: time.Now().UTC(),
+	})
+	if mapDomainError(w, h.logger, err) {
 		return
 	}
 

@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 )
 
 // https://www.postgresql.org/docs/current/errcodes-appendix.html
@@ -30,12 +30,13 @@ FROM events WHERE user_id = $1 AND timestamp > $2 ORDER BY timestamp ASC, versio
 
 // Store provides append and query operations on the event store.
 type Store struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger zerolog.Logger
 }
 
 // New creates a new Store backed by the given connection pool.
-func New(pool *pgxpool.Pool) *Store {
-	return &Store{pool: pool}
+func New(pool *pgxpool.Pool, logger zerolog.Logger) *Store {
+	return &Store{pool: pool, logger: logger}
 }
 
 // Append writes one or more events atomically. All events must belong
@@ -59,7 +60,7 @@ func (s *Store) Append(ctx context.Context, events []Event) error {
 	}
 	defer func() {
 		if rbErr := tx.Rollback(ctx); rbErr != nil && !errors.Is(rbErr, pgx.ErrTxClosed) {
-			fmt.Fprintf(os.Stderr, "eventstore: rollback failed: %v\n", rbErr)
+			s.logger.Error().Err(rbErr).Msg("eventstore: rollback failed")
 		}
 	}()
 

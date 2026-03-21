@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 
 	"github.com/vasi1796/doit/internal/eventstore"
 )
@@ -36,7 +37,7 @@ func setupTest(t *testing.T) *eventstore.Store {
 		t.Fatalf("truncating events table: %v", err)
 	}
 
-	return eventstore.New(pool)
+	return eventstore.New(pool, zerolog.Nop())
 }
 
 func makeEvent(aggregateID, userID uuid.UUID, eventType eventstore.EventType, version int, ts time.Time) eventstore.Event {
