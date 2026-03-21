@@ -1,0 +1,699 @@
+openapi: "3.0.3"
+info:
+  title: DoIt API
+  version: "1.0.0"
+  description: Event-sourced task management API
+
+servers:
+  - url: /api/v1
+
+security:
+  - cookieAuth: []
+
+paths:
+  /tasks:
+    get:
+      operationId: listTasks
+      summary: List tasks
+      parameters:
+        - name: is_deleted
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+        - name: is_completed
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+        - name: list_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: label_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: inbox
+          in: query
+          schema:
+            type: string
+            enum: ["true"]
+      responses:
+        "200":
+          description: Task list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+    post:
+      operationId: createTask
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+      responses:
+        "201":
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      summary: Get a task by ID
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Task detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      operationId: updateTask
+      summary: Update a task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskRequest"
+      responses:
+        "204":
+          description: Task updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+    delete:
+      operationId: deleteTask
+      summary: Soft-delete a task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "204":
+          description: Task deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /tasks/{id}/restore:
+    post:
+      operationId: restoreTask
+      summary: Restore a soft-deleted task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "204":
+          description: Task restored
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /tasks/{id}/complete:
+    post:
+      operationId: completeTask
+      summary: Mark a task as completed
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "204":
+          description: Task completed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /tasks/{id}/uncomplete:
+    post:
+      operationId: uncompleteTask
+      summary: Mark a task as not completed
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "204":
+          description: Task uncompleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /tasks/{id}/subtasks:
+    post:
+      operationId: createSubtask
+      summary: Create a subtask
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubtaskRequest"
+      responses:
+        "201":
+          description: Subtask created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /tasks/{id}/subtasks/{sid}:
+    patch:
+      operationId: updateSubtaskTitle
+      summary: Update subtask title
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+        - $ref: "#/components/parameters/SubtaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubtaskRequest"
+      responses:
+        "204":
+          description: Subtask updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /tasks/{id}/subtasks/{sid}/complete:
+    post:
+      operationId: completeSubtask
+      summary: Mark a subtask as completed
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+        - $ref: "#/components/parameters/SubtaskId"
+      responses:
+        "204":
+          description: Subtask completed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /tasks/{id}/subtasks/{sid}/uncomplete:
+    post:
+      operationId: uncompleteSubtask
+      summary: Mark a subtask as not completed
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+        - $ref: "#/components/parameters/SubtaskId"
+      responses:
+        "204":
+          description: Subtask uncompleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /tasks/{id}/labels:
+    post:
+      operationId: addLabelToTask
+      summary: Add a label to a task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddLabelRequest"
+      responses:
+        "204":
+          description: Label added
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /tasks/{id}/labels/{lid}:
+    delete:
+      operationId: removeLabelFromTask
+      summary: Remove a label from a task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+        - name: lid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Label removed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /lists:
+    get:
+      operationId: listLists
+      summary: List all lists
+      responses:
+        "200":
+          description: List of lists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/List"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      operationId: createList
+      summary: Create a list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateListRequest"
+      responses:
+        "201":
+          description: List created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /lists/{id}:
+    delete:
+      operationId: deleteList
+      summary: Delete a list
+      parameters:
+        - $ref: "#/components/parameters/ListId"
+      responses:
+        "204":
+          description: List deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /labels:
+    get:
+      operationId: listLabels
+      summary: List all labels
+      responses:
+        "200":
+          description: Label list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Label"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      operationId: createLabel
+      summary: Create a label
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLabelRequest"
+      responses:
+        "201":
+          description: Label created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /labels/{id}:
+    delete:
+      operationId: deleteLabel
+      summary: Delete a label
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Label deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: doit_token
+
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SubtaskId:
+      name: sid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ListId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: State conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    IdResponse:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+
+    Task:
+      type: object
+      required: [id, title, priority, position, is_completed, is_deleted, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        list_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 3
+        due_date:
+          type: string
+          description: "YYYY-MM-DD format"
+        due_time:
+          type: string
+          description: "HH:MM 24-hour format"
+        position:
+          type: string
+        is_completed:
+          type: boolean
+        completed_at:
+          type: string
+          format: date-time
+        is_deleted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        recurrence_rule:
+          type: string
+        subtasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subtask"
+        labels:
+          type: array
+          items:
+            $ref: "#/components/schemas/Label"
+
+    Subtask:
+      type: object
+      required: [id, title, is_completed, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        is_completed:
+          type: boolean
+        position:
+          type: string
+
+    Label:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        colour:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    List:
+      type: object
+      required: [id, name, position, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        colour:
+          type: string
+        icon:
+          type: string
+        position:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateTaskRequest:
+      type: object
+      required: [title, priority, position]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 3
+        due_date:
+          type: string
+          description: "YYYY-MM-DD format"
+        due_time:
+          type: string
+          description: "HH:MM 24-hour format"
+        list_id:
+          type: string
+          format: uuid
+        position:
+          type: string
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 3
+        due_date:
+          type: string
+        due_time:
+          type: string
+        list_id:
+          type: string
+          format: uuid
+        position:
+          type: string
+        recurrence_rule:
+          type: string
+
+    CreateSubtaskRequest:
+      type: object
+      required: [title, position]
+      properties:
+        title:
+          type: string
+        position:
+          type: string
+
+    UpdateSubtaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+
+    AddLabelRequest:
+      type: object
+      required: [label_id]
+      properties:
+        label_id:
+          type: string
+          format: uuid
+
+    CreateListRequest:
+      type: object
+      required: [name, colour, position]
+      properties:
+        name:
+          type: string
+        colour:
+          type: string
+        icon:
+          type: string
+        position:
+          type: string
+
+    CreateLabelRequest:
+      type: object
+      required: [name, colour]
+      properties:
+        name:
+          type: string
+        colour:
+          type: string

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"time"
 
@@ -28,17 +29,8 @@ func NewLabelHandler(cmds LabelCommander, pool *pgxpool.Pool, logger zerolog.Log
 	return &LabelHandler{cmds: cmds, pool: pool, logger: logger}
 }
 
-type createLabelRequest struct {
-	Name   string `json:"name"`
-	Colour string `json:"colour"`
-}
-
-type labelResponse struct {
-	ID        uuid.UUID  `json:"id"`
-	Name      string     `json:"name"`
-	Colour    string     `json:"colour,omitempty"`
-	CreatedAt *time.Time `json:"created_at,omitempty"`
-}
+// Request and response types are generated from api/openapi.yaml
+// in openapi_types.gen.go. Do not define them here.
 
 // Create handles POST /api/v1/labels
 func (h *LabelHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +39,7 @@ func (h *LabelHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req createLabelRequest
+	var req CreateLabelRequest
 	if !readJSON(w, h.logger, r, &req) {
 		return
 	}
@@ -85,13 +77,21 @@ func (h *LabelHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	labels := make([]labelResponse, 0)
+	labels := make([]Label, 0)
 	for rows.Next() {
-		var l labelResponse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Colour, &l.CreatedAt); err != nil {
+		var l Label
+		var colour sql.NullString
+		var createdAt sql.NullTime
+		if err := rows.Scan(&l.Id, &l.Name, &colour, &createdAt); err != nil {
 			h.logger.Error().Err(err).Msg("scanning label row")
 			writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 			return
+		}
+		if colour.Valid {
+			l.Colour = &colour.String
+		}
+		if createdAt.Valid {
+			l.CreatedAt = &createdAt.Time
 		}
 		labels = append(labels, l)
 	}

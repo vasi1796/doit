@@ -1,4 +1,4 @@
-.PHONY: build run test test-verbose test-integration lint migrate rebuild-projections docker-up docker-down docker-up-prod docker-down-prod backup-db fmt vet help web-install web-dev web-build web-test web-lint docker-logs
+.PHONY: build run test test-verbose test-integration lint migrate rebuild-projections docker-up docker-down docker-up-prod docker-down-prod backup-db fmt vet help web-install web-dev web-build web-test web-lint docker-logs generate
 
 # Default target
 help: ## Show this help
@@ -86,3 +86,11 @@ web-test: ## Run frontend tests
 
 web-lint: ## Run frontend linter
 	cd web && npm run lint
+
+# ---------------------------------------------------------------------------
+# Code Generation
+# ---------------------------------------------------------------------------
+
+generate: ## Regenerate Go + TypeScript types from OpenAPI spec
+	cd api && ~/go/bin/oapi-codegen --config oapi-codegen.yaml openapi.yaml
+	cd web && npx openapi-typescript ../api/openapi.yaml -o src/api/types.gen.ts

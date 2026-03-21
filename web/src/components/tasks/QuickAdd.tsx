@@ -73,10 +73,14 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
         priority,
         due_date: dueDate || undefined,
         due_time: dueTime || undefined,
-        recurrence_rule: recurrence || undefined,
         list_id: selectedListId || undefined,
         position: Date.now().toString(),
       })
+
+      // Recurrence is set via update after creation (not supported on create endpoint)
+      if (recurrence) {
+        await api.updateTask(result.id, { recurrence_rule: recurrence })
+      }
 
       if (selectedLabelIds.length > 0) {
         await Promise.allSettled(selectedLabelIds.map(id => api.addLabel(result.id, id)))

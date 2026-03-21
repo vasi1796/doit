@@ -1,78 +1,18 @@
+// Re-exports from generated OpenAPI types.
+// Source of truth: api/openapi.yaml
+// Regenerate: npm run generate:types
+import type { components } from './types.gen'
+
+// Priority is narrower than the generated `number` — kept as a branded type
+// for frontend use. The spec enforces min:0 max:3.
 export type Priority = 0 | 1 | 2 | 3
 
-export interface Task {
-  id: string
-  list_id?: string
-  title: string
-  description?: string
-  priority: Priority
-  due_date?: string
-  due_time?: string
-  position: string
-  is_completed: boolean
-  completed_at?: string
-  recurrence_rule?: string
-  is_deleted: boolean
-  created_at: string
-  updated_at: string
-  subtasks?: Subtask[]
-  labels?: Label[]
-}
-
-export interface Subtask {
-  id: string
-  title: string
-  is_completed: boolean
-  position: string
-}
-
-export interface Label {
-  id: string
-  name: string
-  colour?: string
-  created_at?: string
-}
-
-export interface List {
-  id: string
-  name: string
-  colour?: string
-  icon?: string
-  position: string
-  created_at: string
-  updated_at: string
-}
-
-export interface CreateTaskRequest {
-  title: string
-  description?: string
-  priority: Priority
-  recurrence_rule?: string
-  due_date?: string
-  due_time?: string
-  list_id?: string
-  position: string
-}
-
-export interface UpdateTaskRequest {
-  title?: string
-  description?: string
-  priority?: Priority
-  due_date?: string
-  due_time?: string
-  recurrence_rule?: string
-  list_id?: string
-  position?: string
-}
-
-export interface CreateListRequest {
-  name: string
-  colour: string
-  icon?: string
-  position: string
-}
-
-export interface CreateLabelRequest {
-  name: string
-  colour: string
-}
+// Narrow the `priority` field from `number` to the stricter Priority union type.
+export type Task = Omit<components['schemas']['Task'], 'priority'> & { priority: Priority }
+export type Subtask = components['schemas']['Subtask']
+export type Label = components['schemas']['Label']
+export type List = components['schemas']['List']
+export type CreateTaskRequest = Omit<components['schemas']['CreateTaskRequest'], 'priority'> & { priority: Priority }
+export type UpdateTaskRequest = Omit<components['schemas']['UpdateTaskRequest'], 'priority'> & { priority?: Priority }
+export type CreateListRequest = components['schemas']['CreateListRequest']
+export type CreateLabelRequest = components['schemas']['CreateLabelRequest']

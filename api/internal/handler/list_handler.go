@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"time"
 
@@ -28,22 +29,8 @@ func NewListHandler(cmds ListCommander, pool *pgxpool.Pool, logger zerolog.Logge
 	return &ListHandler{cmds: cmds, pool: pool, logger: logger}
 }
 
-type createListRequest struct {
-	Name     string `json:"name"`
-	Colour   string `json:"colour"`
-	Icon     string `json:"icon,omitempty"`
-	Position string `json:"position"`
-}
-
-type listResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Colour    string    `json:"colour,omitempty"`
-	Icon      string    `json:"icon,omitempty"`
-	Position  string    `json:"position"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
+// Request and response types are generated from api/openapi.yaml
+// in openapi_types.gen.go. Do not define them here.
 
 // Create handles POST /api/v1/lists
 func (h *ListHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -52,9 +39,14 @@ func (h *ListHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req createListRequest
+	var req CreateListRequest
 	if !readJSON(w, h.logger, r, &req) {
 		return
+	}
+
+	var icon string
+	if req.Icon != nil {
+		icon = *req.Icon
 	}
 
 	listID := uuid.New()
@@ -63,7 +55,7 @@ func (h *ListHandler) Create(w http.ResponseWriter, r *http.Request) {
 		UserID:   userID,
 		Name:     req.Name,
 		Colour:   req.Colour,
-		Icon:     req.Icon,
+		Icon:     icon,
 		Position: req.Position,
 	}
 
@@ -93,13 +85,20 @@ func (h *ListHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	lists := make([]listResponse, 0)
+	lists := make([]List, 0)
 	for rows.Next() {
-		var l listResponse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Colour, &l.Icon, &l.Position, &l.CreatedAt, &l.UpdatedAt); err != nil {
+		var l List
+		var colour, icon sql.NullString
+		if err := rows.Scan(&l.Id, &l.Name, &colour, &icon, &l.Position, &l.CreatedAt, &l.UpdatedAt); err != nil {
 			h.logger.Error().Err(err).Msg("scanning list row")
 			writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 			return
+		}
+		if colour.Valid {
+			l.Colour = &colour.String
+		}
+		if icon.Valid {
+			l.Icon = &icon.String
 		}
 		lists = append(lists, l)
 	}

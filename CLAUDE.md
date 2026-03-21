@@ -107,6 +107,15 @@ Human Interface Guidelines.
 Every read query must include `WHERE user_id = $1`. Every write command must
 verify the aggregate belongs to the requesting user (done in `loadTaskAggregate`).
 
+### 7. API types are generated from OpenAPI spec — never hand-edit
+`api/openapi.yaml` is the single source of truth for the API contract.
+Go response types (`openapi_types.gen.go`) and TypeScript types (`types.gen.ts`)
+are both generated from it. Never edit `*.gen.*` files directly.
+When changing the API surface:
+1. Edit `api/openapi.yaml`
+2. Run `make generate`
+3. Update handler code to match the new generated types
+
 ---
 
 ## Test Expectations
@@ -115,7 +124,11 @@ verify the aggregate belongs to the requesting user (done in `loadTaskAggregate`
 - **Table-driven tests** in Go — no exceptions.
 - **Integration tests** (build tag `//go:build integration`) for event store
   and projection flows against real Postgres.
-- Frontend: no tests yet (Phase 1). Add when Dexie.js is introduced (Phase 2).
+- **Visual regression tests** (Playwright + WebKit) compare page screenshots
+  against committed baselines. Run with `cd web && npm run test:visual`.
+- **Accessibility tests** (Playwright + axe-core) scan all pages for WCAG 2.0
+  AA violations, 44px touch targets, and 16px input font sizes.
+- **ESLint jsx-a11y** plugin enforces accessibility rules at lint time.
 
 ---
 
@@ -142,8 +155,26 @@ make test-integration
 # Run Go vet
 make vet
 
+# Regenerate Go + TypeScript types from OpenAPI spec
+make generate
+
 # Build frontend
 cd web && npm run build
+
+# Run frontend lint (includes jsx-a11y)
+cd web && npm run lint
+
+# Run all frontend E2E tests (visual + a11y)
+cd web && npm run test:e2e
+
+# Run visual regression tests only
+cd web && npm run test:visual
+
+# Update visual regression baselines after intentional UI changes
+cd web && npm run test:visual:update
+
+# Run accessibility tests only
+cd web && npm run test:a11y
 
 # Docker full stack
 docker compose up -d --build

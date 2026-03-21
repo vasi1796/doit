@@ -47,69 +47,8 @@ func NewTaskHandler(cmds TaskCommander, pool *pgxpool.Pool, logger zerolog.Logge
 	return &TaskHandler{cmds: cmds, pool: pool, logger: logger}
 }
 
-// Request types
-
-type createTaskRequest struct {
-	Title       string     `json:"title"`
-	Description string     `json:"description,omitempty"`
-	Priority    int        `json:"priority"`
-	DueDate     *string    `json:"due_date,omitempty"`
-	DueTime     *string    `json:"due_time,omitempty"`
-	ListID      *uuid.UUID `json:"list_id,omitempty"`
-	Position    string     `json:"position"`
-}
-
-type updateTaskRequest struct {
-	Title          *string    `json:"title,omitempty"`
-	Description    *string    `json:"description,omitempty"`
-	Priority       *int       `json:"priority,omitempty"`
-	DueDate        *string    `json:"due_date,omitempty"`
-	DueTime        *string    `json:"due_time,omitempty"`
-	ListID         *uuid.UUID `json:"list_id,omitempty"`
-	Position       *string    `json:"position,omitempty"`
-	RecurrenceRule *string    `json:"recurrence_rule,omitempty"`
-}
-
-type createSubtaskRequest struct {
-	Title    string `json:"title"`
-	Position string `json:"position"`
-}
-
-type updateSubtaskRequest struct {
-	Title string `json:"title"`
-}
-
-type addLabelRequest struct {
-	LabelID uuid.UUID `json:"label_id"`
-}
-
-// Response types
-
-type taskResponse struct {
-	ID             uuid.UUID         `json:"id"`
-	ListID         *uuid.UUID        `json:"list_id,omitempty"`
-	Title          string            `json:"title"`
-	Description    *string           `json:"description,omitempty"`
-	Priority       int               `json:"priority"`
-	DueDate        *string           `json:"due_date,omitempty"`
-	DueTime        *string           `json:"due_time,omitempty"`
-	Position       string            `json:"position"`
-	IsCompleted    bool              `json:"is_completed"`
-	CompletedAt    *time.Time        `json:"completed_at,omitempty"`
-	IsDeleted      bool              `json:"is_deleted"`
-	CreatedAt      time.Time         `json:"created_at"`
-	UpdatedAt      time.Time         `json:"updated_at"`
-	RecurrenceRule *string           `json:"recurrence_rule,omitempty"`
-	Subtasks       []subtaskResponse `json:"subtasks,omitempty"`
-	Labels         []labelResponse   `json:"labels,omitempty"`
-}
-
-type subtaskResponse struct {
-	ID          uuid.UUID `json:"id"`
-	Title       string    `json:"title"`
-	IsCompleted bool      `json:"is_completed"`
-	Position    string    `json:"position"`
-}
+// Request and response types are generated from api/openapi.yaml
+// in openapi_types.gen.go. Do not define them here.
 
 // Create handles POST /api/v1/tasks
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +57,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req createTaskRequest
+	var req CreateTaskRequest
 	if !readJSON(w, h.logger, r, &req) {
 		return
 	}
@@ -133,16 +72,21 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		dueDate = &parsed
 	}
 
+	var description string
+	if req.Description != nil {
+		description = *req.Description
+	}
+
 	taskID := uuid.New()
 	cmd := domain.CreateTask{
 		TaskID:      taskID,
 		UserID:      userID,
 		Title:       req.Title,
-		Description: req.Description,
+		Description: description,
 		Priority:    domain.Priority(req.Priority),
 		DueDate:     dueDate,
 		DueTime:     req.DueTime,
-		ListID:      req.ListID,
+		ListID:      req.ListId,
 		Position:    req.Position,
 	}
 
@@ -163,7 +107,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var req updateTaskRequest
+	var req UpdateTaskRequest
 	if !readJSON(w, h.logger, r, &req) {
 		return
 	}
@@ -206,8 +150,8 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		v := *req.RecurrenceRule
 		cmds = append(cmds, func() error { return h.cmds.UpdateTaskRecurrence(ctx, taskID, userID, domain.UpdateTaskRecurrence{RecurrenceRule: domain.RecurrenceRule(v)}) })
 	}
-	if req.ListID != nil && req.Position != nil {
-		lid, pos := *req.ListID, *req.Position
+	if req.ListId != nil && req.Position != nil {
+		lid, pos := *req.ListId, *req.Position
 		cmds = append(cmds, func() error { return h.cmds.MoveTask(ctx, taskID, userID, domain.MoveTask{ListID: lid, Position: pos}) })
 	}
 
@@ -316,7 +260,7 @@ func (h *TaskHandler) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req createSubtaskRequest
+	var req CreateSubtaskRequest
 	if !readJSON(w, h.logger, r, &req) {
 		return
 	}
@@ -401,7 +345,7 @@ func (h *TaskHandler) UpdateSubtaskTitle(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var req updateSubtaskRequest
+	var req UpdateSubtaskRequest
 	if !readJSON(w, h.logger, r, &req) {
 		return
 	}
@@ -429,13 +373,13 @@ func (h *TaskHandler) AddLabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req addLabelRequest
+	var req AddLabelRequest
 	if !readJSON(w, h.logger, r, &req) {
 		return
 	}
 
 	err := h.cmds.AddLabel(r.Context(), taskID, userID, domain.AddLabel{
-		LabelID: req.LabelID,
+		LabelID: req.LabelId,
 	})
 	if mapDomainError(w, h.logger, err) {
 		return
@@ -536,7 +480,7 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	tasks := make([]taskResponse, 0)
+	tasks := make([]Task, 0)
 	for rows.Next() {
 		t, err := scanTaskRow(rows)
 		if err != nil {
@@ -596,7 +540,7 @@ func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Reuse batch loaders with a single-element slice
-	tasks := []taskResponse{t}
+	tasks := []Task{t}
 	if err := h.loadLabelsForTasks(r.Context(), tasks); err != nil {
 		h.logger.Error().Err(err).Msg("loading labels for task")
 		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
@@ -611,15 +555,15 @@ func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, h.logger, http.StatusOK, tasks[0])
 }
 
-// scanTaskRow scans a task row from the standard SELECT columns into a taskResponse.
-func scanTaskRow(rows interface{ Scan(dest ...any) error }) (taskResponse, error) {
-	var t taskResponse
+// scanTaskRow scans a task row from the standard SELECT columns into a Task.
+func scanTaskRow(rows interface{ Scan(dest ...any) error }) (Task, error) {
+	var t Task
 	var listID *uuid.UUID
 	var description, dueDate, dueTime, recurrenceRule sql.NullString
 	var completedAt sql.NullTime
 
 	err := rows.Scan(
-		&t.ID, &listID, &t.Title, &description, &t.Priority, &dueDate, &dueTime,
+		&t.Id, &listID, &t.Title, &description, &t.Priority, &dueDate, &dueTime,
 		&t.Position, &t.IsCompleted, &completedAt, &t.IsDeleted,
 		&t.CreatedAt, &t.UpdatedAt, &recurrenceRule,
 	)
@@ -627,7 +571,7 @@ func scanTaskRow(rows interface{ Scan(dest ...any) error }) (taskResponse, error
 		return t, err
 	}
 
-	t.ListID = listID
+	t.ListId = listID
 	if description.Valid {
 		t.Description = &description.String
 	}
@@ -647,13 +591,13 @@ func scanTaskRow(rows interface{ Scan(dest ...any) error }) (taskResponse, error
 }
 
 // loadLabelsForTasks batch-loads labels for a slice of tasks.
-func (h *TaskHandler) loadLabelsForTasks(ctx context.Context, tasks []taskResponse) error {
+func (h *TaskHandler) loadLabelsForTasks(ctx context.Context, tasks []Task) error {
 	if len(tasks) == 0 {
 		return nil
 	}
 	taskIDs := make([]uuid.UUID, len(tasks))
 	for i, t := range tasks {
-		taskIDs[i] = t.ID
+		taskIDs[i] = t.Id
 	}
 
 	rows, err := h.pool.Query(ctx,
@@ -665,31 +609,35 @@ func (h *TaskHandler) loadLabelsForTasks(ctx context.Context, tasks []taskRespon
 	}
 	defer rows.Close()
 
-	labelMap := make(map[uuid.UUID][]labelResponse)
+	labelMap := make(map[uuid.UUID][]Label)
 	for rows.Next() {
 		var taskID uuid.UUID
-		var l labelResponse
-		if err := rows.Scan(&taskID, &l.ID, &l.Name, &l.Colour); err != nil {
+		var l Label
+		var colour sql.NullString
+		if err := rows.Scan(&taskID, &l.Id, &l.Name, &colour); err != nil {
 			return fmt.Errorf("scanning batch label: %w", err)
+		}
+		if colour.Valid {
+			l.Colour = &colour.String
 		}
 		labelMap[taskID] = append(labelMap[taskID], l)
 	}
 	for i := range tasks {
-		if labels, ok := labelMap[tasks[i].ID]; ok {
-			tasks[i].Labels = labels
+		if labels, ok := labelMap[tasks[i].Id]; ok {
+			tasks[i].Labels = &labels
 		}
 	}
 	return nil
 }
 
 // loadSubtasksForTasks batch-loads subtasks for a slice of tasks.
-func (h *TaskHandler) loadSubtasksForTasks(ctx context.Context, tasks []taskResponse) error {
+func (h *TaskHandler) loadSubtasksForTasks(ctx context.Context, tasks []Task) error {
 	if len(tasks) == 0 {
 		return nil
 	}
 	taskIDs := make([]uuid.UUID, len(tasks))
 	for i, t := range tasks {
-		taskIDs[i] = t.ID
+		taskIDs[i] = t.Id
 	}
 
 	rows, err := h.pool.Query(ctx,
@@ -700,18 +648,18 @@ func (h *TaskHandler) loadSubtasksForTasks(ctx context.Context, tasks []taskResp
 	}
 	defer rows.Close()
 
-	subtaskMap := make(map[uuid.UUID][]subtaskResponse)
+	subtaskMap := make(map[uuid.UUID][]Subtask)
 	for rows.Next() {
 		var taskID uuid.UUID
-		var s subtaskResponse
-		if err := rows.Scan(&taskID, &s.ID, &s.Title, &s.IsCompleted, &s.Position); err != nil {
+		var s Subtask
+		if err := rows.Scan(&taskID, &s.Id, &s.Title, &s.IsCompleted, &s.Position); err != nil {
 			return fmt.Errorf("scanning batch subtask: %w", err)
 		}
 		subtaskMap[taskID] = append(subtaskMap[taskID], s)
 	}
 	for i := range tasks {
-		if subs, ok := subtaskMap[tasks[i].ID]; ok {
-			tasks[i].Subtasks = subs
+		if subs, ok := subtaskMap[tasks[i].Id]; ok {
+			tasks[i].Subtasks = &subs
 		}
 	}
 	return nil

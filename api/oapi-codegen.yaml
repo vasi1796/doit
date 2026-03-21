@@ -1,0 +1,4 @@
+package: handler
+generate:
+  models: true
+output: internal/handler/openapi_types.gen.go
