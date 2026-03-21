@@ -89,7 +89,7 @@ func TestProjectTaskCreated(t *testing.T) {
 	}
 
 	evt := makeEvent(t, taskID, eventstore.EventTaskCreated, eventstore.AggregateTypeTask, 1,
-		domain.TaskCreatedPayload{Title: "Buy milk", Priority: 2, ListID: listID, Position: "a"}, now)
+		domain.TaskCreatedPayload{Title: "Buy milk", Priority: 2, ListID: &listID, Position: "a"}, now)
 
 	if err := proj.Project(ctx, []eventstore.Event{evt}); err != nil {
 		t.Fatalf("projecting: %v", err)
@@ -132,7 +132,7 @@ func TestProjectTaskCreatedIdempotent(t *testing.T) {
 	}
 
 	evt := makeEvent(t, taskID, eventstore.EventTaskCreated, eventstore.AggregateTypeTask, 1,
-		domain.TaskCreatedPayload{Title: "Buy milk", Priority: 1, ListID: listID, Position: "a"}, now)
+		domain.TaskCreatedPayload{Title: "Buy milk", Priority: 1, ListID: &listID, Position: "a"}, now)
 
 	// Project twice
 	if err := proj.Project(ctx, []eventstore.Event{evt}); err != nil {
@@ -163,7 +163,7 @@ func TestProjectTaskCompleteFlow(t *testing.T) {
 		makeEvent(t, listID, eventstore.EventListCreated, eventstore.AggregateTypeList, 1,
 			domain.ListCreatedPayload{Name: "Work", Colour: "#ff0000", Position: "a"}, now),
 		makeEvent(t, taskID, eventstore.EventTaskCreated, eventstore.AggregateTypeTask, 1,
-			domain.TaskCreatedPayload{Title: "Buy milk", Priority: 1, ListID: listID, Position: "a"}, now),
+			domain.TaskCreatedPayload{Title: "Buy milk", Priority: 1, ListID: &listID, Position: "a"}, now),
 		makeEvent(t, taskID, eventstore.EventTaskCompleted, eventstore.AggregateTypeTask, 2,
 			domain.TaskCompletedPayload{CompletedAt: now.Add(time.Hour)}, now.Add(time.Hour)),
 	}
@@ -248,7 +248,7 @@ func TestProjectLabelAddedRemoved(t *testing.T) {
 		makeEvent(t, labelID, eventstore.EventLabelCreated, eventstore.AggregateTypeLabel, 1,
 			domain.LabelCreatedPayload{Name: "urgent", Colour: "#ff0000"}, now),
 		makeEvent(t, taskID, eventstore.EventTaskCreated, eventstore.AggregateTypeTask, 1,
-			domain.TaskCreatedPayload{Title: "Test", ListID: listID, Position: "a"}, now),
+			domain.TaskCreatedPayload{Title: "Test", ListID: &listID, Position: "a"}, now),
 	}
 	if err := proj.Project(ctx, setup); err != nil {
 		t.Fatalf("setup: %v", err)
@@ -307,7 +307,7 @@ func TestProjectSubtaskFlow(t *testing.T) {
 		makeEvent(t, listID, eventstore.EventListCreated, eventstore.AggregateTypeList, 1,
 			domain.ListCreatedPayload{Name: "Work", Colour: "#ff0000", Position: "a"}, now),
 		makeEvent(t, taskID, eventstore.EventTaskCreated, eventstore.AggregateTypeTask, 1,
-			domain.TaskCreatedPayload{Title: "Test", ListID: listID, Position: "a"}, now),
+			domain.TaskCreatedPayload{Title: "Test", ListID: &listID, Position: "a"}, now),
 		makeEvent(t, taskID, eventstore.EventSubtaskCreated, eventstore.AggregateTypeTask, 2,
 			domain.SubtaskCreatedPayload{SubtaskID: subtaskID, Title: "Sub item", Position: "a"}, now),
 	}
