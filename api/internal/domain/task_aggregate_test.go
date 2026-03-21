@@ -161,7 +161,10 @@ func TestStateTransitions(t *testing.T) {
 			setupEvts: []eventstore.Event{
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
-			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleComplete(CompleteTask{CompletedAt: testNow}) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) {
+				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow})
+				return evts, err
+			},
 			wantEvtType: eventstore.EventTaskCompleted,
 		},
 		{
@@ -170,7 +173,10 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 				taskEvent(aggID, eventstore.EventTaskCompleted, 2, TaskCompletedPayload{CompletedAt: testNow}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleComplete(CompleteTask{CompletedAt: testNow}) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) {
+				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow})
+				return evts, err
+			},
 			wantErr: ErrTaskAlreadyCompleted,
 		},
 		{
@@ -179,7 +185,10 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 				taskEvent(aggID, eventstore.EventTaskDeleted, 2, TaskDeletedPayload{DeletedAt: testNow}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleComplete(CompleteTask{CompletedAt: testNow}) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) {
+				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow})
+				return evts, err
+			},
 			wantErr: ErrTaskAlreadyDeleted,
 		},
 		{
@@ -371,7 +380,7 @@ func TestVersionTracking(t *testing.T) {
 	}
 
 	// Next event should be version 4
-	events, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow})
+	events, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -385,7 +394,7 @@ func TestCommandOnNonexistentTask(t *testing.T) {
 		name    string
 		command func(agg *TaskAggregate) ([]eventstore.Event, error)
 	}{
-		{"complete", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleComplete(CompleteTask{CompletedAt: testNow}) }},
+		{"complete", func(agg *TaskAggregate) ([]eventstore.Event, error) { e, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}); return e, err }},
 		{"delete", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleDelete(DeleteTask{DeletedAt: testNow}) }},
 		{"move", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleMove(MoveTask{}, testNow) }},
 		{"update description", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUpdateDescription(UpdateTaskDescription{}, testNow) }},

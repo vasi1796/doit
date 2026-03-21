@@ -164,9 +164,11 @@ func newRouter(pool *pgxpool.Pool, logger zerolog.Logger, cfg *config.Config) *c
 			r.Get("/{id}", taskHandler.Get)
 			r.Patch("/{id}", taskHandler.Update)
 			r.Delete("/{id}", taskHandler.Delete)
+			r.Post("/{id}/restore", taskHandler.Restore)
 			r.Post("/{id}/complete", taskHandler.Complete)
 			r.Post("/{id}/uncomplete", taskHandler.Uncomplete)
 			r.Post("/{id}/subtasks", taskHandler.CreateSubtask)
+			r.Patch("/{id}/subtasks/{sid}", taskHandler.UpdateSubtaskTitle)
 			r.Post("/{id}/subtasks/{sid}/complete", taskHandler.CompleteSubtask)
 			r.Post("/{id}/labels", taskHandler.AddLabel)
 			r.Delete("/{id}/labels/{lid}", taskHandler.RemoveLabel)
@@ -176,12 +178,14 @@ func newRouter(pool *pgxpool.Pool, logger zerolog.Logger, cfg *config.Config) *c
 		r.Route("/lists", func(r chi.Router) {
 			r.Post("/", listHandler.Create)
 			r.Get("/", listHandler.List)
+			r.Delete("/{id}", listHandler.Delete)
 		})
 
 		labelHandler := handler.NewLabelHandler(cmdHandler, pool, logger)
 		r.Route("/labels", func(r chi.Router) {
 			r.Post("/", labelHandler.Create)
 			r.Get("/", labelHandler.List)
+			r.Delete("/{id}", labelHandler.Delete)
 		})
 	})
 

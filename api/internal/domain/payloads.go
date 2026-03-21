@@ -34,6 +34,18 @@ type TaskDescriptionUpdatedPayload struct {
 	Description string `json:"description"`
 }
 
+type TaskTitleUpdatedPayload struct {
+	Title string `json:"title"`
+}
+
+type TaskPriorityUpdatedPayload struct {
+	Priority int `json:"priority"`
+}
+
+type TaskDueDateUpdatedPayload struct {
+	DueDate *time.Time `json:"due_date,omitempty"`
+}
+
 type LabelAddedPayload struct {
 	LabelID uuid.UUID `json:"label_id"`
 }
@@ -63,4 +75,19 @@ type SubtaskCreatedPayload struct {
 type SubtaskCompletedPayload struct {
 	SubtaskID   uuid.UUID `json:"subtask_id"`
 	CompletedAt time.Time `json:"completed_at"`
+}
+
+type SubtaskTitleUpdatedPayload struct {
+	SubtaskID uuid.UUID `json:"subtask_id"`
+	Title     string    `json:"title"`
+}
+
+type TaskRestoredPayload struct{}
+
+type TaskRecurrenceUpdatedPayload struct {
+	RecurrenceRule string `json:"recurrence_rule"`
+}
+
+type TaskDueTimeUpdatedPayload struct {
+	DueTime *string `json:"due_time,omitempty"`
 }

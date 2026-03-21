@@ -29,9 +29,16 @@ const (
 	EventLabelAdded             EventType = "LabelAdded"
 	EventLabelRemoved           EventType = "LabelRemoved"
 	EventListCreated            EventType = "ListCreated"
+	EventTaskTitleUpdated       EventType = "TaskTitleUpdated"
+	EventTaskPriorityUpdated    EventType = "TaskPriorityUpdated"
+	EventTaskDueDateUpdated     EventType = "TaskDueDateUpdated"
 	EventLabelCreated           EventType = "LabelCreated"
 	EventSubtaskCreated         EventType = "SubtaskCreated"
 	EventSubtaskCompleted       EventType = "SubtaskCompleted"
+	EventTaskRestored             EventType = "TaskRestored"
+	EventTaskRecurrenceUpdated    EventType = "TaskRecurrenceUpdated"
+	EventTaskDueTimeUpdated       EventType = "TaskDueTimeUpdated"
+	EventSubtaskTitleUpdated      EventType = "SubtaskTitleUpdated"
 )
 
 // Event represents a single domain event stored in the event store.

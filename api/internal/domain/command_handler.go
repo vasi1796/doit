@@ -60,11 +60,20 @@ func (h *CommandHandler) CompleteTask(ctx context.Context, aggregateID uuid.UUID
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleComplete(cmd)
+	events, recurring, err := agg.HandleComplete(cmd)
 	if err != nil {
 		return err
 	}
-	return h.appendAndProject(ctx, events)
+	if err := h.appendAndProject(ctx, events); err != nil {
+		return err
+	}
+	// Append recurring task events separately (different aggregate)
+	if recurring != nil {
+		if err := h.appendAndProject(ctx, recurring.Events); err != nil {
+			return fmt.Errorf("creating recurring task: %w", err)
+		}
+	}
+	return nil
 }
 
 func (h *CommandHandler) UncompleteTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UncompleteTask) error {
@@ -91,6 +100,18 @@ func (h *CommandHandler) DeleteTask(ctx context.Context, aggregateID uuid.UUID, 
 	return h.appendAndProject(ctx, events)
 }
 
+func (h *CommandHandler) RestoreTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd RestoreTask) error {
+	agg, err := h.loadTaskAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleRestore(cmd, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	return h.appendAndProject(ctx, events)
+}
+
 func (h *CommandHandler) MoveTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd MoveTask) error {
 	agg, err := h.loadTaskAggregate(ctx, aggregateID, userID)
 	if err != nil {
@@ -109,6 +130,66 @@ func (h *CommandHandler) UpdateTaskDescription(ctx context.Context, aggregateID 
 		return err
 	}
 	events, err := agg.HandleUpdateDescription(cmd, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	return h.appendAndProject(ctx, events)
+}
+
+func (h *CommandHandler) UpdateTaskTitle(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskTitle) error {
+	agg, err := h.loadTaskAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleUpdateTitle(cmd, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	return h.appendAndProject(ctx, events)
+}
+
+func (h *CommandHandler) UpdateTaskPriority(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskPriority) error {
+	agg, err := h.loadTaskAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleUpdatePriority(cmd, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	return h.appendAndProject(ctx, events)
+}
+
+func (h *CommandHandler) UpdateTaskDueDate(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskDueDate) error {
+	agg, err := h.loadTaskAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleUpdateDueDate(cmd, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	return h.appendAndProject(ctx, events)
+}
+
+func (h *CommandHandler) UpdateTaskDueTime(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskDueTime) error {
+	agg, err := h.loadTaskAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleUpdateDueTime(cmd, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	return h.appendAndProject(ctx, events)
+}
+
+func (h *CommandHandler) UpdateTaskRecurrence(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskRecurrence) error {
+	agg, err := h.loadTaskAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleUpdateRecurrence(cmd, time.Now().UTC())
 	if err != nil {
 		return err
 	}
@@ -145,6 +226,18 @@ func (h *CommandHandler) CreateSubtask(ctx context.Context, aggregateID uuid.UUI
 		return err
 	}
 	events, err := agg.HandleCreateSubtask(cmd, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	return h.appendAndProject(ctx, events)
+}
+
+func (h *CommandHandler) UpdateSubtaskTitle(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateSubtaskTitle) error {
+	agg, err := h.loadTaskAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleUpdateSubtaskTitle(cmd, time.Now().UTC())
 	if err != nil {
 		return err
 	}

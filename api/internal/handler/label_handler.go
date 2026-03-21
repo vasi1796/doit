@@ -102,3 +102,34 @@ func (h *LabelHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, h.logger, http.StatusOK, labels)
 }
+
+// Delete handles DELETE /api/v1/labels/{id}
+func (h *LabelHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	userID, ok := requireUserID(w, h.logger, r)
+	if !ok {
+		return
+	}
+
+	labelID, ok := parseUUID(w, h.logger, r, "id")
+	if !ok {
+		return
+	}
+
+	// task_labels rows are cascade-deleted automatically via FK constraint
+	tag, err := h.pool.Exec(r.Context(),
+		`DELETE FROM labels WHERE id = $1 AND user_id = $2`,
+		labelID, userID,
+	)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("deleting label")
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	if tag.RowsAffected() == 0 {
+		writeError(w, h.logger, http.StatusNotFound, "label not found")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

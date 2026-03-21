@@ -22,8 +22,14 @@ ON CONFLICT (id) DO UPDATE SET
 const updateTaskCompletedSQL = `UPDATE tasks SET is_completed = true, completed_at = $2, updated_at = $3 WHERE id = $1`
 const updateTaskUncompletedSQL = `UPDATE tasks SET is_completed = false, completed_at = NULL, updated_at = $2 WHERE id = $1`
 const updateTaskDeletedSQL = `UPDATE tasks SET is_deleted = true, deleted_at = $2, updated_at = $3 WHERE id = $1`
+const updateTaskRestoredSQL = `UPDATE tasks SET is_deleted = false, deleted_at = NULL, updated_at = $2 WHERE id = $1`
 const updateTaskMovedSQL = `UPDATE tasks SET list_id = $2, position = $3, updated_at = $4 WHERE id = $1`
+const updateTaskTitleSQL = `UPDATE tasks SET title = $2, updated_at = $3 WHERE id = $1`
+const updateTaskPrioritySQL = `UPDATE tasks SET priority = $2, updated_at = $3 WHERE id = $1`
+const updateTaskDueDateSQL = `UPDATE tasks SET due_date = $2, updated_at = $3 WHERE id = $1`
 const updateTaskDescriptionSQL = `UPDATE tasks SET description = $2, updated_at = $3 WHERE id = $1`
+const updateTaskRecurrenceSQL = `UPDATE tasks SET recurrence_rule = $2, updated_at = $3 WHERE id = $1`
+const updateTaskDueTimeSQL = `UPDATE tasks SET due_time = $2, updated_at = $3 WHERE id = $1`
 
 const upsertTaskLabelSQL = `INSERT INTO task_labels (task_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
 const deleteTaskLabelSQL = `DELETE FROM task_labels WHERE task_id = $1 AND label_id = $2`
@@ -44,6 +50,7 @@ VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (id) DO UPDATE SET
 	title = EXCLUDED.title, position = EXCLUDED.position`
 
+const updateSubtaskTitleSQL = `UPDATE subtasks SET title = $2 WHERE id = $1`
 const updateSubtaskCompletedSQL = `UPDATE subtasks SET is_completed = true WHERE id = $1`
 
 // Projector consumes events and updates read model tables.
@@ -77,10 +84,18 @@ func (p *Projector) handleEvent(ctx context.Context, e eventstore.Event) error {
 		return p.handleTaskUncompleted(ctx, e)
 	case eventstore.EventTaskDeleted:
 		return p.handleTaskDeleted(ctx, e)
+	case eventstore.EventTaskRestored:
+		return p.handleTaskRestored(ctx, e)
 	case eventstore.EventTaskMoved:
 		return p.handleTaskMoved(ctx, e)
 	case eventstore.EventTaskDescriptionUpdated:
 		return p.handleTaskDescriptionUpdated(ctx, e)
+	case eventstore.EventTaskTitleUpdated:
+		return p.handleTaskTitleUpdated(ctx, e)
+	case eventstore.EventTaskPriorityUpdated:
+		return p.handleTaskPriorityUpdated(ctx, e)
+	case eventstore.EventTaskDueDateUpdated:
+		return p.handleTaskDueDateUpdated(ctx, e)
 	case eventstore.EventLabelAdded:
 		return p.handleLabelAdded(ctx, e)
 	case eventstore.EventLabelRemoved:
@@ -91,8 +106,14 @@ func (p *Projector) handleEvent(ctx context.Context, e eventstore.Event) error {
 		return p.handleLabelCreated(ctx, e)
 	case eventstore.EventSubtaskCreated:
 		return p.handleSubtaskCreated(ctx, e)
+	case eventstore.EventSubtaskTitleUpdated:
+		return p.handleSubtaskTitleUpdated(ctx, e)
 	case eventstore.EventSubtaskCompleted:
 		return p.handleSubtaskCompleted(ctx, e)
+	case eventstore.EventTaskRecurrenceUpdated:
+		return p.handleTaskRecurrenceUpdated(ctx, e)
+	case eventstore.EventTaskDueTimeUpdated:
+		return p.handleTaskDueTimeUpdated(ctx, e)
 	default:
 		// Unknown event types are silently skipped for forward compatibility.
 		return nil
@@ -156,6 +177,17 @@ func (p *Projector) handleTaskDeleted(ctx context.Context, e eventstore.Event) e
 	return nil
 }
 
+func (p *Projector) handleTaskRestored(ctx context.Context, e eventstore.Event) error {
+	tag, err := p.pool.Exec(ctx, updateTaskRestoredSQL, e.AggregateID, e.Timestamp)
+	if err != nil {
+		return fmt.Errorf("updating task restored: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskRestored affected 0 rows")
+	}
+	return nil
+}
+
 func (p *Projector) handleTaskMoved(ctx context.Context, e eventstore.Event) error {
 	var payload domain.TaskMovedPayload
 	if err := json.Unmarshal(e.Data, &payload); err != nil {
@@ -182,6 +214,51 @@ func (p *Projector) handleTaskDescriptionUpdated(ctx context.Context, e eventsto
 	}
 	if tag.RowsAffected() == 0 {
 		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskDescriptionUpdated affected 0 rows")
+	}
+	return nil
+}
+
+func (p *Projector) handleTaskTitleUpdated(ctx context.Context, e eventstore.Event) error {
+	var payload domain.TaskTitleUpdatedPayload
+	if err := json.Unmarshal(e.Data, &payload); err != nil {
+		return fmt.Errorf("unmarshaling TaskTitleUpdatedPayload: %w", err)
+	}
+	tag, err := p.pool.Exec(ctx, updateTaskTitleSQL, e.AggregateID, payload.Title, e.Timestamp)
+	if err != nil {
+		return fmt.Errorf("updating task title: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskTitleUpdated affected 0 rows")
+	}
+	return nil
+}
+
+func (p *Projector) handleTaskPriorityUpdated(ctx context.Context, e eventstore.Event) error {
+	var payload domain.TaskPriorityUpdatedPayload
+	if err := json.Unmarshal(e.Data, &payload); err != nil {
+		return fmt.Errorf("unmarshaling TaskPriorityUpdatedPayload: %w", err)
+	}
+	tag, err := p.pool.Exec(ctx, updateTaskPrioritySQL, e.AggregateID, payload.Priority, e.Timestamp)
+	if err != nil {
+		return fmt.Errorf("updating task priority: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskPriorityUpdated affected 0 rows")
+	}
+	return nil
+}
+
+func (p *Projector) handleTaskDueDateUpdated(ctx context.Context, e eventstore.Event) error {
+	var payload domain.TaskDueDateUpdatedPayload
+	if err := json.Unmarshal(e.Data, &payload); err != nil {
+		return fmt.Errorf("unmarshaling TaskDueDateUpdatedPayload: %w", err)
+	}
+	tag, err := p.pool.Exec(ctx, updateTaskDueDateSQL, e.AggregateID, payload.DueDate, e.Timestamp)
+	if err != nil {
+		return fmt.Errorf("updating task due date: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskDueDateUpdated affected 0 rows")
 	}
 	return nil
 }
@@ -264,6 +341,51 @@ func (p *Projector) handleSubtaskCompleted(ctx context.Context, e eventstore.Eve
 	}
 	if tag.RowsAffected() == 0 {
 		p.logger.Warn().Stringer("subtask_id", payload.SubtaskID).Msg("projection: SubtaskCompleted affected 0 rows")
+	}
+	return nil
+}
+
+func (p *Projector) handleTaskRecurrenceUpdated(ctx context.Context, e eventstore.Event) error {
+	var payload domain.TaskRecurrenceUpdatedPayload
+	if err := json.Unmarshal(e.Data, &payload); err != nil {
+		return fmt.Errorf("unmarshaling TaskRecurrenceUpdatedPayload: %w", err)
+	}
+	tag, err := p.pool.Exec(ctx, updateTaskRecurrenceSQL, e.AggregateID, payload.RecurrenceRule, e.Timestamp)
+	if err != nil {
+		return fmt.Errorf("updating task recurrence: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskRecurrenceUpdated affected 0 rows")
+	}
+	return nil
+}
+
+func (p *Projector) handleTaskDueTimeUpdated(ctx context.Context, e eventstore.Event) error {
+	var payload domain.TaskDueTimeUpdatedPayload
+	if err := json.Unmarshal(e.Data, &payload); err != nil {
+		return fmt.Errorf("unmarshaling TaskDueTimeUpdatedPayload: %w", err)
+	}
+	tag, err := p.pool.Exec(ctx, updateTaskDueTimeSQL, e.AggregateID, payload.DueTime, e.Timestamp)
+	if err != nil {
+		return fmt.Errorf("updating task due time: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskDueTimeUpdated affected 0 rows")
+	}
+	return nil
+}
+
+func (p *Projector) handleSubtaskTitleUpdated(ctx context.Context, e eventstore.Event) error {
+	var payload domain.SubtaskTitleUpdatedPayload
+	if err := json.Unmarshal(e.Data, &payload); err != nil {
+		return fmt.Errorf("unmarshaling SubtaskTitleUpdatedPayload: %w", err)
+	}
+	tag, err := p.pool.Exec(ctx, updateSubtaskTitleSQL, payload.SubtaskID, payload.Title)
+	if err != nil {
+		return fmt.Errorf("updating subtask title: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("subtask_id", payload.SubtaskID).Msg("projection: SubtaskTitleUpdated affected 0 rows")
 	}
 	return nil
 }

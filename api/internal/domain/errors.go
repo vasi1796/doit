@@ -18,4 +18,6 @@ var (
 	ErrLabelNotAttached        = errors.New("domain: label is not on this task")
 	ErrSubtaskNotFound         = errors.New("domain: subtask not found")
 	ErrSubtaskAlreadyCompleted = errors.New("domain: subtask is already completed")
+	ErrTaskNotDeleted          = errors.New("domain: task is not deleted")
+	ErrInvalidRecurrenceRule   = errors.New("domain: recurrence rule must be one of daily, weekly, monthly, yearly, or empty")
 )
