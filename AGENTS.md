@@ -21,23 +21,40 @@ Core design goals:
 
 ## Architecture Overview
 
-### Write Path
+### Write Path (online — individual REST endpoints)
 ```
-HTTP Request → Handler → CommandHandler → Aggregate (validates + produces events)
-    → EventStore.Append (Postgres transaction)
+HTTP Request → Handler → CommandHandler(HLC) → Aggregate (validates + produces events)
+    → EventStore.Append (Postgres transaction, HLC timestamp + counter)
     → Projector.Project (updates read model tables)
     → HTTP Response
 ```
 
+### Write Path (offline-first — sync engine)
+```
+User action → db/operations.ts → IndexedDB write (instant)
+    → SyncOp queued in syncQueue table
+    → SyncEngine flushes on foreground/30s poll
+    → POST /api/v1/sync (batched operations)
+    → Server: CommandHandler processes batch → events appended
+    → Response: confirmation + remote events
+    → Client: merge-events.ts applies remote events to IndexedDB via LWW
+    → useLiveQuery auto-re-renders
+```
+
 ### Read Path
 ```
-HTTP Request → Handler → SELECT from read model tables (pgxpool) → HTTP Response
+useLiveQuery (Dexie.js) → IndexedDB → React component
 ```
+All reads come from local IndexedDB. The API is never queried directly for reads
+(except during initial sync on app launch).
 
 **Key patterns:**
 - **Event Sourcing**: All state mutations produce events appended to the event store.
   Read models are projections derived from events. Never update read models directly.
 - **CQRS**: Commands go through domain aggregates; queries hit read model tables directly.
+- **Offline-first**: Writes go to IndexedDB immediately, sync to server when online.
+- **HLC timestamps**: Hybrid Logical Clocks provide causal ordering for CRDT merge.
+- **CRDTs**: LWW-Register (scalars), OR-Set (labels), Fractional Indexing (ordering).
 - **Consumer-side interfaces**: Each package defines the interfaces it needs from its dependencies.
 
 ---
@@ -281,7 +298,7 @@ cd web && npm run build                          # frontend build
 | Phase | Scope | Status |
 |-------|-------|--------|
 | **Phase 1** | Online-only MVP — event store, projections, CRUD API+UI, Google SSO, Docker Compose | Backend + frontend done |
-| **Phase 2** | Offline-first + CRDT sync — Dexie.js, service worker, LWW/OR-Set merge, WebSocket push, HLC timestamps | Not started |
+| **Phase 2** | Offline-first + CRDT sync — Dexie.js, service worker, LWW/OR-Set merge, sync engine, WebSocket push, HLC timestamps, aggregate snapshots | Done |
 | **Phase 3** | RabbitMQ + workers — transactional outbox, topic exchanges, DLQ, recurring tasks worker, Prometheus/Grafana | Not started |
 | **Phase 4** | Polish — projection rebuilder CLI, calendar view, dark mode, search, drag-and-drop, keyboard shortcuts | Not started |
 

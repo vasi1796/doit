@@ -21,19 +21,27 @@ api/              Go backend
   internal/
     auth/          JWT tokens, Google OAuth, context helpers
     config/        Env var loading
+    crdt/          CRDT merge functions (LWW-Register, OR-Set, Fractional Indexing)
     domain/        Aggregates, commands, payloads, CommandHandler
-    eventstore/    Event store (append/load/query)
-    handler/       HTTP handlers (task, list, label, auth, response utils)
+    eventstore/    Event store (append/load/query, HLC counter)
+    handler/       HTTP handlers (task, list, label, auth, sync, response utils)
+    hlc/           Hybrid Logical Clock (causal ordering for sync)
     middleware/     JWT auth middleware
     projection/    Event → read model table updates
   migrations/     SQL migration files
+  openapi.yaml    API contract (source of truth for Go + TS type generation)
 web/              React frontend
   src/
-    api/           Typed fetch client + TypeScript interfaces
+    api/           Typed fetch client + generated types (from OpenAPI spec)
+    crdt/          CRDT merge functions (TypeScript, mirrors Go)
     components/    Common pickers, layout (sidebar/bottom nav), task components
-    hooks/         Data fetching hooks (useTasks, useLists, useLabels, useTaskDetail)
+    db/            Dexie.js database, operations, sync engine, event merger
+    hlc/           Hybrid Logical Clock (TypeScript, mirrors Go)
+    hooks/         Dexie.js useLiveQuery hooks (useTasks, useLists, useLabels, useTaskDetail)
     pages/         Route pages (Inbox, Today, Upcoming, List, Label, Completed, Trash, Login)
     constants.ts   Shared color palette
+  e2e/            Playwright visual regression + accessibility tests
+  public/sw.js    Service worker (app shell caching for offline launch)
 docs/adr/         Architecture Decision Records (8 total)
 scripts/          Backup and utility scripts
 ```
@@ -88,9 +96,10 @@ Event handlers (projections, workers) may receive the same event more than once.
 They must produce the same result regardless of how many times they process an
 event. Use `ON CONFLICT` for inserts, plain `UPDATE` for modifications.
 
-### 3. Frontend state comes only from hooks (Phase 1) or Dexie.js useLiveQuery (Phase 2)
-Do NOT introduce Redux, Zustand, Jotai, or any other state library.
-React Context is used only for layout-level shared data (lists, labels, counts).
+### 3. Frontend state comes from Dexie.js useLiveQuery
+All data reads use `useLiveQuery` from Dexie.js (IndexedDB). Do NOT introduce
+Redux, Zustand, Jotai, or any other state library. React Context is used only
+for layout-level computed data (task counts, quick-add ref).
 
 ### 4. Safari/WebKit only — no Chromium-only APIs
 This is a Safari PWA. Do not use:
@@ -115,6 +124,22 @@ When changing the API surface:
 1. Edit `api/openapi.yaml`
 2. Run `make generate`
 3. Update handler code to match the new generated types
+
+### 8. All timestamps use HLC — never use time.Now() directly
+The `hlc.Clock` provides causal ordering for CRDT conflict resolution.
+Server: `CommandHandler` owns the clock, all Handle* methods accept `hlc.Timestamp`.
+Client: `web/src/db/clock.ts` exports the singleton clock.
+Never call `time.Now()` for event timestamps — always use the HLC clock.
+
+### 9. Frontend reads from Dexie.js — never from the API
+All UI reads come from IndexedDB via `useLiveQuery`. The `api/client.ts` is used
+only by `initial-sync.ts` (initial load) and the sync engine. Components must
+never call `api.*` directly — use `db/operations.ts` for writes.
+
+### 10. Writes go to IndexedDB + sync queue — not to the API
+`db/operations.ts` writes optimistically to IndexedDB and queues a `SyncOp`.
+The `SyncEngine` flushes the queue to `POST /api/v1/sync` periodically.
+No rollback on failure — the sync engine retries with exponential backoff.
 
 ---
 
