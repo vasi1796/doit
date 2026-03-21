@@ -3,57 +3,50 @@
 How data flows from local storage to the UI. All reads come from IndexedDB — never from the API.
 
 ```mermaid
-flowchart TB
-    subgraph Sources["Data Sources (write to IndexedDB)"]
-        IS[Initial Sync<br/>REST → bulkPut]
-        OW[Optimistic Write<br/>operations.ts → put]
-        ME[Remote Merge<br/>merge-events.ts → LWW update]
+flowchart LR
+    subgraph Write["What writes to IndexedDB"]
+        IS[Initial Sync]
+        OW[Optimistic Writes]
+        ME[Remote Merge]
     end
 
-    subgraph Dexie["Dexie.js (IndexedDB)"]
-        T[(tasks)]
-        L[(lists)]
-        LB[(labels)]
-        TL[(taskLabels)]
-        ST[(subtasks)]
+    subgraph IDB["IndexedDB (Dexie.js)"]
+        DB[(tasks · lists · labels<br/>taskLabels · subtasks)]
     end
 
-    subgraph Hooks["React Hooks"]
-        UT[useTasks<br/>filter + sort + join]
+    subgraph Hooks["useLiveQuery Hooks"]
+        UT[useTasks]
         UL[useLists]
         ULB[useLabels]
         UTD[useTaskDetail]
     end
 
-    subgraph UI["React Components"]
-        Pages[InboxPage / TodayPage /<br/>UpcomingPage / ListPage /<br/>LabelPage / CompletedPage /<br/>TrashPage]
+    subgraph Pages["React Pages"]
+        P[Inbox · Today · Upcoming<br/>List · Label · Completed · Trash]
     end
 
-    IS --> T & L & LB & ST & TL
-    OW --> T & ST & TL
-    ME --> T & L & LB & ST & TL
+    IS --> DB
+    OW --> DB
+    ME --> DB
 
-    T --> UT
-    TL --> UT
-    ST --> UT
-    LB --> UT
-    L --> UL
-    LB --> ULB
-    T & ST & TL & LB --> UTD
+    DB -->|auto re-render<br/>on change| UT & UL & ULB & UTD
 
-    UT --> Pages
-    UL --> Pages
-    ULB --> Pages
-    UTD --> Pages
-
-    style Sources fill:#f0f4ff,stroke:#4a90d9
-    style Dexie fill:#fff3e0,stroke:#f5a623
-    style Hooks fill:#e8f5e9,stroke:#4caf50
-    style UI fill:#fce4ec,stroke:#e91e63
+    UT --> P
+    UL --> P
+    ULB --> P
+    UTD --> P
 ```
+
+## What each hook queries
+
+| Hook | Tables | What it does |
+|------|--------|-------------|
+| `useTasks` | tasks + taskLabels + subtasks + labels | Filters by list/label/status, sorts by position, joins subtasks and labels |
+| `useLists` | lists | All user lists, sorted by position |
+| `useLabels` | labels | All user labels |
+| `useTaskDetail` | tasks + subtasks + taskLabels + labels | Single task with full subtask and label data |
 
 **Key points:**
 - `useLiveQuery` auto-re-renders components when IndexedDB data changes
 - No state management libraries (Redux, Zustand, etc.) — Dexie is the sole state layer
-- Hooks compose data: `useTasks` joins tasks + subtasks + labels in one query
-- Three sources write to IndexedDB: initial sync, local writes, and remote merges
+- Three sources write to IndexedDB: initial sync, local optimistic writes, and remote event merges
