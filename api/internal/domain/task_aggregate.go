@@ -61,6 +61,13 @@ func (a *TaskAggregate) DueDate() *time.Time        { return a.dueDate }
 func (a *TaskAggregate) DueTime() *string           { return a.dueTime }
 func (a *TaskAggregate) ListID() *uuid.UUID         { return a.listID }
 func (a *TaskAggregate) Position() string           { return a.position }
+func (a *TaskAggregate) Labels() []uuid.UUID {
+	ids := make([]uuid.UUID, 0, len(a.labels))
+	for id := range a.labels {
+		ids = append(ids, id)
+	}
+	return ids
+}
 
 // NewID generates a new UUID for aggregate creation.
 func NewID() uuid.UUID { return uuid.New() }
