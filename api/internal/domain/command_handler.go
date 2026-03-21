@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/vasi1796/doit/internal/eventstore"
+	"github.com/vasi1796/doit/internal/hlc"
 )
 
 // EventLoader is the interface the domain needs from the event store.
@@ -27,10 +27,11 @@ type EventProjector interface {
 type CommandHandler struct {
 	store     EventLoader
 	projector EventProjector
+	clock     *hlc.Clock
 }
 
-func NewCommandHandler(store EventLoader, projector EventProjector) *CommandHandler {
-	return &CommandHandler{store: store, projector: projector}
+func NewCommandHandler(store EventLoader, projector EventProjector, clock *hlc.Clock) *CommandHandler {
+	return &CommandHandler{store: store, projector: projector, clock: clock}
 }
 
 func (h *CommandHandler) appendAndProject(ctx context.Context, events []eventstore.Event) error {
@@ -52,7 +53,7 @@ func (h *CommandHandler) appendAndProject(ctx context.Context, events []eventsto
 
 func (h *CommandHandler) CreateTask(ctx context.Context, cmd CreateTask) error {
 	agg := NewTaskAggregate()
-	events, err := agg.HandleCreate(cmd, time.Now().UTC())
+	events, err := agg.HandleCreate(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -64,7 +65,7 @@ func (h *CommandHandler) CompleteTask(ctx context.Context, aggregateID uuid.UUID
 	if err != nil {
 		return err
 	}
-	events, recurring, err := agg.HandleComplete(cmd)
+	events, recurring, err := agg.HandleComplete(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ func (h *CommandHandler) UncompleteTask(ctx context.Context, aggregateID uuid.UU
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleUncomplete(cmd, time.Now().UTC())
+	events, err := agg.HandleUncomplete(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func (h *CommandHandler) DeleteTask(ctx context.Context, aggregateID uuid.UUID, 
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleDelete(cmd)
+	events, err := agg.HandleDelete(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -109,7 +110,7 @@ func (h *CommandHandler) RestoreTask(ctx context.Context, aggregateID uuid.UUID,
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleRestore(cmd, time.Now().UTC())
+	events, err := agg.HandleRestore(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -121,7 +122,7 @@ func (h *CommandHandler) MoveTask(ctx context.Context, aggregateID uuid.UUID, us
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleMove(cmd, time.Now().UTC())
+	events, err := agg.HandleMove(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -133,7 +134,7 @@ func (h *CommandHandler) UpdateTaskDescription(ctx context.Context, aggregateID 
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleUpdateDescription(cmd, time.Now().UTC())
+	events, err := agg.HandleUpdateDescription(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -145,7 +146,7 @@ func (h *CommandHandler) UpdateTaskTitle(ctx context.Context, aggregateID uuid.U
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleUpdateTitle(cmd, time.Now().UTC())
+	events, err := agg.HandleUpdateTitle(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -157,7 +158,7 @@ func (h *CommandHandler) UpdateTaskPriority(ctx context.Context, aggregateID uui
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleUpdatePriority(cmd, time.Now().UTC())
+	events, err := agg.HandleUpdatePriority(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -169,7 +170,7 @@ func (h *CommandHandler) UpdateTaskDueDate(ctx context.Context, aggregateID uuid
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleUpdateDueDate(cmd, time.Now().UTC())
+	events, err := agg.HandleUpdateDueDate(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -181,7 +182,7 @@ func (h *CommandHandler) UpdateTaskDueTime(ctx context.Context, aggregateID uuid
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleUpdateDueTime(cmd, time.Now().UTC())
+	events, err := agg.HandleUpdateDueTime(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -193,7 +194,7 @@ func (h *CommandHandler) UpdateTaskRecurrence(ctx context.Context, aggregateID u
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleUpdateRecurrence(cmd, time.Now().UTC())
+	events, err := agg.HandleUpdateRecurrence(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -205,7 +206,7 @@ func (h *CommandHandler) AddLabel(ctx context.Context, aggregateID uuid.UUID, us
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleAddLabel(cmd, time.Now().UTC())
+	events, err := agg.HandleAddLabel(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -217,7 +218,7 @@ func (h *CommandHandler) RemoveLabel(ctx context.Context, aggregateID uuid.UUID,
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleRemoveLabel(cmd, time.Now().UTC())
+	events, err := agg.HandleRemoveLabel(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -229,7 +230,7 @@ func (h *CommandHandler) CreateSubtask(ctx context.Context, aggregateID uuid.UUI
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleCreateSubtask(cmd, time.Now().UTC())
+	events, err := agg.HandleCreateSubtask(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -241,7 +242,7 @@ func (h *CommandHandler) UpdateSubtaskTitle(ctx context.Context, aggregateID uui
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleUpdateSubtaskTitle(cmd, time.Now().UTC())
+	events, err := agg.HandleUpdateSubtaskTitle(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -253,7 +254,7 @@ func (h *CommandHandler) CompleteSubtask(ctx context.Context, aggregateID uuid.U
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleCompleteSubtask(cmd)
+	events, err := agg.HandleCompleteSubtask(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -265,7 +266,7 @@ func (h *CommandHandler) UncompleteSubtask(ctx context.Context, aggregateID uuid
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleUncompleteSubtask(cmd, time.Now().UTC())
+	events, err := agg.HandleUncompleteSubtask(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -276,7 +277,7 @@ func (h *CommandHandler) UncompleteSubtask(ctx context.Context, aggregateID uuid
 
 func (h *CommandHandler) CreateList(ctx context.Context, cmd CreateList) error {
 	agg := NewListAggregate()
-	events, err := agg.HandleCreate(cmd, time.Now().UTC())
+	events, err := agg.HandleCreate(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -288,7 +289,7 @@ func (h *CommandHandler) DeleteList(ctx context.Context, aggregateID uuid.UUID, 
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleDelete(cmd)
+	events, err := agg.HandleDelete(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -299,7 +300,7 @@ func (h *CommandHandler) DeleteList(ctx context.Context, aggregateID uuid.UUID, 
 
 func (h *CommandHandler) CreateLabel(ctx context.Context, cmd CreateLabel) error {
 	agg := NewLabelAggregate()
-	events, err := agg.HandleCreate(cmd, time.Now().UTC())
+	events, err := agg.HandleCreate(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -311,7 +312,7 @@ func (h *CommandHandler) DeleteLabel(ctx context.Context, aggregateID uuid.UUID,
 	if err != nil {
 		return err
 	}
-	events, err := agg.HandleDelete(cmd)
+	events, err := agg.HandleDelete(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}

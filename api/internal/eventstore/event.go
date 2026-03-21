@@ -55,5 +55,6 @@ type Event struct {
 	UserID        uuid.UUID       `json:"user_id"`
 	Data          json.RawMessage `json:"data"`
 	Timestamp     time.Time       `json:"timestamp"`
+	Counter       int             `json:"counter"`
 	Version       int             `json:"version"`
 }

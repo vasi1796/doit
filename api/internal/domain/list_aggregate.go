@@ -1,11 +1,10 @@
 package domain
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 
 	"github.com/vasi1796/doit/internal/eventstore"
+	"github.com/vasi1796/doit/internal/hlc"
 )
 
 // ListAggregate enforces business rules for lists and produces events.
@@ -39,7 +38,7 @@ func (a *ListAggregate) Apply(e eventstore.Event) {
 	}
 }
 
-func (a *ListAggregate) HandleCreate(cmd CreateList, now time.Time) ([]eventstore.Event, error) {
+func (a *ListAggregate) HandleCreate(cmd CreateList, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if a.created {
 		return nil, ErrListAlreadyCreated
 	}
@@ -62,7 +61,7 @@ func (a *ListAggregate) HandleCreate(cmd CreateList, now time.Time) ([]eventstor
 	return []eventstore.Event{e}, nil
 }
 
-func (a *ListAggregate) HandleDelete(cmd DeleteList) ([]eventstore.Event, error) {
+func (a *ListAggregate) HandleDelete(cmd DeleteList, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if !a.created {
 		return nil, ErrListNotFound
 	}
@@ -72,13 +71,13 @@ func (a *ListAggregate) HandleDelete(cmd DeleteList) ([]eventstore.Event, error)
 
 	e, err := a.newEvent(eventstore.EventListDeleted, ListDeletedPayload{
 		DeletedAt: cmd.DeletedAt,
-	}, cmd.DeletedAt)
+	}, now)
 	if err != nil {
 		return nil, err
 	}
 	return []eventstore.Event{e}, nil
 }
 
-func (a *ListAggregate) newEvent(eventType eventstore.EventType, payload any, now time.Time) (eventstore.Event, error) {
+func (a *ListAggregate) newEvent(eventType eventstore.EventType, payload any, now hlc.Timestamp) (eventstore.Event, error) {
 	return buildEvent(a.id, eventstore.AggregateTypeList, a.userID, &a.version, eventType, payload, now)
 }

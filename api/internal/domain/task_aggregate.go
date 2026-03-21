@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/vasi1796/doit/internal/eventstore"
+	"github.com/vasi1796/doit/internal/hlc"
 )
 
 type subtaskState struct {
@@ -140,7 +141,7 @@ func (a *TaskAggregate) Apply(e eventstore.Event) {
 	}
 }
 
-func (a *TaskAggregate) HandleCreate(cmd CreateTask, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleCreate(cmd CreateTask, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if a.created {
 		return nil, ErrTaskAlreadyCreated
 	}
@@ -178,7 +179,7 @@ type RecurringTaskEvents struct {
 	Events []eventstore.Event
 }
 
-func (a *TaskAggregate) HandleComplete(cmd CompleteTask) ([]eventstore.Event, *RecurringTaskEvents, error) {
+func (a *TaskAggregate) HandleComplete(cmd CompleteTask, now hlc.Timestamp) ([]eventstore.Event, *RecurringTaskEvents, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, nil, err
 	}
@@ -188,7 +189,7 @@ func (a *TaskAggregate) HandleComplete(cmd CompleteTask) ([]eventstore.Event, *R
 
 	e, err := a.newEvent(eventstore.EventTaskCompleted, TaskCompletedPayload{
 		CompletedAt: cmd.CompletedAt,
-	}, cmd.CompletedAt)
+	}, now)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -213,7 +214,7 @@ func (a *TaskAggregate) HandleComplete(cmd CompleteTask) ([]eventstore.Event, *R
 			DueTime:     a.dueTime,
 			ListID:      a.listID,
 			Position:    a.position,
-		}, cmd.CompletedAt)
+		}, now)
 		if err != nil {
 			return nil, nil, fmt.Errorf("creating recurring task: %w", err)
 		}
@@ -225,7 +226,7 @@ func (a *TaskAggregate) HandleComplete(cmd CompleteTask) ([]eventstore.Event, *R
 
 		recEvents, err := newAgg.HandleUpdateRecurrence(UpdateTaskRecurrence{
 			RecurrenceRule: a.recurrenceRule,
-		}, cmd.CompletedAt)
+		}, now)
 		if err != nil {
 			return nil, nil, fmt.Errorf("setting recurrence on recurring task: %w", err)
 		}
@@ -238,7 +239,7 @@ func (a *TaskAggregate) HandleComplete(cmd CompleteTask) ([]eventstore.Event, *R
 	return events, recurring, nil
 }
 
-func (a *TaskAggregate) HandleUncomplete(cmd UncompleteTask, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleUncomplete(cmd UncompleteTask, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -253,7 +254,7 @@ func (a *TaskAggregate) HandleUncomplete(cmd UncompleteTask, now time.Time) ([]e
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleDelete(cmd DeleteTask) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleDelete(cmd DeleteTask, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if !a.created {
 		return nil, ErrTaskNotFound
 	}
@@ -263,14 +264,14 @@ func (a *TaskAggregate) HandleDelete(cmd DeleteTask) ([]eventstore.Event, error)
 
 	e, err := a.newEvent(eventstore.EventTaskDeleted, TaskDeletedPayload{
 		DeletedAt: cmd.DeletedAt,
-	}, cmd.DeletedAt)
+	}, now)
 	if err != nil {
 		return nil, err
 	}
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleRestore(cmd RestoreTask, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleRestore(cmd RestoreTask, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if !a.created {
 		return nil, ErrTaskNotFound
 	}
@@ -285,7 +286,7 @@ func (a *TaskAggregate) HandleRestore(cmd RestoreTask, now time.Time) ([]eventst
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleMove(cmd MoveTask, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleMove(cmd MoveTask, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -300,7 +301,7 @@ func (a *TaskAggregate) HandleMove(cmd MoveTask, now time.Time) ([]eventstore.Ev
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleUpdateDescription(cmd UpdateTaskDescription, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleUpdateDescription(cmd UpdateTaskDescription, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -314,7 +315,7 @@ func (a *TaskAggregate) HandleUpdateDescription(cmd UpdateTaskDescription, now t
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleUpdateTitle(cmd UpdateTaskTitle, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleUpdateTitle(cmd UpdateTaskTitle, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -331,7 +332,7 @@ func (a *TaskAggregate) HandleUpdateTitle(cmd UpdateTaskTitle, now time.Time) ([
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleUpdatePriority(cmd UpdateTaskPriority, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleUpdatePriority(cmd UpdateTaskPriority, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -348,7 +349,7 @@ func (a *TaskAggregate) HandleUpdatePriority(cmd UpdateTaskPriority, now time.Ti
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleUpdateDueDate(cmd UpdateTaskDueDate, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleUpdateDueDate(cmd UpdateTaskDueDate, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -362,7 +363,7 @@ func (a *TaskAggregate) HandleUpdateDueDate(cmd UpdateTaskDueDate, now time.Time
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleUpdateDueTime(cmd UpdateTaskDueTime, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleUpdateDueTime(cmd UpdateTaskDueTime, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -379,7 +380,7 @@ func (a *TaskAggregate) HandleUpdateDueTime(cmd UpdateTaskDueTime, now time.Time
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleAddLabel(cmd AddLabel, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleAddLabel(cmd AddLabel, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -396,7 +397,7 @@ func (a *TaskAggregate) HandleAddLabel(cmd AddLabel, now time.Time) ([]eventstor
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleRemoveLabel(cmd RemoveLabel, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleRemoveLabel(cmd RemoveLabel, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -413,7 +414,7 @@ func (a *TaskAggregate) HandleRemoveLabel(cmd RemoveLabel, now time.Time) ([]eve
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleCreateSubtask(cmd CreateSubtask, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleCreateSubtask(cmd CreateSubtask, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -432,7 +433,7 @@ func (a *TaskAggregate) HandleCreateSubtask(cmd CreateSubtask, now time.Time) ([
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleCompleteSubtask(cmd CompleteSubtask) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleCompleteSubtask(cmd CompleteSubtask, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -447,14 +448,14 @@ func (a *TaskAggregate) HandleCompleteSubtask(cmd CompleteSubtask) ([]eventstore
 	e, err := a.newEvent(eventstore.EventSubtaskCompleted, SubtaskCompletedPayload{
 		SubtaskID:   cmd.SubtaskID,
 		CompletedAt: cmd.CompletedAt,
-	}, cmd.CompletedAt)
+	}, now)
 	if err != nil {
 		return nil, err
 	}
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleUncompleteSubtask(cmd UncompleteSubtask, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleUncompleteSubtask(cmd UncompleteSubtask, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -475,7 +476,7 @@ func (a *TaskAggregate) HandleUncompleteSubtask(cmd UncompleteSubtask, now time.
 	return []eventstore.Event{e}, nil
 }
 
-func (a *TaskAggregate) HandleUpdateSubtaskTitle(cmd UpdateSubtaskTitle, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleUpdateSubtaskTitle(cmd UpdateSubtaskTitle, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -507,7 +508,7 @@ func (a *TaskAggregate) requireActive() error {
 	return nil
 }
 
-func (a *TaskAggregate) HandleUpdateRecurrence(cmd UpdateTaskRecurrence, now time.Time) ([]eventstore.Event, error) {
+func (a *TaskAggregate) HandleUpdateRecurrence(cmd UpdateTaskRecurrence, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
@@ -540,6 +541,6 @@ func nextDueDate(current time.Time, rule RecurrenceRule) time.Time {
 	}
 }
 
-func (a *TaskAggregate) newEvent(eventType eventstore.EventType, payload any, now time.Time) (eventstore.Event, error) {
+func (a *TaskAggregate) newEvent(eventType eventstore.EventType, payload any, now hlc.Timestamp) (eventstore.Event, error) {
 	return buildEvent(a.id, eventstore.AggregateTypeTask, a.userID, &a.version, eventType, payload, now)
 }

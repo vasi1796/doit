@@ -16,17 +16,17 @@ import (
 // https://www.postgresql.org/docs/current/errcodes-appendix.html
 const pgUniqueViolation = "23505"
 
-const insertSQL = `INSERT INTO events (id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, version)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+const insertSQL = `INSERT INTO events (id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, counter, version)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
-const loadByAggregateSQL = `SELECT id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, version
+const loadByAggregateSQL = `SELECT id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, counter, version
 FROM events WHERE aggregate_id = $1 ORDER BY version ASC`
 
-const loadByAggregateFromVersionSQL = `SELECT id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, version
+const loadByAggregateFromVersionSQL = `SELECT id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, counter, version
 FROM events WHERE aggregate_id = $1 AND version >= $2 ORDER BY version ASC`
 
-const loadByUserSinceSQL = `SELECT id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, version
-FROM events WHERE user_id = $1 AND timestamp > $2 ORDER BY timestamp ASC, version ASC`
+const loadByUserSinceSQL = `SELECT id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, counter, version
+FROM events WHERE user_id = $1 AND (timestamp > $2 OR (timestamp = $2 AND counter > $3)) ORDER BY timestamp ASC, counter ASC, version ASC`
 
 // Store provides append and query operations on the event store.
 type Store struct {
@@ -67,7 +67,7 @@ func (s *Store) Append(ctx context.Context, events []Event) error {
 	for _, e := range events {
 		_, err := tx.Exec(ctx, insertSQL,
 			e.ID, e.AggregateID, e.AggregateType, e.EventType,
-			e.UserID, e.Data, e.Timestamp, e.Version,
+			e.UserID, e.Data, e.Timestamp, e.Counter, e.Version,
 		)
 		if err != nil {
 			var pgErr *pgconn.PgError
@@ -111,8 +111,8 @@ func (s *Store) LoadByAggregateFromVersion(ctx context.Context, aggregateID uuid
 
 // LoadByUserSince returns all events for a user since the given
 // timestamp, ordered by timestamp then version. Used for sync.
-func (s *Store) LoadByUserSince(ctx context.Context, userID uuid.UUID, since time.Time) ([]Event, error) {
-	rows, err := s.pool.Query(ctx, loadByUserSinceSQL, userID, since)
+func (s *Store) LoadByUserSince(ctx context.Context, userID uuid.UUID, since time.Time, sinceCounter int) ([]Event, error) {
+	rows, err := s.pool.Query(ctx, loadByUserSinceSQL, userID, since, sinceCounter)
 	if err != nil {
 		return nil, fmt.Errorf("querying events by user since: %w", err)
 	}
@@ -127,7 +127,7 @@ func scanEvents(rows pgx.Rows) ([]Event, error) {
 		var e Event
 		err := rows.Scan(
 			&e.ID, &e.AggregateID, &e.AggregateType, &e.EventType,
-			&e.UserID, &e.Data, &e.Timestamp, &e.Version,
+			&e.UserID, &e.Data, &e.Timestamp, &e.Counter, &e.Version,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scanning event row: %w", err)

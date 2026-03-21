@@ -273,34 +273,38 @@ func TestLoadByUserSince(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		userID    uuid.UUID
-		since     time.Time
-		wantCount int
+		name         string
+		userID       uuid.UUID
+		since        time.Time
+		sinceCounter int
+		wantCount    int
 	}{
 		{
-			name:      "returns events after timestamp",
-			userID:    user1,
-			since:     baseTime.Add(1 * time.Second),
-			wantCount: 2, // +2s and +3s (strictly after +1s)
+			name:         "returns events after timestamp",
+			userID:       user1,
+			since:        baseTime.Add(1 * time.Second),
+			sinceCounter: 0,
+			wantCount:    2, // +2s and +3s (strictly after +1s)
 		},
 		{
-			name:      "does not return events from other users",
-			userID:    user2,
-			since:     baseTime,
-			wantCount: 1,
+			name:         "does not return events from other users",
+			userID:       user2,
+			since:        baseTime,
+			sinceCounter: 0,
+			wantCount:    1,
 		},
 		{
-			name:      "returns empty for future timestamp",
-			userID:    user1,
-			since:     baseTime.Add(1 * time.Hour),
-			wantCount: 0,
+			name:         "returns empty for future timestamp",
+			userID:       user1,
+			since:        baseTime.Add(1 * time.Hour),
+			sinceCounter: 0,
+			wantCount:    0,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := store.LoadByUserSince(ctx, tc.userID, tc.since)
+			got, err := store.LoadByUserSince(ctx, tc.userID, tc.since, tc.sinceCounter)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

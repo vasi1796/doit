@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/vasi1796/doit/internal/eventstore"
+	"github.com/vasi1796/doit/internal/hlc"
 )
 
 type mockEventLoader struct {
@@ -45,7 +46,7 @@ func (m *mockProjector) Project(_ context.Context, events []eventstore.Event) er
 func TestCommandHandlerCreateTask(t *testing.T) {
 	store := &mockEventLoader{}
 	proj := &mockProjector{}
-	handler := NewCommandHandler(store, proj)
+	handler := NewCommandHandler(store, proj, hlc.New())
 
 	cmd := CreateTask{
 		TaskID:   uuid.New(),
@@ -78,7 +79,7 @@ func TestCommandHandlerCompleteTask(t *testing.T) {
 		},
 	}
 	proj := &mockProjector{}
-	handler := NewCommandHandler(store, proj)
+	handler := NewCommandHandler(store, proj, hlc.New())
 
 	err := handler.CompleteTask(context.Background(), aggID, testUserID, CompleteTask{CompletedAt: testNow})
 	if err != nil {
@@ -95,7 +96,7 @@ func TestCommandHandlerCompleteTask(t *testing.T) {
 func TestCommandHandlerTaskNotFound(t *testing.T) {
 	store := &mockEventLoader{events: []eventstore.Event{}}
 	proj := &mockProjector{}
-	handler := NewCommandHandler(store, proj)
+	handler := NewCommandHandler(store, proj, hlc.New())
 
 	err := handler.CompleteTask(context.Background(), uuid.New(), testUserID, CompleteTask{CompletedAt: testNow})
 	if !errors.Is(err, ErrTaskNotFound) {
@@ -108,7 +109,7 @@ func TestCommandHandlerAppendError(t *testing.T) {
 		appendErr: eventstore.ErrVersionConflict,
 	}
 	proj := &mockProjector{}
-	handler := NewCommandHandler(store, proj)
+	handler := NewCommandHandler(store, proj, hlc.New())
 
 	cmd := CreateTask{
 		TaskID:   uuid.New(),
@@ -131,7 +132,7 @@ func TestCommandHandlerLoadError(t *testing.T) {
 	loadErr := errors.New("db connection failed")
 	store := &mockEventLoader{loadErr: loadErr}
 	proj := &mockProjector{}
-	handler := NewCommandHandler(store, proj)
+	handler := NewCommandHandler(store, proj, hlc.New())
 
 	err := handler.CompleteTask(context.Background(), uuid.New(), testUserID, CompleteTask{CompletedAt: testNow})
 	if !errors.Is(err, loadErr) {
@@ -143,7 +144,7 @@ func TestCommandHandlerProjectionError(t *testing.T) {
 	store := &mockEventLoader{}
 	projErr := errors.New("projection failed")
 	proj := &mockProjector{projectErr: projErr}
-	handler := NewCommandHandler(store, proj)
+	handler := NewCommandHandler(store, proj, hlc.New())
 
 	cmd := CreateTask{
 		TaskID:   uuid.New(),

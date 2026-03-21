@@ -9,11 +9,13 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/vasi1796/doit/internal/eventstore"
+	"github.com/vasi1796/doit/internal/hlc"
 )
 
 var (
 	testUserID = uuid.New()
 	testNow    = time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	testHLC    = hlc.Timestamp{Time: testNow, Counter: 0}
 )
 
 func validCreateCmd() CreateTask {
@@ -87,7 +89,7 @@ func TestHandleCreate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			agg := NewTaskAggregate()
-			events, err := agg.HandleCreate(tc.cmd, testNow)
+			events, err := agg.HandleCreate(tc.cmd, testHLC)
 
 			if tc.wantErr != nil {
 				if !errors.Is(err, tc.wantErr) {
@@ -133,12 +135,12 @@ func TestHandleCreate(t *testing.T) {
 func TestHandleCreateAlreadyExists(t *testing.T) {
 	agg := NewTaskAggregate()
 	cmd := validCreateCmd()
-	if _, err := agg.HandleCreate(cmd, testNow); err != nil {
+	if _, err := agg.HandleCreate(cmd, testHLC); err != nil {
 		t.Fatalf("first create: %v", err)
 	}
 	agg.Apply(taskEvent(cmd.TaskID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: cmd.Title}))
 
-	_, err := agg.HandleCreate(cmd, testNow)
+	_, err := agg.HandleCreate(cmd, testHLC)
 	if !errors.Is(err, ErrTaskAlreadyCreated) {
 		t.Fatalf("got error %v, want %v", err, ErrTaskAlreadyCreated)
 	}
@@ -162,7 +164,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
 			command: func(agg *TaskAggregate) ([]eventstore.Event, error) {
-				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow})
+				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
 				return evts, err
 			},
 			wantEvtType: eventstore.EventTaskCompleted,
@@ -174,7 +176,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCompleted, 2, TaskCompletedPayload{CompletedAt: testNow}),
 			},
 			command: func(agg *TaskAggregate) ([]eventstore.Event, error) {
-				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow})
+				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
 				return evts, err
 			},
 			wantErr: ErrTaskAlreadyCompleted,
@@ -186,7 +188,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskDeleted, 2, TaskDeletedPayload{DeletedAt: testNow}),
 			},
 			command: func(agg *TaskAggregate) ([]eventstore.Event, error) {
-				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow})
+				evts, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
 				return evts, err
 			},
 			wantErr: ErrTaskAlreadyDeleted,
@@ -197,7 +199,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 				taskEvent(aggID, eventstore.EventTaskCompleted, 2, TaskCompletedPayload{CompletedAt: testNow}),
 			},
-			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUncomplete(UncompleteTask{}, testNow) },
+			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUncomplete(UncompleteTask{}, testHLC) },
 			wantEvtType: eventstore.EventTaskUncompleted,
 		},
 		{
@@ -205,7 +207,7 @@ func TestStateTransitions(t *testing.T) {
 			setupEvts: []eventstore.Event{
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUncomplete(UncompleteTask{}, testNow) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUncomplete(UncompleteTask{}, testHLC) },
 			wantErr: ErrTaskNotCompleted,
 		},
 		{
@@ -213,7 +215,7 @@ func TestStateTransitions(t *testing.T) {
 			setupEvts: []eventstore.Event{
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
-			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleDelete(DeleteTask{DeletedAt: testNow}) },
+			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleDelete(DeleteTask{DeletedAt: testNow}, testHLC) },
 			wantEvtType: eventstore.EventTaskDeleted,
 		},
 		{
@@ -222,7 +224,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 				taskEvent(aggID, eventstore.EventTaskDeleted, 2, TaskDeletedPayload{DeletedAt: testNow}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleDelete(DeleteTask{DeletedAt: testNow}) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleDelete(DeleteTask{DeletedAt: testNow}, testHLC) },
 			wantErr: ErrTaskAlreadyDeleted,
 		},
 		{
@@ -230,7 +232,7 @@ func TestStateTransitions(t *testing.T) {
 			setupEvts: []eventstore.Event{
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
-			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleMove(MoveTask{ListID: uuid.New(), Position: "b"}, testNow) },
+			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleMove(MoveTask{ListID: uuid.New(), Position: "b"}, testHLC) },
 			wantEvtType: eventstore.EventTaskMoved,
 		},
 		{
@@ -239,7 +241,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 				taskEvent(aggID, eventstore.EventTaskDeleted, 2, TaskDeletedPayload{DeletedAt: testNow}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleMove(MoveTask{ListID: uuid.New(), Position: "b"}, testNow) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleMove(MoveTask{ListID: uuid.New(), Position: "b"}, testHLC) },
 			wantErr: ErrTaskAlreadyDeleted,
 		},
 		{
@@ -247,7 +249,7 @@ func TestStateTransitions(t *testing.T) {
 			setupEvts: []eventstore.Event{
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
-			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUpdateDescription(UpdateTaskDescription{Description: "new desc"}, testNow) },
+			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUpdateDescription(UpdateTaskDescription{Description: "new desc"}, testHLC) },
 			wantEvtType: eventstore.EventTaskDescriptionUpdated,
 		},
 		{
@@ -256,7 +258,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 				taskEvent(aggID, eventstore.EventTaskDeleted, 2, TaskDeletedPayload{DeletedAt: testNow}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUpdateDescription(UpdateTaskDescription{Description: "new desc"}, testNow) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUpdateDescription(UpdateTaskDescription{Description: "new desc"}, testHLC) },
 			wantErr: ErrTaskAlreadyDeleted,
 		},
 		{
@@ -264,7 +266,7 @@ func TestStateTransitions(t *testing.T) {
 			setupEvts: []eventstore.Event{
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
-			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleAddLabel(AddLabel{LabelID: labelID}, testNow) },
+			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleAddLabel(AddLabel{LabelID: labelID}, testHLC) },
 			wantEvtType: eventstore.EventLabelAdded,
 		},
 		{
@@ -273,7 +275,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 				taskEvent(aggID, eventstore.EventLabelAdded, 2, LabelAddedPayload{LabelID: labelID}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleAddLabel(AddLabel{LabelID: labelID}, testNow) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleAddLabel(AddLabel{LabelID: labelID}, testHLC) },
 			wantErr: ErrLabelAlreadyAttached,
 		},
 		{
@@ -282,7 +284,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 				taskEvent(aggID, eventstore.EventLabelAdded, 2, LabelAddedPayload{LabelID: labelID}),
 			},
-			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleRemoveLabel(RemoveLabel{LabelID: labelID}, testNow) },
+			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleRemoveLabel(RemoveLabel{LabelID: labelID}, testHLC) },
 			wantEvtType: eventstore.EventLabelRemoved,
 		},
 		{
@@ -290,7 +292,7 @@ func TestStateTransitions(t *testing.T) {
 			setupEvts: []eventstore.Event{
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleRemoveLabel(RemoveLabel{LabelID: labelID}, testNow) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleRemoveLabel(RemoveLabel{LabelID: labelID}, testHLC) },
 			wantErr: ErrLabelNotAttached,
 		},
 		{
@@ -298,7 +300,7 @@ func TestStateTransitions(t *testing.T) {
 			setupEvts: []eventstore.Event{
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
-			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleCreateSubtask(CreateSubtask{SubtaskID: subtaskID, Title: "sub", Position: "a"}, testNow) },
+			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleCreateSubtask(CreateSubtask{SubtaskID: subtaskID, Title: "sub", Position: "a"}, testHLC) },
 			wantEvtType: eventstore.EventSubtaskCreated,
 		},
 		{
@@ -306,7 +308,7 @@ func TestStateTransitions(t *testing.T) {
 			setupEvts: []eventstore.Event{
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleCreateSubtask(CreateSubtask{SubtaskID: subtaskID, Title: "", Position: "a"}, testNow) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleCreateSubtask(CreateSubtask{SubtaskID: subtaskID, Title: "", Position: "a"}, testHLC) },
 			wantErr: ErrEmptyTitle,
 		},
 		{
@@ -315,7 +317,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 				taskEvent(aggID, eventstore.EventSubtaskCreated, 2, SubtaskCreatedPayload{SubtaskID: subtaskID, Title: "sub", Position: "a"}),
 			},
-			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleCompleteSubtask(CompleteSubtask{SubtaskID: subtaskID, CompletedAt: testNow}) },
+			command:     func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleCompleteSubtask(CompleteSubtask{SubtaskID: subtaskID, CompletedAt: testNow}, testHLC) },
 			wantEvtType: eventstore.EventSubtaskCompleted,
 		},
 		{
@@ -323,7 +325,7 @@ func TestStateTransitions(t *testing.T) {
 			setupEvts: []eventstore.Event{
 				taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleCompleteSubtask(CompleteSubtask{SubtaskID: subtaskID, CompletedAt: testNow}) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleCompleteSubtask(CompleteSubtask{SubtaskID: subtaskID, CompletedAt: testNow}, testHLC) },
 			wantErr: ErrSubtaskNotFound,
 		},
 		{
@@ -333,7 +335,7 @@ func TestStateTransitions(t *testing.T) {
 				taskEvent(aggID, eventstore.EventSubtaskCreated, 2, SubtaskCreatedPayload{SubtaskID: subtaskID, Title: "sub", Position: "a"}),
 				taskEvent(aggID, eventstore.EventSubtaskCompleted, 3, SubtaskCompletedPayload{SubtaskID: subtaskID, CompletedAt: testNow}),
 			},
-			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleCompleteSubtask(CompleteSubtask{SubtaskID: subtaskID, CompletedAt: testNow}) },
+			command: func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleCompleteSubtask(CompleteSubtask{SubtaskID: subtaskID, CompletedAt: testNow}, testHLC) },
 			wantErr: ErrSubtaskAlreadyCompleted,
 		},
 	}
@@ -380,7 +382,7 @@ func TestVersionTracking(t *testing.T) {
 	}
 
 	// Next event should be version 4
-	events, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow})
+	events, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -394,11 +396,11 @@ func TestCommandOnNonexistentTask(t *testing.T) {
 		name    string
 		command func(agg *TaskAggregate) ([]eventstore.Event, error)
 	}{
-		{"complete", func(agg *TaskAggregate) ([]eventstore.Event, error) { e, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}); return e, err }},
-		{"delete", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleDelete(DeleteTask{DeletedAt: testNow}) }},
-		{"move", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleMove(MoveTask{}, testNow) }},
-		{"update description", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUpdateDescription(UpdateTaskDescription{}, testNow) }},
-		{"add label", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleAddLabel(AddLabel{}, testNow) }},
+		{"complete", func(agg *TaskAggregate) ([]eventstore.Event, error) { e, _, err := agg.HandleComplete(CompleteTask{CompletedAt: testNow}, testHLC); return e, err }},
+		{"delete", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleDelete(DeleteTask{DeletedAt: testNow}, testHLC) }},
+		{"move", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleMove(MoveTask{}, testHLC) }},
+		{"update description", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleUpdateDescription(UpdateTaskDescription{}, testHLC) }},
+		{"add label", func(agg *TaskAggregate) ([]eventstore.Event, error) { return agg.HandleAddLabel(AddLabel{}, testHLC) }},
 	}
 
 	for _, tc := range tests {

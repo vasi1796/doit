@@ -29,7 +29,7 @@ func TestLabelHandleCreate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			agg := NewLabelAggregate()
-			events, err := agg.HandleCreate(tc.cmd, testNow)
+			events, err := agg.HandleCreate(tc.cmd, testHLC)
 
 			if tc.wantErr != nil {
 				if !errors.Is(err, tc.wantErr) {
@@ -54,13 +54,13 @@ func TestLabelHandleCreateDuplicate(t *testing.T) {
 	agg := NewLabelAggregate()
 	cmd := CreateLabel{LabelID: uuid.New(), UserID: testUserID, Name: "urgent", Colour: "#ff0000"}
 
-	events, err := agg.HandleCreate(cmd, testNow)
+	events, err := agg.HandleCreate(cmd, testHLC)
 	if err != nil {
 		t.Fatalf("first create: %v", err)
 	}
 	agg.Apply(events[0])
 
-	_, err = agg.HandleCreate(cmd, testNow)
+	_, err = agg.HandleCreate(cmd, testHLC)
 	if !errors.Is(err, ErrLabelAlreadyCreated) {
 		t.Fatalf("got error %v, want %v", err, ErrLabelAlreadyCreated)
 	}

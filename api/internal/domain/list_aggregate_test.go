@@ -29,7 +29,7 @@ func TestListHandleCreate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			agg := NewListAggregate()
-			events, err := agg.HandleCreate(tc.cmd, testNow)
+			events, err := agg.HandleCreate(tc.cmd, testHLC)
 
 			if tc.wantErr != nil {
 				if !errors.Is(err, tc.wantErr) {
@@ -55,7 +55,7 @@ func TestListHandleCreateDuplicate(t *testing.T) {
 	cmd := CreateList{ListID: uuid.New(), UserID: testUserID, Name: "Work", Colour: "#ff0000", Position: "a"}
 
 	// Create the list
-	events, err := agg.HandleCreate(cmd, testNow)
+	events, err := agg.HandleCreate(cmd, testHLC)
 	if err != nil {
 		t.Fatalf("first create: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestListHandleCreateDuplicate(t *testing.T) {
 	agg.Apply(events[0])
 
 	// Try creating again
-	_, err = agg.HandleCreate(cmd, testNow)
+	_, err = agg.HandleCreate(cmd, testHLC)
 	if !errors.Is(err, ErrListAlreadyCreated) {
 		t.Fatalf("got error %v, want %v", err, ErrListAlreadyCreated)
 	}

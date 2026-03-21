@@ -20,6 +20,7 @@ import (
 	"github.com/vasi1796/doit/internal/domain"
 	"github.com/vasi1796/doit/internal/eventstore"
 	"github.com/vasi1796/doit/internal/handler"
+	"github.com/vasi1796/doit/internal/hlc"
 	"github.com/vasi1796/doit/internal/middleware"
 	"github.com/vasi1796/doit/internal/projection"
 )
@@ -151,7 +152,8 @@ func newRouter(pool *pgxpool.Pool, logger zerolog.Logger, cfg *config.Config) *c
 	// Domain stack
 	store := eventstore.New(pool, logger)
 	projector := projection.New(pool, logger)
-	cmdHandler := domain.NewCommandHandler(store, projector)
+	clock := hlc.New()
+	cmdHandler := domain.NewCommandHandler(store, projector, clock)
 
 	// Protected API routes
 	r.Route("/api/v1", func(r chi.Router) {
@@ -188,6 +190,17 @@ func newRouter(pool *pgxpool.Pool, logger zerolog.Logger, cfg *config.Config) *c
 			r.Get("/", labelHandler.List)
 			r.Delete("/{id}", labelHandler.Delete)
 		})
+
+		hub := handler.NewHub(logger)
+		snapWriter := projection.NewSnapshotWriter(pool, logger)
+		syncHandler := handler.NewSyncHandler(cmdHandler, store, clock, hub, snapWriter, pool, logger)
+		r.Post("/sync", syncHandler.Sync)
+
+		wsHandler := handler.NewWSHandler(hub, logger)
+		r.Get("/ws", wsHandler.HandleWS)
+
+		snapshotHandler := handler.NewSnapshotHandler(pool, logger)
+		r.Get("/snapshots", snapshotHandler.List)
 	})
 
 	return r

@@ -3,11 +3,11 @@ package domain
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/vasi1796/doit/internal/eventstore"
+	"github.com/vasi1796/doit/internal/hlc"
 )
 
 // buildEvent constructs a domain event, marshaling the payload to JSON and
@@ -19,7 +19,7 @@ func buildEvent(
 	version *int,
 	eventType eventstore.EventType,
 	payload any,
-	now time.Time,
+	now hlc.Timestamp,
 ) (eventstore.Event, error) {
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -34,7 +34,8 @@ func buildEvent(
 		EventType:     eventType,
 		UserID:        userID,
 		Data:          data,
-		Timestamp:     now,
+		Timestamp:     now.Time,
+		Counter:       now.Counter,
 		Version:       *version,
 	}, nil
 }

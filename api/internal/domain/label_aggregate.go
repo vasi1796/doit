@@ -1,11 +1,10 @@
 package domain
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 
 	"github.com/vasi1796/doit/internal/eventstore"
+	"github.com/vasi1796/doit/internal/hlc"
 )
 
 // LabelAggregate enforces business rules for labels and produces events.
@@ -39,7 +38,7 @@ func (a *LabelAggregate) Apply(e eventstore.Event) {
 	}
 }
 
-func (a *LabelAggregate) HandleCreate(cmd CreateLabel, now time.Time) ([]eventstore.Event, error) {
+func (a *LabelAggregate) HandleCreate(cmd CreateLabel, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if a.created {
 		return nil, ErrLabelAlreadyCreated
 	}
@@ -60,7 +59,7 @@ func (a *LabelAggregate) HandleCreate(cmd CreateLabel, now time.Time) ([]eventst
 	return []eventstore.Event{e}, nil
 }
 
-func (a *LabelAggregate) HandleDelete(cmd DeleteLabel) ([]eventstore.Event, error) {
+func (a *LabelAggregate) HandleDelete(cmd DeleteLabel, now hlc.Timestamp) ([]eventstore.Event, error) {
 	if !a.created {
 		return nil, ErrLabelNotFound
 	}
@@ -70,13 +69,13 @@ func (a *LabelAggregate) HandleDelete(cmd DeleteLabel) ([]eventstore.Event, erro
 
 	e, err := a.newEvent(eventstore.EventLabelDeleted, LabelDeletedPayload{
 		DeletedAt: cmd.DeletedAt,
-	}, cmd.DeletedAt)
+	}, now)
 	if err != nil {
 		return nil, err
 	}
 	return []eventstore.Event{e}, nil
 }
 
-func (a *LabelAggregate) newEvent(eventType eventstore.EventType, payload any, now time.Time) (eventstore.Event, error) {
+func (a *LabelAggregate) newEvent(eventType eventstore.EventType, payload any, now hlc.Timestamp) (eventstore.Event, error) {
 	return buildEvent(a.id, eventstore.AggregateTypeLabel, a.userID, &a.version, eventType, payload, now)
 }
