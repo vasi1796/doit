@@ -92,6 +92,26 @@ func (b *Broker) Consume(queue string) (<-chan amqp.Delivery, error) {
 	return b.channel.Consume(queue, "", false, false, false, false, nil)
 }
 
+// PurgeQueue removes all messages from a queue. Useful for test isolation.
+func (b *Broker) PurgeQueue(queue string) error {
+	_, err := b.channel.QueuePurge(queue, false)
+	if err != nil {
+		return fmt.Errorf("broker: purge %s: %w", queue, err)
+	}
+	return nil
+}
+
+// Get retrieves a single message from a queue (basic.get). Returns the message,
+// whether a message was available, and any error. Useful for synchronous test
+// consumption where the streaming Consume API is overkill.
+func (b *Broker) Get(queue string) (amqp.Delivery, bool, error) {
+	msg, ok, err := b.channel.Get(queue, false)
+	if err != nil {
+		return amqp.Delivery{}, false, fmt.Errorf("broker: get from %s: %w", queue, err)
+	}
+	return msg, ok, nil
+}
+
 // Close shuts down the channel and connection.
 func (b *Broker) Close() error {
 	if err := b.channel.Close(); err != nil {

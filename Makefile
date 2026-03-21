@@ -1,4 +1,4 @@
-.PHONY: build run test test-verbose test-integration lint migrate rebuild-projections docker-up docker-down docker-up-prod docker-down-prod backup-db fmt vet help web-install web-dev web-build web-test web-lint docker-logs generate
+.PHONY: build run test test-verbose test-integration test-fullstack lint migrate rebuild-projections docker-up docker-down docker-up-prod docker-down-prod backup-db fmt vet help web-install web-dev web-build web-test web-lint docker-logs generate
 
 # Default target
 help: ## Show this help
@@ -22,6 +22,9 @@ test-verbose: ## Run all Go tests with verbose output
 
 test-integration: ## Run integration tests (requires running Postgres)
 	cd api && go test -tags integration ./... -race -count=1 -v
+
+test-fullstack: ## Run full-stack integration tests (requires Postgres + RabbitMQ)
+	cd api && go test -tags integration ./internal/integration/ -race -count=1 -v
 
 lint: ## Run golangci-lint
 	cd api && golangci-lint run ./...
