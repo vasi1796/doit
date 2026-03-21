@@ -112,8 +112,8 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
             aria-label={task.is_completed ? 'Mark incomplete' : 'Mark complete'}
             className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all duration-200 ${
               task.is_completed
-                ? 'bg-[#007aff] border-[#007aff] scale-110'
-                : 'border-gray-300 hover:border-[#007aff]'
+                ? 'bg-accent border-accent scale-110'
+                : 'border-gray-300 hover:border-accent'
             }`}
           >
             {task.is_completed && (
@@ -133,20 +133,20 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
                 onBlur={handleTitleSave}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleTitleSave() }}
                 aria-label="Task title"
-                className="text-lg font-medium text-[#1d1d1f] outline-none border-b-2 border-[#007aff] w-full py-0.5"
+                className="text-lg font-medium text-text-primary outline-none border-b-2 border-accent w-full py-0.5"
                 autoFocus
               />
             ) : (
               <h2
                 onClick={() => { setEditingTitle(true); setTimeout(() => titleRef.current?.select(), 10) }}
-                className="text-lg font-medium text-[#1d1d1f] cursor-text hover:bg-gray-50 rounded px-1 -mx-1 py-0.5"
+                className="text-lg font-medium text-text-primary cursor-text hover:bg-gray-50 rounded px-1 -mx-1 py-0.5"
               >
                 {task.title}
               </h2>
             )}
           </div>
 
-          <button onClick={onClose} aria-label="Close" className="text-[#86868b] hover:text-[#1d1d1f] min-w-[44px] min-h-[44px] flex items-center justify-center -m-2">
+          <button onClick={onClose} aria-label="Close" className="text-text-secondary hover:text-text-primary min-w-[44px] min-h-[44px] flex items-center justify-center -m-2">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
@@ -162,7 +162,7 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
           }}
           placeholder="Add notes..."
           aria-label="Task notes"
-          className="w-full min-h-[80px] text-base text-[#1d1d1f] placeholder:text-[#86868b] outline-none resize-none border border-gray-200 rounded-lg p-3 mb-4 focus:border-[#007aff]"
+          className="w-full min-h-[80px] text-base text-text-primary placeholder:text-text-secondary outline-none resize-none border border-gray-200 rounded-lg p-3 mb-4 focus:border-accent"
         />
 
         <SubtaskSection taskId={task.id} subtasks={task.subtasks || []} onChanged={refreshAll} />
@@ -178,7 +178,7 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
         <div className="flex justify-end pt-2 border-t border-gray-100">
           <button
             onClick={handleDelete}
-            className="text-[#ff3b30] text-sm px-3 hover:bg-red-50 rounded-lg transition-colors min-h-[44px]"
+            className="text-danger text-sm px-3 hover:bg-red-50 rounded-lg transition-colors min-h-[44px]"
           >
             Delete
           </button>

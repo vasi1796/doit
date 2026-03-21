@@ -21,8 +21,8 @@ export function LabelsSection({ taskId, taskLabels, allLabels, onChanged, onLabe
         onClick={() => setShowPicker(!showPicker)}
         className="flex items-center justify-between mb-2 w-full text-left"
       >
-        <h3 className="text-xs font-medium text-[#86868b] uppercase tracking-wide">Labels</h3>
-        <span className="text-xs text-[#007aff]">
+        <h3 className="text-xs font-medium text-text-secondary uppercase tracking-wide">Labels</h3>
+        <span className="text-xs text-accent">
           {showPicker ? 'Done' : 'Edit'}
         </span>
       </button>
@@ -41,7 +41,7 @@ export function LabelsSection({ taskId, taskLabels, allLabels, onChanged, onLabe
           onClick={() => setShowPicker(true)}
         >
           {taskLabels.length === 0 && (
-            <span className="text-xs text-[#86868b]">Tap to add labels</span>
+            <span className="text-xs text-text-secondary">Tap to add labels</span>
           )}
           {taskLabels.map((label) => (
             <span

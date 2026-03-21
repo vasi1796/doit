@@ -1,17 +1,15 @@
-import { useState, useCallback } from 'react'
-import { useParams } from 'react-router'
-import { useTasks } from '../hooks/useTasks'
+import { useParams, Navigate } from 'react-router'
+import { usePageTasks } from '../hooks/usePageTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { TaskDetail } from '../components/tasks/TaskDetail'
 
 export function LabelPage() {
   const { id } = useParams<{ id: string }>()
-  const { tasks, loading, refresh } = useTasks({ label_id: id!, is_completed: 'false' })
-  const { lists, labels, refreshLists, refreshCounts } = useLayoutContext()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  if (!id) return <Navigate to="/inbox" replace />
 
-  const refreshAll = useCallback(() => { refresh(); refreshCounts() }, [refresh, refreshCounts])
+  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ label_id: id, is_completed: 'false' })
+  const { lists, labels, refreshLists } = useLayoutContext()
   const label = labels.find((l) => l.id === id)
 
   return (
@@ -20,7 +18,7 @@ export function LabelPage() {
         {label?.colour && (
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: label.colour }} />
         )}
-        <h1 className="text-2xl font-semibold text-[#1d1d1f]">{label?.name || 'Label'}</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">{label?.name || 'Label'}</h1>
       </div>
       <TaskList
         tasks={tasks}

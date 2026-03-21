@@ -1,10 +1,12 @@
-const PRIORITY_FLAGS: Record<number, { color: string; label: string }> = {
+import type { Priority } from '../../api/types'
+
+const PRIORITY_FLAGS: Partial<Record<Priority, { color: string; label: string }>> = {
   1: { color: '#4cd964', label: 'Low' },
   2: { color: '#ff9500', label: 'Medium' },
   3: { color: '#ff3b30', label: 'High' },
 }
 
-export function PriorityFlag({ priority, size = 14 }: { priority: number; size?: number }) {
+export function PriorityFlag({ priority, size = 14 }: { priority: Priority; size?: number }) {
   const flag = PRIORITY_FLAGS[priority]
   if (!flag) return null
 
@@ -14,9 +16,4 @@ export function PriorityFlag({ priority, size = 14 }: { priority: number; size?:
       <line x1="4" y1="22" x2="4" y2="15" />
     </svg>
   )
-}
-
-// Keep backward compat
-export function PriorityDot({ priority }: { priority: number }) {
-  return <PriorityFlag priority={priority} size={12} />
 }

@@ -5,13 +5,16 @@ import type { List } from '../api/types'
 export function useLists() {
   const [lists, setLists] = useState<List[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
       const data = await api.listLists()
       setLists(data)
-    } catch {
-      // Lists failing shouldn't break the app
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load lists')
     } finally {
       setLoading(false)
     }
@@ -21,5 +24,5 @@ export function useLists() {
     refresh()
   }, [refresh])
 
-  return { lists, loading, refresh }
+  return { lists, loading, error, refresh }
 }

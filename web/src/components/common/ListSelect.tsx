@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
+import { usePopover } from '../../hooks/usePopover'
 import { api } from '../../api/client'
 import { useToast } from './Toast'
 import type { List } from '../../api/types'
@@ -13,23 +14,14 @@ interface ListSelectProps {
 
 export function ListSelect({ value, lists, onChange, onListCreated }: ListSelectProps) {
   const { toast } = useToast()
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const { open, pos, triggerRef, toggle, close } = usePopover({ contentWidth: 200 })
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newColor, setNewColor] = useState(PRESET_COLORS[0])
-  const btnRef = useRef<HTMLButtonElement>(null)
+  const [newColour, setNewColour] = useState(PRESET_COLORS[0])
 
   const currentList = lists.find((l) => l.id === value)
   const displayName = currentList?.name || 'Inbox'
   const displayColor = currentList?.colour || '#86868b'
-
-  useEffect(() => {
-    if (open && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      setPos({ top: rect.bottom + 4, left: Math.max(8, rect.left) })
-    }
-  }, [open])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,12 +29,12 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
     try {
       const result = await api.createList({
         name: newName.trim(),
-        colour: newColor,
+        colour: newColour,
         position: Date.now().toString(),
       })
       setNewName('')
       setCreating(false)
-      setOpen(false)
+      close()
       toast('List created', 'success')
       onListCreated()
       onChange(result.id)
@@ -54,27 +46,27 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
   return (
     <>
       <button
-        ref={btnRef}
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         className="flex items-center gap-2 min-h-[40px] px-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
       >
         <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: displayColor }} />
-        <span className="text-[#1d1d1f]">{displayName}</span>
+        <span className="text-text-primary">{displayName}</span>
       </button>
 
       {open && (
         <>
-          <div className="fixed inset-0 z-[60]" onClick={() => { setOpen(false); setCreating(false) }} />
+          <div className="fixed inset-0 z-[60]" onClick={() => { close(); setCreating(false) }} />
           <div
             className="fixed bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-[61] min-w-[200px] max-h-[50vh] overflow-y-auto"
             style={{ top: pos.top, left: pos.left }}
           >
             <button
               type="button"
-              onClick={() => { onChange(''); setOpen(false) }}
+              onClick={() => { onChange(''); close() }}
               className={`w-full flex items-center gap-2.5 text-left px-4 py-2.5 text-[15px] hover:bg-gray-50 ${
-                !value ? 'text-[#007aff] font-medium' : 'text-[#1d1d1f]'
+                !value ? 'text-accent font-medium' : 'text-text-primary'
               }`}
             >
               <span className="w-3 h-3 rounded-full bg-[#86868b]" />
@@ -84,9 +76,9 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
               <button
                 key={l.id}
                 type="button"
-                onClick={() => { onChange(l.id); setOpen(false) }}
+                onClick={() => { onChange(l.id); close() }}
                 className={`w-full flex items-center gap-2.5 text-left px-4 py-2.5 text-[15px] hover:bg-gray-50 ${
-                  value === l.id ? 'text-[#007aff] font-medium' : 'text-[#1d1d1f]'
+                  value === l.id ? 'text-accent font-medium' : 'text-text-primary'
                 }`}
               >
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: l.colour || '#86868b' }} />
@@ -109,19 +101,19 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
                       <button
                         key={c}
                         type="button"
-                        onClick={() => setNewColor(c)}
-                        className={`w-5 h-5 rounded-full ${newColor === c ? 'ring-2 ring-offset-1 ring-[#007aff]/40' : ''}`}
+                        onClick={() => setNewColour(c)}
+                        className={`w-5 h-5 rounded-full ${newColour === c ? 'ring-2 ring-offset-1 ring-accent/40' : ''}`}
                         style={{ backgroundColor: c }}
                       />
                     ))}
-                    <button type="submit" className="ml-auto text-[13px] text-[#007aff] font-medium">Create</button>
+                    <button type="submit" className="ml-auto text-[13px] text-accent font-medium">Create</button>
                   </div>
                 </form>
               ) : (
                 <button
                   type="button"
                   onClick={() => setCreating(true)}
-                  className="w-full text-left px-4 py-2.5 text-[15px] text-[#007aff] hover:bg-gray-50"
+                  className="w-full text-left px-4 py-2.5 text-[15px] text-accent hover:bg-gray-50"
                 >
                   + New list
                 </button>
