@@ -2,35 +2,13 @@ import { useState } from 'react'
 import { api } from '../../api/client'
 import { useToast } from '../common/Toast'
 import { PriorityFlag } from '../common/PriorityDot'
+import { formatDueDate } from '../../utils/date'
 import type { Task } from '../../api/types'
 
 const PRIORITY_COLORS: Record<number, string> = {
   1: '#4cd964',
   2: '#ff9500',
   3: '#ff3b30',
-}
-
-function formatDueDate(dateStr: string, timeStr?: string): { text: string; overdue: boolean } {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const date = new Date(dateStr + 'T00:00:00')
-  const diff = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-
-  let dateText: string
-  if (diff < 0) dateText = 'Overdue'
-  else if (diff === 0) dateText = 'Today'
-  else if (diff === 1) dateText = 'Tomorrow'
-  else if (diff < 7) dateText = date.toLocaleDateString('en-US', { weekday: 'short' })
-  else dateText = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-
-  if (timeStr) {
-    const [h, m] = timeStr.split(':').map(Number)
-    const ampm = h >= 12 ? 'PM' : 'AM'
-    const hour = h % 12 || 12
-    dateText += ` ${hour}:${m.toString().padStart(2, '0')} ${ampm}`
-  }
-
-  return { text: dateText, overdue: diff < 0 }
 }
 
 interface TaskItemProps {

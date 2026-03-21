@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react'
 import { usePopover } from '../../hooks/usePopover'
-
-function formatDisplayTime(timeStr: string): string {
-  const [h, m] = timeStr.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  const hour = h % 12 || 12
-  return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`
-}
+import { formatDisplayTime } from '../../utils/date'
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1)
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
