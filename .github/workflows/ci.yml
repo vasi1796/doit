@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  build-and-test:
+  go:
     runs-on: ubuntu-latest
 
     services:
@@ -58,7 +58,13 @@ jobs:
           TEST_DATABASE_URL: postgres://doit:changeme@localhost:5432/doit?sslmode=disable
         run: go test -tags integration ./... -race -count=1
 
-      # Frontend
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -66,11 +72,11 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Install frontend dependencies
+      - name: Install dependencies
         working-directory: web
         run: npm ci
 
-      - name: Frontend lint
+      - name: Lint
         working-directory: web
         run: npm run lint
 
@@ -78,13 +84,35 @@ jobs:
         working-directory: web
         run: npm run check:types
 
-      - name: Frontend build
+      - name: Build
         working-directory: web
         run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
 
       - name: Install Playwright WebKit
         working-directory: web
         run: npx playwright install webkit --with-deps
+
+      - name: Build
+        working-directory: web
+        run: npm run build
 
       - name: Accessibility tests
         working-directory: web

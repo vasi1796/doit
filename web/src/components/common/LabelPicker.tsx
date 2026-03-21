@@ -85,6 +85,7 @@ export function LabelPicker({ allLabels, attachedIds, taskId, onChanged, onLabel
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Label name"
             className="flex-1 text-sm outline-none border-b border-gray-200 py-1"
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
           />
           <button type="submit" className="text-accent text-sm font-medium">Add</button>

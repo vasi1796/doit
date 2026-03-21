@@ -24,9 +24,11 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
   const [titleValue, setTitleValue] = useState('')
   const titleRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (task) setTitleValue(task.title)
-  }, [task])
+  const [prevTask, setPrevTask] = useState(task)
+  if (task && task !== prevTask) {
+    setPrevTask(task)
+    setTitleValue(task.title)
+  }
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -38,7 +40,7 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
 
   if (loading || !task) {
     return (
-      <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={onClose} aria-hidden="true">
         <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 shadow-xl">
           <div className="animate-pulse space-y-4">
             <div className="h-6 bg-gray-100 rounded w-3/4" />
@@ -100,7 +102,9 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
   const refreshAll = () => { refresh(); onChanged() }
 
   return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 animate-[fade-in_0.15s_ease-out]" onClick={onClose} role="dialog" aria-modal="true" aria-label="Task detail">
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 shadow-xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -134,9 +138,11 @@ export function TaskDetail({ taskId, lists, onClose, onChanged, onListsChanged }
                 onKeyDown={(e) => { if (e.key === 'Enter') handleTitleSave() }}
                 aria-label="Task title"
                 className="text-lg font-medium text-text-primary outline-none border-b-2 border-accent w-full py-0.5"
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
               />
             ) : (
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
               <h2
                 onClick={() => { setEditingTitle(true); setTimeout(() => titleRef.current?.select(), 10) }}
                 className="text-lg font-medium text-text-primary cursor-text hover:bg-gray-50 rounded px-1 -mx-1 py-0.5"

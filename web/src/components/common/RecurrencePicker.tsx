@@ -36,7 +36,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-[60]" onClick={() => close()} />
+          <div className="fixed inset-0 z-[60]" onClick={() => close()} aria-hidden="true" />
           <div
             className="fixed bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-[61] min-w-[160px]"
             style={{ top: pos.top, left: pos.left }}

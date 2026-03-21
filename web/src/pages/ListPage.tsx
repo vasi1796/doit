@@ -7,10 +7,11 @@ import { QuickAdd } from '../components/tasks/QuickAdd'
 
 export function ListPage() {
   const { id } = useParams<{ id: string }>()
+  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ list_id: id ?? '', is_completed: 'false' })
+  const { lists, labels, refreshLists, refreshLabels } = useLayoutContext()
+
   if (!id) return <Navigate to="/inbox" replace />
 
-  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ list_id: id, is_completed: 'false' })
-  const { lists, labels, refreshLists, refreshLabels } = useLayoutContext()
   const list = lists.find((l) => l.id === id)
 
   return (

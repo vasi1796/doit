@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { usePopover } from '../../hooks/usePopover'
 import { toDateStr, formatDisplayDate } from '../../utils/date'
 
@@ -29,12 +29,14 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
   const initial = value ? new Date(value + 'T00:00:00') : today
   const [viewYear, setViewYear] = useState(initial.getFullYear())
   const [viewMonth, setViewMonth] = useState(initial.getMonth())
+  const [prevValue, setPrevValue] = useState(value)
 
-  useEffect(() => {
+  if (value !== prevValue) {
+    setPrevValue(value)
     const d = value ? new Date(value + 'T00:00:00') : new Date()
     setViewYear(d.getFullYear())
     setViewMonth(d.getMonth())
-  }, [value])
+  }
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1) }
@@ -79,18 +81,20 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
           {value ? formatDisplayDate(value) : 'Date'}
         </span>
         {value && onClear && (
-          <span
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onClear() }}
             className="text-text-secondary hover:text-danger"
+            aria-label="Clear date"
           >
             ×
-          </span>
+          </button>
         )}
       </button>
 
       {open && (
         <>
-          <div className="fixed inset-0 z-[60]" onClick={close} />
+          <div className="fixed inset-0 z-[60]" onClick={close} aria-hidden="true" />
           <div
             className="fixed bg-white rounded-xl shadow-xl border border-gray-200 p-3 z-[61] w-[270px]"
             style={{ top: pos.top, left: pos.left }}

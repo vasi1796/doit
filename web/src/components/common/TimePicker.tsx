@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { usePopover } from '../../hooks/usePopover'
 import { formatDisplayTime } from '../../utils/date'
 
@@ -18,13 +18,15 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
   const [selHour, setSelHour] = useState(parsed[0] > 12 ? parsed[0] - 12 : parsed[0] || 12)
   const [selMin, setSelMin] = useState(parsed[1] || 0)
   const [selAmPm, setSelAmPm] = useState(parsed[0] >= 12 ? 'PM' : 'AM')
+  const [prevValue, setPrevValue] = useState(value)
 
-  useEffect(() => {
+  if (value !== prevValue) {
+    setPrevValue(value)
     const p = value ? value.split(':').map(Number) : [9, 0]
     setSelHour(p[0] > 12 ? p[0] - 12 : p[0] || 12)
     setSelMin(p[1] || 0)
     setSelAmPm(p[0] >= 12 ? 'PM' : 'AM')
-  }, [value])
+  }
 
   const applyTime = (h: number, m: number, ampm: string) => {
     let hour24 = h
@@ -50,18 +52,20 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
           {value ? formatDisplayTime(value) : 'Time'}
         </span>
         {value && onClear && (
-          <span
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onClear() }}
             className="text-text-secondary hover:text-danger"
+            aria-label="Clear time"
           >
             ×
-          </span>
+          </button>
         )}
       </button>
 
       {open && (
         <>
-          <div className="fixed inset-0 z-[60]" onClick={() => close()} />
+          <div className="fixed inset-0 z-[60]" onClick={() => close()} aria-hidden="true" />
           <div
             className="fixed bg-white rounded-xl shadow-xl border border-gray-200 p-3 z-[61] w-[210px]"
             style={{ top: pos.top, left: pos.left }}

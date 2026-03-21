@@ -120,6 +120,7 @@ export function Sidebar({ lists, labels, onListsChanged, onLabelsChanged, taskCo
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="List name"
               className="w-full text-sm outline-none border-b border-gray-300 py-1 bg-transparent"
+              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
             />
             <div className="flex items-center gap-1">

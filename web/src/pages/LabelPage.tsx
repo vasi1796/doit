@@ -6,10 +6,11 @@ import { TaskDetail } from '../components/tasks/TaskDetail'
 
 export function LabelPage() {
   const { id } = useParams<{ id: string }>()
+  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ label_id: id ?? '', is_completed: 'false' })
+  const { lists, labels, refreshLists } = useLayoutContext()
+
   if (!id) return <Navigate to="/inbox" replace />
 
-  const { tasks, loading, refreshAll, selectedId, setSelectedId } = usePageTasks({ label_id: id, is_completed: 'false' })
-  const { lists, labels, refreshLists } = useLayoutContext()
   const label = labels.find((l) => l.id === id)
 
   return (

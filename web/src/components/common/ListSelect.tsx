@@ -57,7 +57,7 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
 
       {open && (
         <>
-          <div className="fixed inset-0 z-[60]" onClick={() => { close(); setCreating(false) }} />
+          <div className="fixed inset-0 z-[60]" onClick={() => { close(); setCreating(false) }} aria-hidden="true" />
           <div
             className="fixed bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-[61] min-w-[200px] max-h-[50vh] overflow-y-auto"
             style={{ top: pos.top, left: pos.left }}
@@ -94,6 +94,7 @@ export function ListSelect({ value, lists, onChange, onListCreated }: ListSelect
                     onChange={(e) => setNewName(e.target.value)}
                     placeholder="List name"
                     className="w-full text-[15px] outline-none border-b border-gray-200 pb-1"
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
                   />
                   <div className="flex items-center gap-1">

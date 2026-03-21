@@ -39,6 +39,9 @@ export function LabelsSection({ taskId, taskLabels, allLabels, onChanged, onLabe
         <div
           className="flex flex-wrap gap-1 cursor-pointer"
           onClick={() => setShowPicker(true)}
+          onKeyDown={(e) => { if (e.key === 'Enter') setShowPicker(true) }}
+          role="button"
+          tabIndex={0}
         >
           {taskLabels.length === 0 && (
             <span className="text-xs text-text-secondary">Tap to add labels</span>

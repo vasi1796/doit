@@ -61,11 +61,15 @@ function SubtaskItem({ subtask, taskId, onChanged }: { subtask: Subtask; taskId:
           onBlur={handleSave}
           onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false) }}
           className="flex-1 text-base outline-none border-b border-accent py-0.5"
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
         />
       ) : (
         <span
           onClick={() => !subtask.is_completed && setEditing(true)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !subtask.is_completed) setEditing(true) }}
+          role="button"
+          tabIndex={subtask.is_completed ? -1 : 0}
           className={`flex-1 text-sm cursor-text ${subtask.is_completed ? 'line-through text-text-secondary' : ''}`}
         >
           {subtask.title}
