@@ -91,9 +91,9 @@ These rules are non-negotiable. Violating them will break the architecture.
 
 ### 1. ALL state mutations MUST go through the event store
 Never write directly to read model tables (`tasks`, `lists`, `labels`, etc.).
-All changes produce events that are appended to the `events` table. Projection
-handlers then update read models from those events.
-Exception: list/label deletion uses direct SQL in Phase 1 (not event-sourced).
+All changes produce events appended to the `events` table + outbox rows in a
+single transaction. The outbox poller publishes to RabbitMQ, and projection
+workers update read models asynchronously.
 
 ### 2. Every event handler must be idempotent
 Event handlers (projections, workers) may receive the same event more than once.
@@ -167,16 +167,39 @@ No rollback on failure — the sync engine retries with exponential backoff.
 
 ---
 
+## Dev Setup (full stack)
+
+```bash
+# Terminal 1: Postgres + RabbitMQ
+docker compose up postgres rabbitmq -d
+
+# Terminal 2: Migrations + API (includes outbox poller)
+cd api && DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable \
+RABBITMQ_URL=amqp://doit:changeme@localhost:5672/ \
+DEV_MODE=true SECURE_COOKIES=false go run ./cmd/migrate up && \
+DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable \
+RABBITMQ_URL=amqp://doit:changeme@localhost:5672/ \
+DEV_MODE=true SECURE_COOKIES=false go run ./cmd/api
+
+# Terminal 3: Projection worker
+cd api && DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable \
+RABBITMQ_URL=amqp://doit:changeme@localhost:5672/ go run ./cmd/worker
+
+# Terminal 4: Recurring tasks worker
+cd api && DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable \
+RABBITMQ_URL=amqp://doit:changeme@localhost:5672/ go run ./cmd/worker-recurring
+
+# Terminal 5: Frontend
+cd web && npm run dev -- --host
+```
+
+---
+
 ## Common Commands
 
 ```bash
-# Start Postgres
-docker compose up postgres -d
-
-# Run API locally (dev mode)
-set -a && source .env && set +a
-DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable \
-DEV_MODE=true SECURE_COOKIES=false make run
+# Start infrastructure
+docker compose up postgres rabbitmq -d
 
 # Run frontend dev server (hot reload)
 cd web && npm run dev -- --host

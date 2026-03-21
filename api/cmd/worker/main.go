@@ -82,6 +82,9 @@ func main() {
 				EventType:     eventstore.EventType(em.EventType),
 				UserID:        em.UserID,
 				Data:          em.Data,
+				Timestamp:     em.Timestamp,
+				Counter:       em.Counter,
+				Version:       em.Version,
 			}
 
 			if err := projector.Project(ctx, []eventstore.Event{event}); err != nil {

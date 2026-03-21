@@ -68,5 +68,8 @@ type OutboxEntry struct {
 	EventType     EventType
 	UserID        uuid.UUID
 	Data          json.RawMessage
+	Timestamp     time.Time
+	Counter       int
+	Version       int
 	CreatedAt     time.Time
 }

@@ -18,10 +18,10 @@ const pgUniqueViolation = "23505"
 const insertSQL = `INSERT INTO events (id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, counter, version)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
-const insertOutboxSQL = `INSERT INTO outbox (event_id, aggregate_id, aggregate_type, event_type, user_id, data)
-VALUES ($1, $2, $3, $4, $5, $6)`
+const insertOutboxSQL = `INSERT INTO outbox (event_id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, counter, version)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
-const claimOutboxSQL = `SELECT id, event_id, aggregate_id, aggregate_type, event_type, user_id, data, created_at
+const claimOutboxSQL = `SELECT id, event_id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, counter, version, created_at
 FROM outbox WHERE published = false ORDER BY created_at ASC LIMIT $1 FOR UPDATE SKIP LOCKED`
 
 const markPublishedSQL = `UPDATE outbox SET published = true WHERE id = ANY($1)`
@@ -89,6 +89,7 @@ func (s *Store) InsertOutbox(ctx context.Context, tx pgx.Tx, events []Event) err
 	for _, e := range events {
 		_, err := tx.Exec(ctx, insertOutboxSQL,
 			e.ID, e.AggregateID, e.AggregateType, e.EventType, e.UserID, e.Data,
+			e.Timestamp, e.Counter, e.Version,
 		)
 		if err != nil {
 			return fmt.Errorf("inserting outbox entry: %w", err)
@@ -129,7 +130,7 @@ func (s *Store) ClaimOutbox(ctx context.Context, tx pgx.Tx, batchSize int) ([]Ou
 	for rows.Next() {
 		var e OutboxEntry
 		if err := rows.Scan(&e.ID, &e.EventID, &e.AggregateID, &e.AggregateType,
-			&e.EventType, &e.UserID, &e.Data, &e.CreatedAt); err != nil {
+			&e.EventType, &e.UserID, &e.Data, &e.Timestamp, &e.Counter, &e.Version, &e.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scanning outbox entry: %w", err)
 		}
 		entries = append(entries, e)

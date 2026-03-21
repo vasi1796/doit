@@ -24,9 +24,12 @@ Core design goals:
 ### Write Path (online — individual REST endpoints)
 ```
 HTTP Request → Handler → CommandHandler(HLC) → Aggregate (validates + produces events)
-    → EventStore.Append (Postgres transaction, HLC timestamp + counter)
-    → Projector.Project (updates read model tables)
-    → HTTP Response
+    → TX { EventStore.Append + Outbox.Insert } (single Postgres transaction)
+    → HTTP Response (immediate — projections are async)
+    ↓ (async, 200ms poll)
+Outbox Poller → RabbitMQ (topic exchange: doit.events)
+    → Projection Worker (doit.projections queue) → updates read model tables
+    → Recurring Worker (doit.recurring queue) → creates next occurrence on task completion
 ```
 
 ### Write Path (offline-first — sync engine)
@@ -52,6 +55,8 @@ All reads come from local IndexedDB. The API is never queried directly for reads
 - **Event Sourcing**: All state mutations produce events appended to the event store.
   Read models are projections derived from events. Never update read models directly.
 - **CQRS**: Commands go through domain aggregates; queries hit read model tables directly.
+- **Transactional Outbox**: Events and outbox rows written in a single Postgres transaction.
+  Outbox poller publishes to RabbitMQ. Projections are async via workers.
 - **Offline-first**: Writes go to IndexedDB immediately, sync to server when online.
 - **HLC timestamps**: Hybrid Logical Clocks provide causal ordering for CRDT merge.
 - **CRDTs**: LWW-Register (scalars), OR-Set (labels), Fractional Indexing (ordering).

@@ -95,9 +95,13 @@ export function AppLayout() {
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
   const location = useLocation()
 
-  // Close drawer on navigation (user tapped a list/label link)
+  // Close drawer on route change — setState in effect is intentional here
+  const prevPath = useRef(location.pathname)
   useEffect(() => {
-    setDrawerOpen(false)
+    if (prevPath.current !== location.pathname) {
+      prevPath.current = location.pathname
+      setDrawerOpen(false) // eslint-disable-line react-hooks/set-state-in-effect
+    }
   }, [location.pathname])
 
   return (
@@ -114,7 +118,9 @@ export function AppLayout() {
             drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         >
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div className="absolute inset-0 bg-black/30" onClick={closeDrawer} />
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
             className={`absolute left-0 top-0 h-full transition-transform duration-200 ${
               drawerOpen ? 'translate-x-0' : '-translate-x-full'

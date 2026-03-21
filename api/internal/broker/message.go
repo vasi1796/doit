@@ -2,6 +2,7 @@ package broker
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -14,4 +15,7 @@ type EventMessage struct {
 	EventType     string          `json:"event_type"`
 	UserID        uuid.UUID       `json:"user_id"`
 	Data          json.RawMessage `json:"data"`
+	Timestamp     time.Time       `json:"timestamp"`
+	Counter       int             `json:"counter"`
+	Version       int             `json:"version"`
 }

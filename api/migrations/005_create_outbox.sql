@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS outbox (
     event_type TEXT NOT NULL,
     user_id UUID NOT NULL,
     data JSONB NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    counter INTEGER NOT NULL DEFAULT 0,
+    version INTEGER NOT NULL DEFAULT 0,
     published BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

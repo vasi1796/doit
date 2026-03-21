@@ -89,6 +89,9 @@ func (p *Poller) Poll(ctx context.Context) error {
 			EventType:     string(entry.EventType),
 			UserID:        entry.UserID,
 			Data:          entry.Data,
+			Timestamp:     entry.Timestamp,
+			Counter:       entry.Counter,
+			Version:       entry.Version,
 		}
 		body, err := json.Marshal(msg)
 		if err != nil {
