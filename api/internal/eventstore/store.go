@@ -174,6 +174,45 @@ func (s *Store) LoadByUserSince(ctx context.Context, userID uuid.UUID, since tim
 	return scanEvents(rows)
 }
 
+const loadAllBatchedSQL = `SELECT id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, counter, version
+FROM events ORDER BY timestamp ASC, counter ASC, version ASC LIMIT $1 OFFSET $2`
+
+const countEventsSQL = `SELECT COUNT(*) FROM events`
+
+// LoadAllBatched streams all events through a callback in batches of the given size.
+// Events are ordered by (timestamp, counter, version) for correct replay ordering.
+// Returns the total number of events processed.
+func (s *Store) LoadAllBatched(ctx context.Context, batchSize int, fn func([]Event) error) (int, error) {
+	total := 0
+	offset := 0
+	for {
+		rows, err := s.pool.Query(ctx, loadAllBatchedSQL, batchSize, offset)
+		if err != nil {
+			return total, fmt.Errorf("querying all events at offset %d: %w", offset, err)
+		}
+		batch, err := scanEvents(rows)
+		if err != nil {
+			return total, err
+		}
+		if len(batch) == 0 {
+			break
+		}
+		if err := fn(batch); err != nil {
+			return total, fmt.Errorf("processing batch at offset %d: %w", offset, err)
+		}
+		total += len(batch)
+		offset += len(batch)
+	}
+	return total, nil
+}
+
+// CountEvents returns the total number of events in the store.
+func (s *Store) CountEvents(ctx context.Context) (int, error) {
+	var count int
+	err := s.pool.QueryRow(ctx, countEventsSQL).Scan(&count)
+	return count, err
+}
+
 func scanEvents(rows pgx.Rows) ([]Event, error) {
 	var events []Event
 	for rows.Next() {

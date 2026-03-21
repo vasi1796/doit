@@ -43,7 +43,7 @@ migrate: ## Run database migrations (up)
 	cd api && go run ./cmd/migrate up
 
 rebuild-projections: ## Rebuild all read-model projections from the event store
-	cd api && go run ./cmd/api rebuild-projections
+	cd api && go run ./cmd/rebuild
 
 # ---------------------------------------------------------------------------
 # Docker
