@@ -60,6 +60,17 @@ export async function mockApi(page: Page) {
   await page.route('**/api/v1/labels', (route) => {
     return route.fulfill({ json: MOCK_LABELS })
   })
+
+  // Sync endpoint — return empty events by default
+  await page.route('**/api/v1/sync', (route) => {
+    return route.fulfill({
+      json: { cursor: { hlc_time: Date.now(), hlc_counter: 0 }, events: [] },
+    })
+  })
+
+  await page.route('**/api/v1/snapshots', (route) => {
+    return route.fulfill({ json: [] })
+  })
 }
 
 /**
@@ -75,6 +86,16 @@ export async function mockApiEmpty(page: Page) {
   })
 
   await page.route('**/api/v1/labels', (route) => {
+    return route.fulfill({ json: [] })
+  })
+
+  await page.route('**/api/v1/sync', (route) => {
+    return route.fulfill({
+      json: { cursor: { hlc_time: Date.now(), hlc_counter: 0 }, events: [] },
+    })
+  })
+
+  await page.route('**/api/v1/snapshots', (route) => {
     return route.fulfill({ json: [] })
   })
 }
