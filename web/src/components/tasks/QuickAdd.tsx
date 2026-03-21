@@ -6,8 +6,8 @@ import { DatePicker } from '../common/DatePicker'
 import { TimePicker } from '../common/TimePicker'
 import { RecurrencePicker } from '../common/RecurrencePicker'
 import { ListSelect } from '../common/ListSelect'
+import { InlineLabelCreator } from '../common/InlineLabelCreator'
 import type { List, Label, Priority } from '../../api/types'
-import { PRESET_COLORS } from '../../constants'
 
 interface QuickAddProps {
   listId?: string
@@ -31,8 +31,6 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
   const [expanded, setExpanded] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [creatingLabel, setCreatingLabel] = useState(false)
-  const [newLabelName, setNewLabelName] = useState('')
-  const [newLabelColour, setNewLabelColour] = useState(PRESET_COLORS[0])
   const inputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
@@ -75,12 +73,14 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
         priority,
         due_date: dueDate || undefined,
         due_time: dueTime || undefined,
+        recurrence_rule: recurrence || undefined,
         list_id: selectedListId || undefined,
         position: Date.now().toString(),
       })
 
-      if (recurrence) await api.updateTask(result.id, { recurrence_rule: recurrence })
-      for (const labelId of selectedLabelIds) await api.addLabel(result.id, labelId)
+      if (selectedLabelIds.length > 0) {
+        await Promise.allSettled(selectedLabelIds.map(id => api.addLabel(result.id, id)))
+      }
 
       resetForm()
       toast('Task created', 'success')
@@ -207,45 +207,14 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
               )
             })}
             {creatingLabel ? (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault()
-                  if (!newLabelName.trim()) return
-                  try {
-                    const result = await api.createLabel({ name: newLabelName.trim(), colour: newLabelColour })
-                    setSelectedLabelIds(prev => [...prev, result.id])
-                    setNewLabelName('')
-                    setCreatingLabel(false)
-                    onLabelsChanged?.()
-                    toast('Label created', 'success')
-                  } catch (err) {
-                    toast(err instanceof Error ? err.message : 'Failed', 'error')
-                  }
+              <InlineLabelCreator
+                onCreated={(labelId) => {
+                  setSelectedLabelIds(prev => [...prev, labelId])
+                  setCreatingLabel(false)
+                  onLabelsChanged?.()
                 }}
-                className="flex items-center gap-1.5"
-              >
-                <div className="flex gap-0.5">
-                  {PRESET_COLORS.slice(0, 4).map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setNewLabelColour(c)}
-                      className={`w-4 h-4 rounded-full ${newLabelColour === c ? 'ring-2 ring-offset-1 ring-accent/40' : ''}`}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  value={newLabelName}
-                  onChange={e => setNewLabelName(e.target.value)}
-                  placeholder="Name"
-                  className="text-[12px] outline-none border-b border-gray-200 py-0.5 w-20"
-                  autoFocus
-                />
-                <button type="submit" className="text-[11px] text-accent font-medium">Add</button>
-                <button type="button" onClick={() => setCreatingLabel(false)} className="text-[11px] text-text-secondary">✕</button>
-              </form>
+                onCancel={() => setCreatingLabel(false)}
+              />
             ) : (
               <button
                 type="button"
