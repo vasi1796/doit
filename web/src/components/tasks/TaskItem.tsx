@@ -152,7 +152,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
         </div>
 
         {task.description && (
-          <span className="text-[12px] text-text-secondary block truncate mt-0.5">{task.description}</span>
+          <InlineMarkdown text={task.description} className="text-[12px] text-text-secondary block truncate mt-0.5" />
         )}
 
         {(labels.length > 0 || task.recurrence_rule || subtasks.length > 0) && (
