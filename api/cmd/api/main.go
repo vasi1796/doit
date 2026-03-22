@@ -221,6 +221,14 @@ func newRouter(pool *pgxpool.Pool, store *eventstore.Store, logger zerolog.Logge
 
 		snapshotHandler := handler.NewSnapshotHandler(pool, logger)
 		r.Get("/snapshots", snapshotHandler.List)
+
+		pushHandler := handler.NewPushHandler(pool, cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.VAPIDSubject, logger)
+		r.Route("/push", func(r chi.Router) {
+			r.Get("/vapid-key", pushHandler.GetVAPIDKey)
+			r.Post("/subscribe", pushHandler.Subscribe)
+			r.Delete("/subscribe", pushHandler.Unsubscribe)
+			r.Post("/test", pushHandler.Test)
+		})
 	})
 
 	return r

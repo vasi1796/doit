@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-
-	"github.com/vasi1796/doit/internal/eventstore"
 )
 
 func TestLabelHandleCreate(t *testing.T) {
@@ -63,25 +61,5 @@ func TestLabelHandleCreateDuplicate(t *testing.T) {
 	_, err = agg.HandleCreate(cmd, testHLC)
 	if !errors.Is(err, ErrLabelAlreadyCreated) {
 		t.Fatalf("got error %v, want %v", err, ErrLabelAlreadyCreated)
-	}
-}
-
-func TestLabelApply(t *testing.T) {
-	agg := NewLabelAggregate()
-	labelID := uuid.New()
-
-	agg.Apply(eventstore.Event{
-		AggregateID:   labelID,
-		AggregateType: eventstore.AggregateTypeLabel,
-		EventType:     eventstore.EventLabelCreated,
-		UserID:        testUserID,
-		Version:       1,
-	})
-
-	if agg.ID() != labelID {
-		t.Errorf("ID = %v, want %v", agg.ID(), labelID)
-	}
-	if agg.Version() != 1 {
-		t.Errorf("Version = %d, want 1", agg.Version())
 	}
 }

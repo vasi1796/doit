@@ -50,9 +50,13 @@ for tasks due today on a schedule.
    today: Buy groceries, Call dentist, Review PR") is better UX than spamming
    individual notifications per task.
 
-5. **VAPID keys as env vars.** Generated once via a CLI tool (`cmd/vapidgen`),
-   stored in `.env`. Not auto-generated at runtime to avoid key rotation issues
-   with existing subscriptions.
+5. **VAPID keys as env vars.** Generated once, stored in `.env`. Not
+   auto-generated at runtime to avoid key rotation issues with existing
+   subscriptions. Generate with:
+   ```bash
+   go run -e 'import webpush "github.com/SherClockHolmes/webpush-go"; priv, pub, _ := webpush.GenerateVAPIDKeys(); println("VAPID_PUBLIC_KEY=" + pub); println("VAPID_PRIVATE_KEY=" + priv)'
+   ```
+   Or use any VAPID key generator (e.g., `npx web-push generate-vapid-keys`).
 
 ### Components
 
@@ -61,7 +65,7 @@ for tasks due today on a schedule.
 | Config | `api/internal/config/config.go` | VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT |
 | Migration | `api/migrations/006_push_subscriptions.sql` | push_subscriptions + reminder_log tables |
 | Push handler | `api/internal/handler/push.go` | Subscribe/unsubscribe/VAPID key endpoints |
-| VAPID keygen | `api/cmd/vapidgen/main.go` | One-time key pair generation |
+| VAPID keygen | `npx web-push generate-vapid-keys` | One-time setup (not in repo) |
 | Service worker | `web/public/sw.js` | Push + notificationclick event handlers |
 | Push utility | `web/src/push.ts` | PushManager subscribe/unsubscribe |
 | Sidebar toggle | `web/src/components/layout/Sidebar.tsx` | Enable/disable notifications |

@@ -1,4 +1,4 @@
-.PHONY: build run test test-verbose test-integration test-fullstack lint migrate rebuild-projections docker-up docker-down docker-up-prod docker-down-prod backup-db fmt vet help web-install web-dev web-build web-test web-lint docker-logs generate
+.PHONY: build run test test-verbose test-integration test-fullstack lint migrate rebuild-projections worker-reminder docker-up docker-down docker-up-prod docker-down-prod backup-db fmt vet help web-install web-dev web-build web-test web-lint docker-logs generate
 
 # Default target
 help: ## Show this help
@@ -44,6 +44,9 @@ migrate: ## Run database migrations (up)
 
 rebuild-projections: ## Rebuild all read-model projections from the event store
 	cd api && go run ./cmd/rebuild
+
+worker-reminder: ## Run the due-date reminder worker
+	cd api && go run ./cmd/worker-reminder
 
 # ---------------------------------------------------------------------------
 # Docker

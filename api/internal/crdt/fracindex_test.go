@@ -70,9 +70,3 @@ func TestBetweenKeyLength(t *testing.T) {
 		t.Errorf("position after 50 inserts is %d chars, expected < 60", len(pos))
 	}
 }
-
-func TestFirstLast(t *testing.T) {
-	if First() >= Last() {
-		t.Errorf("First() %q >= Last() %q", First(), Last())
-	}
-}

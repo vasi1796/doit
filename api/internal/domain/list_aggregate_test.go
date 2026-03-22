@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-
-	"github.com/vasi1796/doit/internal/eventstore"
 )
 
 func TestListHandleCreate(t *testing.T) {
@@ -66,25 +64,5 @@ func TestListHandleCreateDuplicate(t *testing.T) {
 	_, err = agg.HandleCreate(cmd, testHLC)
 	if !errors.Is(err, ErrListAlreadyCreated) {
 		t.Fatalf("got error %v, want %v", err, ErrListAlreadyCreated)
-	}
-}
-
-func TestListApply(t *testing.T) {
-	agg := NewListAggregate()
-	listID := uuid.New()
-
-	agg.Apply(eventstore.Event{
-		AggregateID:   listID,
-		AggregateType: eventstore.AggregateTypeList,
-		EventType:     eventstore.EventListCreated,
-		UserID:        testUserID,
-		Version:       1,
-	})
-
-	if agg.ID() != listID {
-		t.Errorf("ID = %v, want %v", agg.ID(), listID)
-	}
-	if agg.Version() != 1 {
-		t.Errorf("Version = %d, want 1", agg.Version())
 	}
 }

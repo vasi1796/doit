@@ -125,8 +125,8 @@ doit/
     public/                    # PWA manifest, app icons
     Dockerfile
   docs/
-    adr/                       # 9 Architecture Decision Records
-    diagrams/                  # 6 Mermaid architecture diagrams
+    adr/                       # Architecture Decision Records
+    diagrams/                  # Mermaid architecture diagrams
     design-document.md         # Full design spec
   scripts/backup.sh            # Database backup with retention
   .github/workflows/ci.yml    # GitHub Actions CI
