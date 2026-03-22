@@ -1,4 +1,5 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
+import { MarkdownEditor } from '../common/MarkdownEditor'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { PriorityPicker } from '../common/PriorityPicker'
@@ -160,13 +161,11 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
       </div>
 
       <div className="px-4 pb-3">
-        <textarea
+        <MarkdownEditor
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={setDescription}
           placeholder="Notes"
-          aria-label="Task notes"
-          rows={2}
-          className="w-full text-[16px] outline-none placeholder:text-text-tertiary resize-none text-text-note"
+          minHeight="48px"
         />
       </div>
 
