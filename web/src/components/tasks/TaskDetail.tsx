@@ -4,6 +4,7 @@ import { useTaskDetail } from '../../hooks/useTaskDetail'
 import { useLabels } from '../../hooks/useLabels'
 import { useToast } from '../common/Toast'
 import { MarkdownEditor } from '../common/MarkdownEditor'
+import { InlineMarkdown } from '../common/InlineMarkdown'
 import { TaskProperties } from './TaskProperties'
 import { SubtaskSection } from './SubtaskSection'
 import { LabelsSection } from './LabelsSection'
@@ -149,7 +150,7 @@ export function TaskDetail({ taskId, lists, onClose }: TaskDetailProps) {
                 onClick={() => { setEditingTitle(true); setTimeout(() => titleRef.current?.select(), 10) }}
                 className="text-lg font-medium text-text-primary cursor-text hover:bg-gray-50 rounded px-1 -mx-1 py-0.5"
               >
-                {task.title}
+                <InlineMarkdown text={task.title} />
               </h2>
             )}
           </div>
