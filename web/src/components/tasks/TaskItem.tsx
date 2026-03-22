@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
+import { InlineMarkdown } from '../common/InlineMarkdown'
 import { PriorityFlag } from '../common/PriorityDot'
 import { formatDueDate } from '../../utils/date'
 import type { Task, Priority } from '../../api/types'
@@ -136,9 +137,10 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
 
       <div className="flex-1 min-w-0 py-0.5">
         <div className="flex items-center gap-2">
-          <span className={`flex-1 text-[15px] leading-snug truncate ${checked ? 'line-through text-text-secondary' : 'text-text-primary'}`}>
-            {task.title}
-          </span>
+          <InlineMarkdown
+            text={task.title}
+            className={`flex-1 text-[15px] leading-snug truncate ${checked ? 'line-through text-text-secondary' : 'text-text-primary'}`}
+          />
           <div className="flex items-center gap-1.5 shrink-0">
             <PriorityFlag priority={task.priority} size={13} />
             {due && (
