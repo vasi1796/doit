@@ -61,7 +61,7 @@ func Load() (*Config, error) {
 		CORSOrigins:        envStringSlice("CORS_ORIGINS"),
 		VAPIDPublicKey:     os.Getenv("VAPID_PUBLIC_KEY"),
 		VAPIDPrivateKey:    os.Getenv("VAPID_PRIVATE_KEY"),
-		VAPIDSubject:       envString("VAPID_SUBJECT", "mailto:admin@localhost"),
+		VAPIDSubject:       envString("VAPID_SUBJECT", "admin@localhost"),
 	}
 
 	if !cfg.DevMode && cfg.JWTSecret == "" {

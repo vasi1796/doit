@@ -79,8 +79,27 @@ function NotificationToggle() {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         <span className="flex-1 text-left">Reminders</span>
-        <span className={`w-8 h-5 rounded-full transition-colors relative ${subscribed ? 'bg-accent' : 'bg-gray-300'}`}>
-          <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${subscribed ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+        <span style={{
+          display: 'inline-block',
+          flexShrink: 0,
+          width: 44,
+          height: 26,
+          borderRadius: 13,
+          backgroundColor: subscribed ? '#007aff' : '#d1d5db',
+          position: 'relative',
+          transition: 'background-color 0.2s',
+        }}>
+          <span style={{
+            position: 'absolute',
+            top: 3,
+            left: subscribed ? 21 : 3,
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: '#fff',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            transition: 'left 0.2s',
+          }} />
         </span>
       </button>
     </div>

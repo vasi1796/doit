@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	webpush "github.com/SherClockHolmes/webpush-go"
@@ -170,16 +171,19 @@ func (h *PushHandler) Test(w http.ResponseWriter, r *http.Request) {
 			failed++
 			continue
 		}
-		resp.Body.Close()
-
 		if resp.StatusCode == http.StatusGone {
+			resp.Body.Close()
 			if _, err := h.pool.Exec(r.Context(), `DELETE FROM push_subscriptions WHERE id = $1`, sub.ID); err != nil {
 				h.logger.Error().Err(err).Int64("sub_id", sub.ID).Msg("failed to delete stale subscription")
 			}
 			failed++
 		} else if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			resp.Body.Close()
 			sent++
 		} else {
+			body, _ := io.ReadAll(resp.Body) //nolint:errcheck // best-effort read for diagnostic logging
+			resp.Body.Close()
+			h.logger.Error().Int("status", resp.StatusCode).Str("body", string(body)).Str("endpoint", sub.Endpoint).Msg("push service rejected notification")
 			failed++
 		}
 	}
