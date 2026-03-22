@@ -129,6 +129,18 @@ func (h *CommandHandler) MoveTask(ctx context.Context, aggregateID uuid.UUID, us
 	return h.appendWithOutbox(ctx, events)
 }
 
+func (h *CommandHandler) ReorderTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd ReorderTask) error {
+	agg, err := h.loadTaskAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleReorder(cmd, h.clock.Now())
+	if err != nil {
+		return err
+	}
+	return h.appendWithOutbox(ctx, events)
+}
+
 func (h *CommandHandler) UpdateTaskDescription(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateTaskDescription) error {
 	agg, err := h.loadTaskAggregate(ctx, aggregateID, userID)
 	if err != nil {

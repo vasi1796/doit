@@ -134,6 +134,10 @@ func (a *TaskAggregate) Apply(e eventstore.Event) {
 		listID := mp.ListID
 		a.listID = &listID
 		a.position = mp.Position
+	case eventstore.EventTaskReordered:
+		var p TaskReorderedPayload
+		_ = json.Unmarshal(e.Data, &p) //nolint:errcheck
+		a.position = p.Position
 	case eventstore.EventLabelAdded:
 		var p LabelAddedPayload
 		// Events from the store are trusted; unmarshal errors indicate a bug
@@ -271,6 +275,20 @@ func (a *TaskAggregate) HandleMove(cmd MoveTask, now hlc.Timestamp) ([]eventstor
 
 	e, err := a.newEvent(eventstore.EventTaskMoved, TaskMovedPayload{
 		ListID:   cmd.ListID,
+		Position: cmd.Position,
+	}, now)
+	if err != nil {
+		return nil, err
+	}
+	return []eventstore.Event{e}, nil
+}
+
+func (a *TaskAggregate) HandleReorder(cmd ReorderTask, now hlc.Timestamp) ([]eventstore.Event, error) {
+	if err := a.requireActive(); err != nil {
+		return nil, err
+	}
+
+	e, err := a.newEvent(eventstore.EventTaskReordered, TaskReorderedPayload{
 		Position: cmd.Position,
 	}, now)
 	if err != nil {

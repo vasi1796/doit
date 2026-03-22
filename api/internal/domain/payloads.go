@@ -31,6 +31,10 @@ type TaskMovedPayload struct {
 	Position string    `json:"position"`
 }
 
+type TaskReorderedPayload struct {
+	Position string `json:"position"`
+}
+
 type TaskDescriptionUpdatedPayload struct {
 	Description string `json:"description"`
 }
