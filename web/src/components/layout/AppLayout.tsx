@@ -52,9 +52,12 @@ function QuickAddModal({ lists, labels, pathname, onClose }: { lists: List[]; la
   }, [])
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions
     <div
       className="fixed inset-0 bg-black/20 z-[60] flex items-start justify-center pt-[15vh] animate-[fade-in_0.15s_ease-out]"
+      role="dialog"
+      aria-modal="true"
+      aria-label="New task"
       onClick={onClose}
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
@@ -118,7 +121,9 @@ export function AppLayout() {
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      const isInInput = e.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)
+      const isInInput = e.target instanceof HTMLElement && (
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable
+      )
 
       // Cmd+N — open global quick add
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
