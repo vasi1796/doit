@@ -263,7 +263,7 @@ docker compose up -d --build
 Events: `TaskCreated`, `TaskCompleted`, `TaskUncompleted`, `TaskDeleted`,
 `TaskRestored`, `TaskMoved`, `TaskTitleUpdated`, `TaskDescriptionUpdated`,
 `TaskPriorityUpdated`, `TaskDueDateUpdated`, `TaskDueTimeUpdated`,
-`TaskRecurrenceUpdated`, `LabelAdded`, `LabelRemoved`, `LabelCreated`,
+`TaskRecurrenceUpdated`, `TaskReordered`, `LabelAdded`, `LabelRemoved`, `LabelCreated`,
 `LabelDeleted`, `ListCreated`, `ListDeleted`, `SubtaskCreated`,
 `SubtaskCompleted`, `SubtaskUncompleted`, `SubtaskTitleUpdated`
 
