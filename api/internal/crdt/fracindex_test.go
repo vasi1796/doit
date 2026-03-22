@@ -14,6 +14,8 @@ func TestBetween(t *testing.T) {
 		{name: "before first", before: "", after: "m"},
 		{name: "after last", before: "m", after: ""},
 		{name: "between close values", before: "abc", after: "abd"},
+		{name: "between numeric strings", before: "1711324800000", after: "1711324800001"},
+		{name: "between mixed numeric", before: "1000", after: "2000"},
 	}
 
 	for _, tc := range tests {
@@ -22,11 +24,11 @@ func TestBetween(t *testing.T) {
 
 			effectiveBefore := tc.before
 			if effectiveBefore == "" {
-				effectiveBefore = "a"
+				effectiveBefore = string(minChar)
 			}
 			effectiveAfter := tc.after
 			if effectiveAfter == "" {
-				effectiveAfter = "z"
+				effectiveAfter = string(maxChar)
 			}
 
 			if got <= effectiveBefore {

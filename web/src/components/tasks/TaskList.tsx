@@ -47,7 +47,7 @@ export function TaskList({ tasks, loading, emptyMessage, emptyHint, emptyAction,
       const newIndex = tasks.findIndex((t) => t.id === over.id)
       if (oldIndex === -1 || newIndex === -1) return
 
-      // Build the list order as if the dragged item was removed, then inserted at newIndex
+      // Compute a position between the new neighbors for the dragged task only.
       const reordered = tasks.filter((_, i) => i !== oldIndex)
       const insertAt = newIndex > oldIndex ? newIndex - 1 : newIndex
 

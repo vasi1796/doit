@@ -3,20 +3,21 @@ package crdt
 // Fractional indexing generates position strings that sort lexicographically.
 // Used for task and subtask ordering without reindexing.
 //
-// Positions use lowercase ASCII letters (a-z) as a base-26 system.
-// Between "a" and "c" → "b". Between "a" and "b" → "an" (midpoint).
+// Uses the full printable ASCII range (! through ~) so positions work with
+// any string format (digits, letters, mixed).
 
-const minChar = 'a'
-const maxChar = 'z'
+const minChar = '!' // 33
+const maxChar = '~' // 126
+const midChar = 'O' // 79
 
 // First returns a position before all existing items.
 func First() string {
-	return "a"
+	return string(midChar)
 }
 
 // Last returns a position after all existing items.
 func Last() string {
-	return "z"
+	return string(maxChar)
 }
 
 // Between generates a position string that sorts between before and after.
@@ -28,6 +29,11 @@ func Between(before, after string) string {
 	}
 	if after == "" {
 		after = string(maxChar)
+	}
+
+	// Ensure before < after
+	if before >= after {
+		return before + string(midChar)
 	}
 
 	// Pad shorter string with minChar to equal length
@@ -53,7 +59,7 @@ func Between(before, after string) string {
 	}
 
 	// No room between — append a middle character after `before`
-	return before + string(rune(minChar+(maxChar-minChar)/2))
+	return before + string(midChar)
 }
 
 func padRight(s string, length int) []byte {
@@ -64,4 +70,3 @@ func padRight(s string, length int) []byte {
 	}
 	return padded
 }
-
