@@ -20,6 +20,8 @@ api/              Go backend
   cmd/migrate/    Migration runner CLI (goose)
   cmd/worker/     Projection worker (consumes RabbitMQ, runs projections)
   cmd/worker-recurring/  Recurring tasks worker (creates next occurrences)
+  cmd/rebuild/    Projection rebuilder CLI (replays event log → read models)
+  cmd/worker-reminder/  Due date reminder worker (push notifications)
   internal/
     auth/          JWT tokens, Google OAuth, context helpers
     broker/        RabbitMQ client (exchange, queues, publish, consume)
@@ -46,7 +48,8 @@ web/              React frontend
     constants.ts   Shared color palette
   e2e/            Playwright visual regression + accessibility tests
   public/sw.js    Service worker (app shell caching for offline launch)
-docs/adr/         Architecture Decision Records (8 total)
+docs/adr/         Architecture Decision Records
+docs/diagrams/    Mermaid architecture diagrams
 scripts/          Backup and utility scripts
 ```
 
@@ -260,7 +263,7 @@ docker compose up -d --build
 Events: `TaskCreated`, `TaskCompleted`, `TaskUncompleted`, `TaskDeleted`,
 `TaskRestored`, `TaskMoved`, `TaskTitleUpdated`, `TaskDescriptionUpdated`,
 `TaskPriorityUpdated`, `TaskDueDateUpdated`, `TaskDueTimeUpdated`,
-`TaskRecurrenceUpdated`, `LabelAdded`, `LabelRemoved`, `LabelCreated`,
+`TaskRecurrenceUpdated`, `TaskReordered`, `LabelAdded`, `LabelRemoved`, `LabelCreated`,
 `LabelDeleted`, `ListCreated`, `ListDeleted`, `SubtaskCreated`,
 `SubtaskCompleted`, `SubtaskUncompleted`, `SubtaskTitleUpdated`
 

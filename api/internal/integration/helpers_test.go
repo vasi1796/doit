@@ -1,5 +1,8 @@
 //go:build integration
 
+// Package integration_test contains full-stack integration tests.
+// Requires Postgres + RabbitMQ running, with NO worker processes
+// consuming from the queues (tests consume messages directly).
 package integration_test
 
 import (

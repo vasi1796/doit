@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { PriorityFlag } from '../common/PriorityDot'
@@ -16,7 +18,43 @@ interface TaskItemProps {
   onSelect: (id: string) => void
 }
 
-export function TaskItem({ task, onSelect }: TaskItemProps) {
+export function SortableTaskItem({ task, onSelect }: TaskItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    position: isDragging ? 'relative' as const : undefined,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <TaskItem
+        task={task}
+        onSelect={onSelect}
+        isDragging={isDragging}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
+  )
+}
+
+interface TaskItemInternalProps {
+  task: Task
+  onSelect: (id: string) => void
+  isDragging?: boolean
+  dragHandleProps?: Record<string, unknown>
+}
+
+function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInternalProps) {
   const { toast } = useToast()
   const [completing, setCompleting] = useState(false)
   const [fading, setFading] = useState(false)
@@ -57,8 +95,26 @@ export function TaskItem({ task, onSelect }: TaskItemProps) {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(task.id) }}
       className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-[#f8f8fa] text-left transition-all duration-300 relative cursor-pointer ${
         fading ? 'opacity-0 max-h-0 py-0 overflow-hidden' : 'opacity-100'
-      }`}
+      } ${isDragging ? 'bg-white shadow-lg rounded-lg' : ''}`}
     >
+      {/* Drag handle */}
+      <button
+        type="button"
+        aria-label="Drag to reorder"
+        className="w-[44px] h-[44px] -ml-5 -my-3 flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-tertiary hover:text-text-secondary"
+        {...dragHandleProps}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="9" cy="6" r="1.5" />
+          <circle cx="15" cy="6" r="1.5" />
+          <circle cx="9" cy="12" r="1.5" />
+          <circle cx="15" cy="12" r="1.5" />
+          <circle cx="9" cy="18" r="1.5" />
+          <circle cx="15" cy="18" r="1.5" />
+        </svg>
+      </button>
+
       {priorityColor && (
         <span className="absolute left-0 top-3 bottom-3 w-[4px] rounded-r-full" style={{ backgroundColor: priorityColor }} />
       )}

@@ -37,6 +37,10 @@ type MoveTask struct {
 	Position string
 }
 
+type ReorderTask struct {
+	Position string
+}
+
 type UpdateTaskDescription struct {
 	Description string
 }

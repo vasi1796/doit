@@ -115,41 +115,76 @@ services:
       retries: 5
       start_period: 30s
 
-  # worker-recurring:
-  #   build:
-  #     context: ./api
-  #     dockerfile: Dockerfile
-  #     args:
-  #       CMD_PATH: cmd/worker-recurring
-  #   container_name: doit-worker-recurring
-  #   restart: unless-stopped
-  #   networks:
-  #     - doit
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
-  #     RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
+  # ---------------------------------------------------------------------------
+  # Projection Worker — consumes all events, updates read models
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      args:
+        CMD_PATH: cmd/worker
+    container_name: doit-worker
+    restart: unless-stopped
+    networks:
+      - doit
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
-  # worker-cleanup:
-  #   build:
-  #     context: ./api
-  #     dockerfile: Dockerfile
-  #     args:
-  #       CMD_PATH: cmd/worker-cleanup
-  #   container_name: doit-worker-cleanup
-  #   restart: unless-stopped
-  #   networks:
-  #     - doit
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
+  # ---------------------------------------------------------------------------
+  # Recurring Worker — creates next task occurrence on completion
+  # ---------------------------------------------------------------------------
+  worker-recurring:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      args:
+        CMD_PATH: cmd/worker-recurring
+    container_name: doit-worker-recurring
+    restart: unless-stopped
+    networks:
+      - doit
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Reminder Worker — push notifications for tasks due today
+  # ---------------------------------------------------------------------------
+  worker-reminder:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      args:
+        CMD_PATH: cmd/worker-reminder
+    container_name: doit-worker-reminder
+    restart: unless-stopped
+    networks:
+      - doit
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT}
+      REMINDER_HOUR: "8"
+      REMINDER_TZ: "UTC"
+    depends_on:
+      postgres:
+        condition: service_healthy

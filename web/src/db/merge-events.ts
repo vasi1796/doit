@@ -124,6 +124,12 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
       })
       break
 
+    case 'TaskReordered':
+      await mergeTaskField(aggId, eventHLC, {
+        position: data.position as string,
+      })
+      break
+
     // ---- Label-on-task events ----
     case 'LabelAdded':
       await db.taskLabels.put({ taskId: aggId, labelId: data.label_id as string })

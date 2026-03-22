@@ -28,6 +28,9 @@ type Config struct {
 	SecureCookies      bool
 	MetricsEnabled     bool
 	CORSOrigins        []string
+	VAPIDPublicKey     string
+	VAPIDPrivateKey    string
+	VAPIDSubject       string
 }
 
 func Load() (*Config, error) {
@@ -56,6 +59,9 @@ func Load() (*Config, error) {
 		SecureCookies:      envBool("SECURE_COOKIES", true),
 		MetricsEnabled:     envBool("METRICS_ENABLED", true),
 		CORSOrigins:        envStringSlice("CORS_ORIGINS"),
+		VAPIDPublicKey:     os.Getenv("VAPID_PUBLIC_KEY"),
+		VAPIDPrivateKey:    os.Getenv("VAPID_PRIVATE_KEY"),
+		VAPIDSubject:       envString("VAPID_SUBJECT", "admin@localhost"),
 	}
 
 	if !cfg.DevMode && cfg.JWTSecret == "" {

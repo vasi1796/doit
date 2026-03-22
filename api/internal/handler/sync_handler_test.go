@@ -50,6 +50,10 @@ func (m *mockSyncCommander) MoveTask(_ context.Context, _ uuid.UUID, _ uuid.UUID
 	m.calls = append(m.calls, "MoveTask")
 	return m.err
 }
+func (m *mockSyncCommander) ReorderTask(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ domain.ReorderTask) error {
+	m.calls = append(m.calls, "ReorderTask")
+	return m.err
+}
 func (m *mockSyncCommander) UpdateTaskTitle(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateTaskTitle) error {
 	m.calls = append(m.calls, "UpdateTaskTitle:"+cmd.Title)
 	return m.err
@@ -308,6 +312,31 @@ func TestSyncResponseIncludesCursor(t *testing.T) {
 
 	if resp.Cursor.HLCTime == 0 {
 		t.Error("cursor HLC time should be non-zero")
+	}
+}
+
+func TestSyncUpdateTaskPositionOnlyDispatchesReorder(t *testing.T) {
+	cmds := &mockSyncCommander{}
+	h := newTestSyncHandler(cmds)
+	userID := uuid.New()
+	taskID := uuid.New()
+
+	w := doSyncRequest(t, h, userID, syncRequest{
+		Operations: []syncOperation{
+			{
+				Type:        "UpdateTask",
+				AggregateID: taskID.String(),
+				Data:        map[string]any{"position": "b"},
+				HLCTime:     time.Now().UnixMilli(),
+			},
+		},
+	})
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	if len(cmds.calls) != 1 || cmds.calls[0] != "ReorderTask" {
+		t.Errorf("calls = %v, want [ReorderTask]", cmds.calls)
 	}
 }
 

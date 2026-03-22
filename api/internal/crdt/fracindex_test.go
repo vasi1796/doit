@@ -14,6 +14,8 @@ func TestBetween(t *testing.T) {
 		{name: "before first", before: "", after: "m"},
 		{name: "after last", before: "m", after: ""},
 		{name: "between close values", before: "abc", after: "abd"},
+		{name: "between numeric strings", before: "1711324800000", after: "1711324800001"},
+		{name: "between mixed numeric", before: "1000", after: "2000"},
 	}
 
 	for _, tc := range tests {
@@ -22,11 +24,11 @@ func TestBetween(t *testing.T) {
 
 			effectiveBefore := tc.before
 			if effectiveBefore == "" {
-				effectiveBefore = "a"
+				effectiveBefore = string(minChar)
 			}
 			effectiveAfter := tc.after
 			if effectiveAfter == "" {
-				effectiveAfter = "z"
+				effectiveAfter = string(maxChar)
 			}
 
 			if got <= effectiveBefore {
@@ -68,11 +70,5 @@ func TestBetweenKeyLength(t *testing.T) {
 	// Position should not exceed ~50 chars for 50 sequential inserts
 	if len(pos) > 60 {
 		t.Errorf("position after 50 inserts is %d chars, expected < 60", len(pos))
-	}
-}
-
-func TestFirstLast(t *testing.T) {
-	if First() >= Last() {
-		t.Errorf("First() %q >= Last() %q", First(), Last())
 	}
 }

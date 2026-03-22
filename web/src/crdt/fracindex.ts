@@ -1,22 +1,31 @@
-const MIN_CHAR = 'a'.charCodeAt(0) // 97
-const MAX_CHAR = 'z'.charCodeAt(0) // 122
+// Printable ASCII range for position strings.
+// Supports any mix of digits, letters, and symbols.
+const MIN_CHAR = '!'.charCodeAt(0) // 33
+const MAX_CHAR = '~'.charCodeAt(0) // 126
+const MID_CHAR = 'O'.charCodeAt(0) // 79 — middle of printable range
 
 export function first(): string {
-  return 'a'
+  return String.fromCharCode(MID_CHAR)
 }
 
 export function last(): string {
-  return 'z'
+  return String.fromCharCode(MAX_CHAR)
 }
 
 /**
- * Generate a position string that sorts between `before` and `after`.
+ * Generate a position string that sorts lexicographically between `before` and `after`.
  * If before is empty, generates a position before after.
  * If after is empty, generates a position after before.
+ * Works with any printable ASCII strings (digits, letters, mixed).
  */
 export function between(before: string, after: string): string {
   if (!before) before = String.fromCharCode(MIN_CHAR)
   if (!after) after = String.fromCharCode(MAX_CHAR)
+
+  // Ensure before < after lexicographically
+  if (before >= after) {
+    return before + String.fromCharCode(MID_CHAR)
+  }
 
   const maxLen = Math.max(before.length, after.length)
   const bPadded = padRight(before, maxLen)
@@ -35,7 +44,7 @@ export function between(before: string, after: string): string {
   }
 
   // No room between — append a middle character after `before`
-  return before + String.fromCharCode(MIN_CHAR + Math.floor((MAX_CHAR - MIN_CHAR) / 2))
+  return before + String.fromCharCode(MID_CHAR)
 }
 
 function padRight(s: string, length: number): string {

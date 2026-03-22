@@ -42,6 +42,7 @@ const (
 	EventTaskDueTimeUpdated     EventType = "TaskDueTimeUpdated"
 	EventSubtaskTitleUpdated    EventType = "SubtaskTitleUpdated"
 	EventSubtaskUncompleted     EventType = "SubtaskUncompleted"
+	EventTaskReordered          EventType = "TaskReordered"
 )
 
 // Event represents a single domain event stored in the event store.

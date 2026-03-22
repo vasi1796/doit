@@ -22,6 +22,7 @@ type SyncCommander interface {
 	DeleteTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.DeleteTask) error
 	RestoreTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.RestoreTask) error
 	MoveTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.MoveTask) error
+	ReorderTask(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.ReorderTask) error
 	UpdateTaskTitle(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateTaskTitle) error
 	UpdateTaskDescription(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateTaskDescription) error
 	UpdateTaskPriority(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateTaskPriority) error
@@ -352,6 +353,13 @@ func (h *SyncHandler) dispatchUpdateTask(ctx context.Context, aggID, userID uuid
 		}
 		if err := h.cmds.MoveTask(ctx, aggID, userID, domain.MoveTask{ListID: lid, Position: pos}); err != nil {
 			return err
+		}
+	} else if _, ok := data["position"]; ok {
+		pos := strVal(data, "position")
+		if pos != "" {
+			if err := h.cmds.ReorderTask(ctx, aggID, userID, domain.ReorderTask{Position: pos}); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

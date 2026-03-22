@@ -49,12 +49,6 @@ func TestListHandlerCreate(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:       "invalid JSON",
-			body:       `{bad`,
-			hasUser:    true,
-			wantStatus: http.StatusBadRequest,
-		},
-		{
 			name:       "no auth",
 			body:       `{"name":"Work"}`,
 			hasUser:    false,

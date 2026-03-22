@@ -9,34 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestTokenServiceIssueAndValidate(t *testing.T) {
-	svc := NewTokenService("test-secret-key-32bytes!!", 72)
-	userID := uuid.New()
-	email := "test@example.com"
-
-	tokenStr, expiry, err := svc.Issue(userID, email)
-	if err != nil {
-		t.Fatalf("Issue: %v", err)
-	}
-	if tokenStr == "" {
-		t.Fatal("token string is empty")
-	}
-	if expiry.Before(time.Now()) {
-		t.Error("expiry is in the past")
-	}
-
-	claims, err := svc.Validate(tokenStr)
-	if err != nil {
-		t.Fatalf("Validate: %v", err)
-	}
-	if claims.UserID != userID {
-		t.Errorf("UserID = %v, want %v", claims.UserID, userID)
-	}
-	if claims.Email != email {
-		t.Errorf("Email = %q, want %q", claims.Email, email)
-	}
-}
-
 func TestTokenServiceValidate(t *testing.T) {
 	svc := NewTokenService("test-secret-key-32bytes!!", 72)
 

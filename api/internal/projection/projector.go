@@ -30,6 +30,7 @@ const updateTaskDueDateSQL = `UPDATE tasks SET due_date = $2, updated_at = $3 WH
 const updateTaskDescriptionSQL = `UPDATE tasks SET description = $2, updated_at = $3 WHERE id = $1`
 const updateTaskRecurrenceSQL = `UPDATE tasks SET recurrence_rule = $2, updated_at = $3 WHERE id = $1`
 const updateTaskDueTimeSQL = `UPDATE tasks SET due_time = $2, updated_at = $3 WHERE id = $1`
+const updateTaskPositionSQL = `UPDATE tasks SET position = $2, updated_at = $3 WHERE id = $1`
 
 const upsertTaskLabelSQL = `INSERT INTO task_labels (task_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
 const deleteTaskLabelSQL = `DELETE FROM task_labels WHERE task_id = $1 AND label_id = $2`
@@ -126,6 +127,8 @@ func (p *Projector) handleEvent(ctx context.Context, e eventstore.Event) error {
 		return p.handleTaskRecurrenceUpdated(ctx, e)
 	case eventstore.EventTaskDueTimeUpdated:
 		return p.handleTaskDueTimeUpdated(ctx, e)
+	case eventstore.EventTaskReordered:
+		return p.handleTaskReordered(ctx, e)
 	default:
 		// Unknown event types are silently skipped for forward compatibility.
 		return nil
@@ -398,6 +401,21 @@ func (p *Projector) handleTaskDueTimeUpdated(ctx context.Context, e eventstore.E
 	}
 	if tag.RowsAffected() == 0 {
 		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskDueTimeUpdated affected 0 rows")
+	}
+	return nil
+}
+
+func (p *Projector) handleTaskReordered(ctx context.Context, e eventstore.Event) error {
+	var payload domain.TaskReorderedPayload
+	if err := json.Unmarshal(e.Data, &payload); err != nil {
+		return fmt.Errorf("unmarshaling TaskReorderedPayload: %w", err)
+	}
+	tag, err := p.pool.Exec(ctx, updateTaskPositionSQL, e.AggregateID, payload.Position, e.Timestamp)
+	if err != nil {
+		return fmt.Errorf("updating task position: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskReordered affected 0 rows")
 	}
 	return nil
 }

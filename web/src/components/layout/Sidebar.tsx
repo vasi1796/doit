@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { SyncStatus } from '../common/SyncStatus'
+import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '../../push'
 import type { List, Label } from '../../api/types'
 import { PRESET_COLORS } from '../../constants'
 
@@ -26,6 +27,83 @@ interface SidebarProps {
     upcoming: number
     byList: Record<string, number>
   }
+}
+
+function NotificationToggle() {
+  const { toast } = useToast()
+  const [supported] = useState(isPushSupported)
+  const [subscribed, setSubscribed] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (supported) {
+      isPushSubscribed().then(setSubscribed)
+    }
+  }, [supported])
+
+  if (!supported) return null
+
+  const handleToggle = async () => {
+    setLoading(true)
+    try {
+      if (subscribed) {
+        await unsubscribeFromPush()
+        setSubscribed(false)
+        toast('Reminders disabled', 'success')
+      } else {
+        const ok = await subscribeToPush()
+        if (ok) {
+          setSubscribed(true)
+          toast('Due date reminders enabled', 'success')
+        } else {
+          toast('Notification permission denied', 'error')
+        }
+      }
+    } catch {
+      toast('Failed to update notifications', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="px-2">
+      <button
+        type="button"
+        onClick={handleToggle}
+        disabled={loading}
+        className="flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[13px] text-text-secondary hover:bg-black/[0.03] w-full transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+        <span className="flex-1 text-left">Reminders</span>
+        <span style={{
+          display: 'inline-block',
+          flexShrink: 0,
+          width: 44,
+          height: 26,
+          borderRadius: 13,
+          backgroundColor: subscribed ? '#007aff' : '#d1d5db',
+          position: 'relative',
+          transition: 'background-color 0.2s',
+        }}>
+          <span style={{
+            position: 'absolute',
+            top: 3,
+            left: subscribed ? 21 : 3,
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: '#fff',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            transition: 'left 0.2s',
+          }} />
+        </span>
+      </button>
+    </div>
+  )
 }
 
 function NavItem({ to, label, icon, count }: { to: string; label: string; icon: string; count?: number }) {
@@ -240,6 +318,9 @@ export function Sidebar({ lists, labels, taskCounts }: SidebarProps) {
 
       {/* Sync status */}
       <SyncStatus />
+
+      {/* Notification toggle */}
+      <NotificationToggle />
 
       {/* Logout */}
       <div className="px-2 pb-4">
