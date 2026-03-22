@@ -12,12 +12,14 @@ import { EditorState, type Range } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
 import { markdown } from '@codemirror/lang-markdown'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+import { UI } from '../../constants'
 
 interface MarkdownEditorProps {
   value: string
   onChange: (value: string) => void
   placeholder?: string
   minHeight?: string
+  ariaLabel?: string
 }
 
 // Map syntax tree node names to CSS classes for styled content
@@ -85,7 +87,9 @@ const livePreviewPlugin = ViewPlugin.fromClass(
   { decorations: (v) => v.decorations },
 )
 
-export function MarkdownEditor({ value, onChange, placeholder = 'Notes', minHeight = '80px' }: MarkdownEditorProps) {
+const CODE_FONT = 'ui-monospace, "SF Mono", Menlo, monospace'
+
+export function MarkdownEditor({ value, onChange, placeholder = 'Notes', minHeight = '80px', ariaLabel = 'Notes' }: MarkdownEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const onChangeRef = useRef(onChange)
@@ -103,38 +107,30 @@ export function MarkdownEditor({ value, onChange, placeholder = 'Notes', minHeig
           keymap.of([...defaultKeymap, ...historyKeymap]),
           cmPlaceholder(placeholder),
           livePreviewPlugin,
+          EditorView.contentAttributes.of({ 'aria-label': ariaLabel }),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChangeRef.current(update.state.doc.toString())
             }
           }),
           EditorView.theme({
-            '&': {
-              fontSize: '16px',
-              minHeight,
-            },
-            '&.cm-focused': {
-              outline: 'none',
-            },
+            '&': { fontSize: '16px', minHeight },
+            '&.cm-focused': { outline: 'none' },
             '.cm-content': {
               fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
               padding: '0',
-              caretColor: '#007aff',
+              caretColor: UI.accent,
             },
-            '.cm-line': {
-              padding: '2px 0',
-            },
-            '.cm-placeholder': {
-              color: '#c7c7cc',
-            },
+            '.cm-line': { padding: '2px 0' },
+            '.cm-placeholder': { color: UI.textTertiary },
             // Live preview styles (applied by our plugin on non-active lines)
             '.cm-lp-strong': { fontWeight: '700' },
             '.cm-lp-emphasis': { fontStyle: 'italic' },
             '.cm-lp-strikethrough': { textDecoration: 'line-through' },
             '.cm-lp-code': {
-              fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+              fontFamily: CODE_FONT,
               fontSize: '0.9em',
-              backgroundColor: '#f5f5f7',
+              backgroundColor: UI.codeBg,
               borderRadius: '3px',
               padding: '1px 4px',
             },
@@ -146,14 +142,14 @@ export function MarkdownEditor({ value, onChange, placeholder = 'Notes', minHeig
             '.cm-emphasis': { fontStyle: 'italic' },
             '.cm-strikethrough': { textDecoration: 'line-through' },
             '.cm-monospace': {
-              fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+              fontFamily: CODE_FONT,
               fontSize: '0.9em',
-              backgroundColor: '#f5f5f7',
+              backgroundColor: UI.codeBg,
               borderRadius: '3px',
               padding: '1px 4px',
             },
-            '.cm-url': { color: '#007aff' },
-            '.cm-link': { color: '#007aff', textDecoration: 'underline' },
+            '.cm-url': { color: UI.accent },
+            '.cm-link': { color: UI.accent, textDecoration: 'underline' },
           }),
           EditorView.lineWrapping,
         ],

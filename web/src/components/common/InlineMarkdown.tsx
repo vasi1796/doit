@@ -4,6 +4,9 @@
  * No block-level elements — titles are single-line.
  */
 
+import { memo } from 'react'
+import { UI } from '../../constants'
+
 interface InlineMarkdownProps {
   text: string
   className?: string
@@ -17,7 +20,7 @@ interface Segment {
   code?: boolean
 }
 
-export function InlineMarkdown({ text, className }: InlineMarkdownProps) {
+export const InlineMarkdown = memo(function InlineMarkdown({ text, className }: InlineMarkdownProps) {
   const segments = parseInlineMarkdown(text)
 
   if (segments.length === 1 && !segments[0].bold && !segments[0].italic && !segments[0].strike && !segments[0].code) {
@@ -28,7 +31,7 @@ export function InlineMarkdown({ text, className }: InlineMarkdownProps) {
     <span className={className}>
       {segments.map((seg, i) => {
         let el: React.ReactNode = seg.text
-        if (seg.code) el = <code key={i} className="text-[0.9em] bg-[#f5f5f7] rounded px-1 font-mono">{seg.text}</code>
+        if (seg.code) el = <code key={i} className="text-[0.9em] rounded px-1 font-mono" style={{ backgroundColor: UI.codeBg }}>{seg.text}</code>
         else {
           if (seg.bold) el = <strong key={`b${i}`}>{el}</strong>
           if (seg.italic) el = <em key={`i${i}`}>{el}</em>
@@ -38,7 +41,7 @@ export function InlineMarkdown({ text, className }: InlineMarkdownProps) {
       })}
     </span>
   )
-}
+})
 
 function parseInlineMarkdown(text: string): Segment[] {
   const segments: Segment[] = []

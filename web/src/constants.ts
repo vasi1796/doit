@@ -22,4 +22,5 @@ export const UI = {
   textSecondary: '#86868b',
   textTertiary: '#c7c7cc',
   textNote: '#3c3c43',
+  codeBg: '#f5f5f7',
 } as const

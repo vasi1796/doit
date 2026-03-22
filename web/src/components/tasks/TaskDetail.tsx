@@ -47,6 +47,11 @@ export function TaskDetail({ taskId, lists, onClose }: TaskDetailProps) {
     }, 500)
   }, [resolvedTaskId])
 
+  // Clear debounce timer on unmount
+  useEffect(() => () => {
+    if (descTimerRef.current) clearTimeout(descTimerRef.current)
+  }, [])
+
   if (loading || !task) {
     return (
       <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={onClose} aria-hidden="true">

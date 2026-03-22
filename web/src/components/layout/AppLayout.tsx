@@ -46,10 +46,13 @@ function QuickAddModal({ lists, labels, pathname, onClose }: { lists: List[]; la
   const prefilledDueDate = isToday ? new Date().toISOString().split('T')[0] : undefined
   const prefilledLabelId = labelMatch ? labelMatch[1] : undefined
 
-  // Auto-focus on mount
+  // Auto-focus on mount + Escape to close
   useEffect(() => {
     setTimeout(() => quickAddRef.current?.focus(), 50)
-  }, [])
+    const handleEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [onClose])
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions
