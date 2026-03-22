@@ -7,7 +7,6 @@ import {
   type DecorationSet,
   ViewPlugin,
   type ViewUpdate,
-  WidgetType,
 } from '@codemirror/view'
 import { EditorState, type Range } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
@@ -21,26 +20,27 @@ interface MarkdownEditorProps {
   minHeight?: string
 }
 
-// Marker node types whose delimiters we want to hide in live preview
-const MARKER_TYPES = new Set([
-  'EmphasisMark',    // * or _
-  'StrikethroughMark', // ~~  (if available in lezer-markdown)
-  'CodeMark',        // `
-  'HeaderMark',      // # ## ###
-])
-
-// Widget that renders nothing — used to replace hidden markers
-class HiddenMarker extends WidgetType {
-  toDOM() {
-    const span = document.createElement('span')
-    span.style.display = 'none'
-    return span
-  }
+// Map syntax tree node names to CSS classes for styled content
+const CONTENT_STYLES: Record<string, Decoration> = {
+  StrongEmphasis: Decoration.mark({ class: 'cm-lp-strong' }),
+  Emphasis: Decoration.mark({ class: 'cm-lp-emphasis' }),
+  Strikethrough: Decoration.mark({ class: 'cm-lp-strikethrough' }),
+  InlineCode: Decoration.mark({ class: 'cm-lp-code' }),
 }
 
-const hiddenMarkerWidget = Decoration.replace({ widget: new HiddenMarker() })
+// Marker node types to hide
+const MARKER_TYPES = new Set([
+  'EmphasisMark',
+  'StrikethroughMark',
+  'CodeMark',
+  'HeaderMark',
+])
 
-// ViewPlugin that hides markdown syntax markers on lines without the cursor
+const hideDecoration = Decoration.replace({})
+
+// ViewPlugin that provides Obsidian-style live preview:
+// - Hides markdown markers on lines without the cursor
+// - Applies formatting styles to the content text
 const livePreviewPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet
@@ -62,15 +62,24 @@ const livePreviewPlugin = ViewPlugin.fromClass(
 
       syntaxTree(state).iterate({
         enter: (node) => {
-          if (!MARKER_TYPES.has(node.name)) return
           const nodeLine = state.doc.lineAt(node.from).number
-          // Don't hide markers on the line the cursor is on
-          if (nodeLine === cursorLine) return
-          decorations.push(hiddenMarkerWidget.range(node.from, node.to))
+          const isActiveLine = nodeLine === cursorLine
+
+          // Hide markers on non-active lines
+          if (MARKER_TYPES.has(node.name) && !isActiveLine) {
+            decorations.push(hideDecoration.range(node.from, node.to))
+            return
+          }
+
+          // Apply content styles on non-active lines
+          const styleDeco = CONTENT_STYLES[node.name]
+          if (styleDeco && !isActiveLine) {
+            decorations.push(styleDeco.range(node.from, node.to))
+          }
         },
       })
 
-      return Decoration.set(decorations, true)
+      return Decoration.set(decorations.sort((a, b) => a.from - b.from || a.value.startSide - b.value.startSide))
     }
   },
   { decorations: (v) => v.decorations },
@@ -118,7 +127,18 @@ export function MarkdownEditor({ value, onChange, placeholder = 'Notes', minHeig
             '.cm-placeholder': {
               color: '#c7c7cc',
             },
-            // Inline markdown rendering
+            // Live preview styles (applied by our plugin on non-active lines)
+            '.cm-lp-strong': { fontWeight: '700' },
+            '.cm-lp-emphasis': { fontStyle: 'italic' },
+            '.cm-lp-strikethrough': { textDecoration: 'line-through' },
+            '.cm-lp-code': {
+              fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+              fontSize: '0.9em',
+              backgroundColor: '#f5f5f7',
+              borderRadius: '3px',
+              padding: '1px 4px',
+            },
+            // Syntax highlighting on active line (default CodeMirror classes)
             '.cm-header-1': { fontSize: '1.4em', fontWeight: '700' },
             '.cm-header-2': { fontSize: '1.2em', fontWeight: '600' },
             '.cm-header-3': { fontSize: '1.1em', fontWeight: '600' },
