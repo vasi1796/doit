@@ -43,7 +43,7 @@ export const InlineMarkdown = memo(function InlineMarkdown({ text, className }: 
   )
 })
 
-function parseInlineMarkdown(text: string): Segment[] {
+export function parseInlineMarkdown(text: string): Segment[] {
   const segments: Segment[] = []
   // Match: `code`, **bold**, *italic*, ~~strike~~
   const regex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g
