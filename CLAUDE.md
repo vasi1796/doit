@@ -16,8 +16,8 @@ See AGENTS.md for full architectural context.
 
 ```
 api/              Go backend
-  cmd/api/        Server entry point (router, auth, domain stack, outbox poller)
-  cmd/migrate/    Migration runner CLI (goose)
+  cmd/api/        Server entry point (router, auth, domain stack, outbox poller, auto-migrations)
+  cmd/migrate/    Migration runner CLI (goose, manual operations only)
   cmd/worker/     Projection worker (consumes RabbitMQ, runs projections)
   cmd/worker-recurring/  Recurring tasks worker (creates next occurrences)
   cmd/rebuild/    Projection rebuilder CLI (replays event log → read models)
@@ -27,14 +27,15 @@ api/              Go backend
     broker/        RabbitMQ client (exchange, queues, publish, consume)
     config/        Env var loading
     crdt/          CRDT merge functions (LWW-Register, OR-Set, Fractional Indexing)
-    domain/        Aggregates, commands, payloads, CommandHandler (outbox-aware)
+    domain/        Aggregates, commands, payloads, CommandHandler (outbox-aware),
+                   generic loadAggregate[T] for aggregate loading
     eventstore/    Event store (append/load/query, HLC counter, outbox)
-    handler/       HTTP handlers (task, list, label, auth, sync, response utils)
+    handler/       HTTP handlers (task, list, label, auth, sync, iCal feed, response utils)
     hlc/           Hybrid Logical Clock (causal ordering for sync)
     middleware/     JWT auth middleware
     outbox/        Outbox poller (publishes events to RabbitMQ)
-    projection/    Event → read model table updates (called by worker, not inline)
-  migrations/     SQL migration files
+    projection/    Event → read model table updates (generic execProjection[T] helper)
+  migrations/     SQL migration files (001–007, embedded via migrations/embed.go)
   openapi.yaml    API contract (source of truth for Go + TS type generation)
 web/              React frontend
   src/
@@ -42,7 +43,8 @@ web/              React frontend
     crdt/          CRDT merge functions (TypeScript, mirrors Go)
     components/    Common pickers, layout (sidebar/bottom nav, global FAB), task components
                    MarkdownEditor (CodeMirror 6 live preview), InlineMarkdown (lightweight title renderer),
-                   SearchOverlay (Cmd+K global search with keyboard navigation)
+                   SearchOverlay (Cmd+K global search with keyboard navigation),
+                   CalendarFeedLink (iCal subscription copy-to-clipboard)
     db/            Dexie.js database, operations, sync engine, event merger
     hlc/           Hybrid Logical Clock (TypeScript, mirrors Go)
     hooks/         Dexie.js useLiveQuery hooks (useTasks, useLists, useLabels, useTaskDetail)
@@ -53,7 +55,9 @@ web/              React frontend
   public/sw.js    Service worker (app shell caching + push notification handlers)
 docs/adr/         Architecture Decision Records
 docs/diagrams/    Mermaid architecture diagrams
-scripts/          Backup and utility scripts
+docs/deployment.md  Production deployment guide
+deploy/           Deploy webhook sidecar (GitHub webhook → git pull → docker compose rebuild)
+scripts/          Backup (backup.sh) and deploy (deploy.sh) scripts
 ```
 
 ---
@@ -254,10 +258,21 @@ docker compose up -d --build
 
 - Go 1.26+ required
 - Node.js 20+ and npm for the frontend
-- Docker and Docker Compose for local services (Postgres)
+- Docker and Docker Compose for local services (Postgres, RabbitMQ)
 - PostgreSQL 16 (via Docker for local dev)
 - Google OAuth 2.0 credentials for production auth
 - `DEV_MODE=true` enables `/auth/dev` endpoint for local testing without Google
+
+## Production Deployment
+
+See `docs/deployment.md` for full guide. Key points:
+- `docker compose up -d --build` runs the entire stack
+- Caddy auto-provisions Let's Encrypt TLS (requires `DOMAIN` env var)
+- Migrations run automatically on API startup (embedded via `embed.FS`)
+- `deploy/` sidecar handles GitHub webhook auto-deploy on push to main
+- `scripts/deploy.sh` for initial setup and manual deploys
+- `scripts/backup.sh` for automated PostgreSQL backups
+- All services use `restart: unless-stopped` for auto-start on reboot
 
 ---
 

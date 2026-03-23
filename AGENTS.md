@@ -104,10 +104,10 @@ doit/
       config/                  # Env var loading → Config struct
       domain/                  # Aggregates, commands, payloads, errors, CommandHandler
       eventstore/              # Event struct, Store (Append/Load), sentinel errors
-      handler/                 # HTTP handlers: auth, task, list, label, response utils
+      handler/                 # HTTP handlers: auth, task, list, label, iCal feed, response utils
       middleware/              # JWT auth middleware (cookie-based)
       projection/              # Projector: events → read model table updates
-    migrations/                # SQL files: 001_events, 002_read_models
+    migrations/                # SQL files: 001–007, embedded via migrations/embed.go
     Dockerfile
     go.mod
   web/                         # React frontend
@@ -117,23 +117,31 @@ doit/
         common/                # DatePicker, TimePicker, PriorityPicker, RecurrencePicker,
                                # ListSelect, LabelPicker, Toast, EmptyState,
                                # MarkdownEditor, InlineMarkdown, InstallBanner,
-                               # SearchOverlay (Cmd+K global search)
-        layout/                # AppLayout (global FAB, QuickAddModal, SearchOverlay), Sidebar, BottomNav
+                               # SearchOverlay (Cmd+K global search),
+                               # CalendarFeedLink (iCal subscription)
+        layout/                # AppLayout (extracted hooks: useTaskCounts, useKeyboardShortcuts,
+                               # useMobileDrawer), Sidebar, BottomNav
         tasks/                 # QuickAdd, TaskItem, TaskDetail, TaskList, TaskProperties,
                                # SubtaskSection, LabelsSection
       hooks/                   # useTasks, useLists, useLabels, useTaskDetail
       pages/                   # Inbox, Today, Upcoming, Matrix, Calendar, List, Label, Completed, Trash, Login
-      constants.ts             # Shared color palette
+      constants.ts             # Shared color palette, PRIORITY_COLORS
     public/                    # PWA manifest, app icons
     Dockerfile
+  deploy/                      # Deploy webhook sidecar
+    main.go                    # Standalone Go binary — HMAC-verified GitHub webhook
+    Dockerfile                 # docker:27-cli + git + webhook binary
   docs/
     adr/                       # Architecture Decision Records
     diagrams/                  # Mermaid architecture diagrams
+    deployment.md              # Production deployment guide
     design-document.md         # Full design spec
-  scripts/backup.sh            # Database backup with retention
-  .github/workflows/ci.yml    # GitHub Actions CI
-  docker-compose.yml           # Postgres + Caddy + API
-  Caddyfile                    # Reverse proxy config
+  scripts/
+    backup.sh                  # Database backup with daily/weekly retention
+    deploy.sh                  # First-time deploy + health check convenience script
+  .github/workflows/ci.yml    # GitHub Actions CI (auto-updates Linux visual baselines)
+  docker-compose.yml           # Full stack: Postgres, RabbitMQ, API, workers, Caddy, web-build, deployer
+  Caddyfile                    # Reverse proxy, TLS, static assets, security headers
   Makefile                     # Build commands
 ```
 

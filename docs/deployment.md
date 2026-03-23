@@ -39,6 +39,9 @@ Optional (for push notifications):
 Optional (for iCal feed):
 - `ICAL_BASE_URL=https://yourdomain.com`
 
+Optional (for auto-deploy on push to main):
+- `DEPLOY_WEBHOOK_SECRET` (generate with `openssl rand -hex 32`)
+
 ---
 
 ## 3. Generate Secrets
@@ -130,7 +133,27 @@ Database migrations run automatically on API startup.
 
 ---
 
-## 10. Troubleshooting
+## 10. Auto-Deploy via GitHub Webhook (optional)
+
+Set `DEPLOY_WEBHOOK_SECRET` in `.env`, then configure GitHub:
+1. Repo → Settings → Webhooks → Add webhook
+2. URL: `https://yourdomain.com/deploy/webhook`
+3. Secret: same value from `.env`
+4. Content type: `application/json`
+5. Events: Just the push event
+
+The `deployer` sidecar container receives the webhook, verifies the
+HMAC-SHA256 signature, and runs `git pull && docker compose up -d --build`
+on pushes to main only. Non-main pushes are ignored.
+
+If using a private repo, set the git remote to use a PAT:
+```bash
+git remote set-url origin https://<user>:<token>@github.com/user/doit.git
+```
+
+---
+
+## 11. Troubleshooting
 
 ### Let's Encrypt certificate errors
 - Ports 80 and 443 must be accessible from the internet for the ACME challenge.
@@ -151,3 +174,13 @@ Database migrations run automatically on API startup.
 - Health check: `docker compose exec postgres pg_isready`
 - Password persists in volume — must match first-run value
 - Full reset: `docker compose down -v` (destroys data)
+
+### Docker networking / iptables
+- If external traffic reaches the server but not the containers, check:
+  `sudo iptables -P FORWARD` — if it's `DROP`, set it to `ACCEPT`:
+  `sudo iptables -P FORWARD ACCEPT`
+- Make this persistent: `sudo apt install iptables-persistent && sudo netfilter-persistent save`
+
+### RabbitMQ connection refused on startup
+- Normal — RabbitMQ takes longer to start than the API. The API retries
+  and connects once RabbitMQ is ready. Check with `docker compose logs doit-api`
