@@ -147,10 +147,10 @@ export function CalendarPage() {
   const monthLabel = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 pt-6 pb-2 flex items-center gap-3">
-        <h1 className="text-2xl font-semibold text-text-primary">Calendar</h1>
-        <div className="ml-auto flex items-center gap-1">
+    <div className="flex flex-col h-full overflow-x-hidden">
+      <div className="px-4 pt-6 pb-2">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-text-primary">Calendar</h1>
           <button
             type="button"
             onClick={goToToday}
@@ -158,6 +158,8 @@ export function CalendarPage() {
           >
             Today
           </button>
+        </div>
+        <div className="flex items-center justify-center mt-1">
           <button
             type="button"
             onClick={goToPrev}
@@ -168,7 +170,7 @@ export function CalendarPage() {
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <span className="text-sm font-medium text-text-primary min-w-[100px] md:min-w-[140px] text-center">{monthLabel}</span>
+          <span className="text-sm font-medium text-text-primary min-w-[120px] text-center">{monthLabel}</span>
           <button
             type="button"
             onClick={goToNext}
