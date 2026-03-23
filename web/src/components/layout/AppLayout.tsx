@@ -204,7 +204,7 @@ export function AppLayout() {
           type="button"
           onClick={() => setQuickAddOpen(true)}
           aria-label="New task"
-          className="fixed right-5 bottom-[80px] md:bottom-6 w-[56px] h-[56px] rounded-full bg-accent text-white shadow-lg flex items-center justify-center z-40 hover:bg-accent/90 active:scale-95 transition-transform"
+          className="fixed right-5 bottom-[calc(70px+env(safe-area-inset-bottom,0px))] md:bottom-6 w-[56px] h-[56px] rounded-full bg-accent text-white shadow-lg flex items-center justify-center z-40 hover:bg-accent/90 active:scale-95 transition-transform"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
