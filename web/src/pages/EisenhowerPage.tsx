@@ -61,7 +61,7 @@ export function EisenhowerPage() {
               <div className="px-3 py-2 flex items-center gap-2" style={{ backgroundColor: q.color + '0d' }}>
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: q.color }} />
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold" style={{ color: q.color }}>{q.title}</h3>
+                  <h2 className="text-sm font-semibold" style={{ color: q.color }}>{q.title}</h2>
                   <p className="text-[11px] text-text-secondary">{q.subtitle}</p>
                 </div>
                 <span className="ml-auto text-[11px] text-text-secondary font-medium shrink-0">{classified[q.key].length}</span>

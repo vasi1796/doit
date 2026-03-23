@@ -68,6 +68,8 @@ test.describe('Accessibility — all pages', () => {
   a11yTest('Trash page', '/trash')
   a11yTest('List page', '/lists/list-1')
   a11yTest('Label page', '/labels/label-1')
+  a11yTest('Matrix page', '/matrix')
+  a11yTest('Calendar page', '/calendar')
 })
 
 test.describe('Accessibility — font sizes', () => {
