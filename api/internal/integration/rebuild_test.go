@@ -99,11 +99,8 @@ func TestRebuildProjections(t *testing.T) {
 	}
 
 	// 5. Truncate read model tables (simulate disaster / migration)
-	readModelTables := []string{"subtasks", "task_labels", "tasks", "labels", "lists", "aggregate_snapshots"}
-	for _, table := range readModelTables {
-		if _, err := h.pool.Exec(ctx, "TRUNCATE "+table+" CASCADE"); err != nil {
-			t.Fatalf("truncating %s: %v", table, err)
-		}
+	if _, err := h.pool.Exec(ctx, "TRUNCATE subtasks, task_labels, tasks, labels, lists, aggregate_snapshots CASCADE"); err != nil {
+		t.Fatalf("truncating tables: %v", err)
 	}
 
 	// Verify tasks are gone

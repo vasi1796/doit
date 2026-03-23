@@ -36,11 +36,9 @@ func setupTest(t *testing.T) (*projection.Projector, *pgxpool.Pool) {
 
 	ctx := context.Background()
 
-	// Clean all read model tables
-	for _, table := range []string{"subtasks", "task_labels", "tasks", "labels", "lists", "aggregate_snapshots", "user_config", "users", "events"} {
-		if _, err := pool.Exec(ctx, "TRUNCATE "+table+" CASCADE"); err != nil {
-			t.Fatalf("truncating %s: %v", table, err)
-		}
+	// Clean all read model tables in a single statement to avoid deadlocks
+	if _, err := pool.Exec(ctx, "TRUNCATE subtasks, task_labels, tasks, labels, lists, aggregate_snapshots, ical_tokens, push_subscriptions, user_config, users, events CASCADE"); err != nil {
+		t.Fatalf("truncating tables: %v", err)
 	}
 
 	// Insert a test user for FK constraints (unique per test)
