@@ -94,7 +94,7 @@ function CalendarTask({ entry, onSelect }: { entry: CalendarEntry; onSelect: (id
       type="button"
       onClick={(e) => { e.stopPropagation(); onSelect(entry.task.id) }}
       aria-label={entry.task.title}
-      className={`w-full text-left text-[11px] leading-tight px-1 py-1 rounded hover:bg-black/5 truncate flex items-center gap-1 min-h-[44px] ${
+      className={`w-full text-left text-[11px] leading-tight px-1 py-0.5 rounded hover:bg-black/5 truncate flex items-center gap-1 min-h-[28px] md:min-h-[44px] ${
         entry.isPhantom ? 'opacity-50' : ''
       }`}
     >
@@ -168,7 +168,7 @@ export function CalendarPage() {
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <span className="text-sm font-medium text-text-primary min-w-[140px] text-center">{monthLabel}</span>
+          <span className="text-sm font-medium text-text-primary min-w-[100px] md:min-w-[140px] text-center">{monthLabel}</span>
           <button
             type="button"
             onClick={goToNext}
@@ -185,7 +185,7 @@ export function CalendarPage() {
       {loading ? (
         <div className="px-4 py-8 text-center text-text-secondary text-sm">Loading...</div>
       ) : (
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 md:px-4 pb-4">
           {/* Weekday headers */}
           <div className="grid grid-cols-7 mb-1">
             {WEEKDAYS.map((d) => (
