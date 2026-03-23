@@ -86,6 +86,8 @@ services:
     restart: unless-stopped
     networks:
       - doit
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
     ports:
       - "80:80"
       - "443:443"
