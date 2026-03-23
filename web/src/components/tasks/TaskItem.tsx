@@ -102,7 +102,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
       <button
         type="button"
         aria-label="Drag to reorder"
-        className="w-[44px] h-[44px] -ml-5 -my-3 flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-tertiary hover:text-text-secondary"
+        className="w-[44px] min-h-[44px] -ml-5 -my-3 self-stretch flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-tertiary hover:text-text-secondary"
         {...dragHandleProps}
         onClick={(e) => e.stopPropagation()}
       >
