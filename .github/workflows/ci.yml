@@ -135,3 +135,31 @@ jobs:
       - name: Visual regression tests
         working-directory: web
         run: npm run test:visual
+        continue-on-error: true
+        id: visual
+
+      - name: Update snapshots if visual tests failed on PR
+        if: steps.visual.outcome == 'failure' && github.event_name == 'pull_request'
+        working-directory: web
+        run: npm run test:visual:update
+
+      - name: Commit updated snapshots
+        if: steps.visual.outcome == 'failure' && github.event_name == 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add web/e2e/visual-regression.spec.ts-snapshots/
+          if git diff --cached --quiet; then
+            echo "No snapshot changes to commit"
+          else
+            git commit -m "test(web): update Linux visual regression baselines [ci skip]
+
+          Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
+
+      - name: Fail if visual tests failed and no snapshots updated
+        if: steps.visual.outcome == 'failure'
+        run: |
+          echo "Visual regression tests failed. If snapshots were updated, re-run CI."
+          exit 1
