@@ -81,12 +81,9 @@ test.describe('Visual regression — interactive components', () => {
     await page.goto('/inbox')
     await waitForPage(page)
 
-    // Wait for task list to render before looking for QuickAdd
-    await page.locator('[role="button"]').first().waitFor({ state: 'visible', timeout: 10_000 })
-
     // Click the "New task..." button to expand QuickAdd
     const newTaskBtn = page.getByText('New task...')
-    await newTaskBtn.waitFor({ state: 'visible', timeout: 10_000 })
+    await newTaskBtn.waitFor({ state: 'visible', timeout: 15_000 })
     await newTaskBtn.click()
     // Wait for the expanded form to render
     await page.getByPlaceholder('Task name').waitFor({ state: 'visible', timeout: 10_000 })

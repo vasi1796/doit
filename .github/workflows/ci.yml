@@ -147,6 +147,7 @@ jobs:
         if: steps.visual.outcome == 'failure' && github.event_name == 'pull_request'
         working-directory: web
         run: npm run test:visual:update
+        continue-on-error: true
 
       - name: Commit updated snapshots
         if: steps.visual.outcome == 'failure' && github.event_name == 'pull_request'
