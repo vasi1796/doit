@@ -29,6 +29,7 @@ interface SidebarProps {
     upcoming: number
     byList: Record<string, number>
   }
+  onSearchOpen?: () => void
 }
 
 function NotificationToggle() {
@@ -131,7 +132,7 @@ function NavItem({ to, label, icon, count }: { to: string; label: string; icon: 
   )
 }
 
-export function Sidebar({ lists, labels, taskCounts }: SidebarProps) {
+export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProps) {
   const { toast } = useToast()
   const navigate = useNavigate()
   const [addingList, setAddingList] = useState(false)
@@ -160,6 +161,24 @@ export function Sidebar({ lists, labels, taskCounts }: SidebarProps) {
       <div className="px-4 pt-4 pb-2">
         <h1 className="text-lg font-semibold text-text-primary">DoIt</h1>
       </div>
+
+      {/* Search */}
+      {onSearchOpen && (
+        <div className="px-2 mb-1">
+          <button
+            type="button"
+            onClick={onSearchOpen}
+            className="flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[14px] text-text-secondary hover:bg-black/[0.03] w-full transition-colors"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <span className="flex-1 text-left">Search</span>
+            <kbd className="hidden md:inline-block text-[11px] text-text-tertiary border border-gray-200 rounded px-1.5 py-0.5">⌘K</kbd>
+          </button>
+        </div>
+      )}
 
       {/* Smart lists */}
       <nav className="px-2 space-y-0.5">

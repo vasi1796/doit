@@ -170,7 +170,7 @@ export function AppLayout() {
       <div className="flex h-screen">
         {/* Desktop sidebar */}
         <div className="hidden md:block">
-          <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} />
+          <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} onSearchOpen={() => setSearchOpen(true)} />
         </div>
 
         {/* Mobile drawer */}
@@ -188,7 +188,7 @@ export function AppLayout() {
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} />
+            <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} onSearchOpen={() => setSearchOpen(true)} />
           </div>
         </div>
 
