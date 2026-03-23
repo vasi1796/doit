@@ -9,6 +9,8 @@ import { useTasks } from '../../hooks/useTasks'
 import { initialSync } from '../../db/initial-sync'
 import { SyncEngine } from '../../db/sync-engine'
 import { InstallBanner } from '../common/InstallBanner'
+import { SearchOverlay } from '../common/SearchOverlay'
+import { TaskDetail } from '../tasks/TaskDetail'
 import type { List, Label } from '../../api/types'
 
 interface LayoutContext {
@@ -120,6 +122,8 @@ export function AppLayout() {
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchSelectedId, setSearchSelectedId] = useState<string | null>(null)
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -128,6 +132,12 @@ export function AppLayout() {
         ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable
       )
 
+      // Cmd+K — open search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+        return
+      }
       // Cmd+N — open global quick add
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault()
@@ -209,6 +219,19 @@ export function AppLayout() {
             pathname={location.pathname}
             onClose={() => setQuickAddOpen(false)}
           />
+        )}
+
+        {/* Search overlay */}
+        {searchOpen && (
+          <SearchOverlay
+            onClose={() => setSearchOpen(false)}
+            onSelectTask={(id) => { setSearchOpen(false); setSearchSelectedId(id) }}
+          />
+        )}
+
+        {/* Task detail from search */}
+        {searchSelectedId && (
+          <TaskDetail taskId={searchSelectedId} lists={lists} onClose={() => setSearchSelectedId(null)} />
         )}
       </div>
     </LayoutCtx.Provider>

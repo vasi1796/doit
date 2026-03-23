@@ -8,6 +8,8 @@ import { ListPage } from './pages/ListPage'
 import { LabelPage } from './pages/LabelPage'
 import { CompletedPage } from './pages/CompletedPage'
 import { TrashPage } from './pages/TrashPage'
+import { EisenhowerPage } from './pages/EisenhowerPage'
+import { CalendarPage } from './pages/CalendarPage'
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
         <Route path="inbox" element={<InboxPage />} />
         <Route path="today" element={<TodayPage />} />
         <Route path="upcoming" element={<UpcomingPage />} />
+        <Route path="matrix" element={<EisenhowerPage />} />
+        <Route path="calendar" element={<CalendarPage />} />
         <Route path="lists/:id" element={<ListPage />} />
         <Route path="labels/:id" element={<LabelPage />} />
         <Route path="completed" element={<CompletedPage />} />
