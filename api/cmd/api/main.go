@@ -201,6 +201,10 @@ func newRouter(pool *pgxpool.Pool, store *eventstore.Store, logger zerolog.Logge
 		}
 	})
 
+	// iCal feed (unauthenticated, token-based)
+	icalHandler := handler.NewICalHandler(pool, logger, cfg.ICalBaseURL)
+	r.Get("/ical/{token}/calendar.ics", icalHandler.ServeCalendar)
+
 	// Domain stack
 	_ = projection.New(pool, logger) // Projector used by worker, not inline
 	clock := hlc.New()
@@ -259,6 +263,12 @@ func newRouter(pool *pgxpool.Pool, store *eventstore.Store, logger zerolog.Logge
 			r.Post("/subscribe", pushHandler.Subscribe)
 			r.Delete("/subscribe", pushHandler.Unsubscribe)
 			r.Post("/test", pushHandler.Test)
+		})
+
+		r.Route("/ical", func(r chi.Router) {
+			r.Post("/token", icalHandler.GenerateToken)
+			r.Delete("/token", icalHandler.RevokeToken)
+			r.Get("/token", icalHandler.GetTokenStatus)
 		})
 	})
 
