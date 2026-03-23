@@ -3,13 +3,8 @@ import { useTasks } from '../../hooks/useTasks'
 import { InlineMarkdown } from './InlineMarkdown'
 import { PriorityFlag } from './PriorityDot'
 import { formatDueDate } from '../../utils/date'
-import type { Task, Priority } from '../../api/types'
-
-const PRIORITY_COLORS: Partial<Record<Priority, string>> = {
-  1: '#4cd964',
-  2: '#ff9500',
-  3: '#ff3b30',
-}
+import { PRIORITY_COLORS } from '../../constants'
+import type { Task } from '../../api/types'
 
 interface SearchOverlayProps {
   onClose: () => void
@@ -71,14 +66,18 @@ export function SearchOverlay({ onClose, onSelectTask }: SearchOverlayProps) {
   }, [onClose, onSelectTask, results, activeIndex])
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <div
       className="fixed inset-0 bg-black/30 z-[70] flex items-start justify-center pt-[12vh] animate-[fade-in_0.1s_ease-out]"
+      role="presentation"
       onClick={onClose}
     >
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <div
         className="w-full max-w-[520px] mx-4 bg-white rounded-xl shadow-2xl overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search tasks"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
@@ -149,7 +148,7 @@ function SearchResult({ task, isActive, onSelect }: { task: Task; isActive: bool
       ref={ref}
       type="button"
       onClick={onSelect}
-      className={`w-full text-left px-4 py-2.5 flex items-start gap-3 transition-colors relative ${
+      className={`w-full text-left px-4 py-2.5 min-h-[44px] flex items-start gap-3 transition-colors relative ${
         isActive ? 'bg-accent/8' : 'hover:bg-gray-50'
       }`}
     >

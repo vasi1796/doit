@@ -3,13 +3,8 @@ import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskDetail } from '../components/tasks/TaskDetail'
 import { InlineMarkdown } from '../components/common/InlineMarkdown'
-import type { Task, Priority } from '../api/types'
-
-const PRIORITY_DOT_COLORS: Partial<Record<Priority, string>> = {
-  1: '#4cd964',
-  2: '#ff9500',
-  3: '#ff3b30',
-}
+import { PRIORITY_COLORS } from '../constants'
+import type { Task } from '../api/types'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -92,13 +87,14 @@ function advanceCursor(cursor: Date, rule: string) {
 }
 
 function CalendarTask({ entry, onSelect }: { entry: CalendarEntry; onSelect: (id: string) => void }) {
-  const dotColor = PRIORITY_DOT_COLORS[entry.task.priority]
+  const dotColor = PRIORITY_COLORS[entry.task.priority]
 
   return (
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onSelect(entry.task.id) }}
-      className={`w-full text-left text-[11px] leading-tight px-1 py-0.5 rounded hover:bg-black/5 truncate flex items-center gap-1 min-h-[22px] ${
+      aria-label={entry.task.title}
+      className={`w-full text-left text-[11px] leading-tight px-1 py-1 rounded hover:bg-black/5 truncate flex items-center gap-1 min-h-[44px] ${
         entry.isPhantom ? 'opacity-50' : ''
       }`}
     >

@@ -6,13 +6,8 @@ import { useToast } from '../common/Toast'
 import { InlineMarkdown } from '../common/InlineMarkdown'
 import { PriorityFlag } from '../common/PriorityDot'
 import { formatDueDate } from '../../utils/date'
-import type { Task, Priority } from '../../api/types'
-
-const PRIORITY_COLORS: Partial<Record<Priority, string>> = {
-  1: '#4cd964',
-  2: '#ff9500',
-  3: '#ff3b30',
-}
+import { PRIORITY_COLORS } from '../../constants'
+import type { Task } from '../../api/types'
 
 interface TaskItemProps {
   task: Task

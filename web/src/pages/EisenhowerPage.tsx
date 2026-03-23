@@ -3,6 +3,7 @@ import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskDetail } from '../components/tasks/TaskDetail'
 import { TaskList } from '../components/tasks/TaskList'
+import { COLORS } from '../constants'
 import type { Task } from '../api/types'
 
 interface Quadrant {
@@ -13,10 +14,10 @@ interface Quadrant {
 }
 
 const QUADRANTS: Quadrant[] = [
-  { key: 'do', title: 'Do', subtitle: 'Important & Urgent', color: '#ff3b30' },
-  { key: 'schedule', title: 'Schedule', subtitle: 'Important & Not Urgent', color: '#007aff' },
-  { key: 'delegate', title: 'Delegate', subtitle: 'Not Important & Urgent', color: '#ff9500' },
-  { key: 'eliminate', title: 'Eliminate', subtitle: 'Not Important & Not Urgent', color: '#86868b' },
+  { key: 'do', title: 'Do', subtitle: 'Important & Urgent', color: COLORS.red },
+  { key: 'schedule', title: 'Schedule', subtitle: 'Important & Not Urgent', color: COLORS.blue },
+  { key: 'delegate', title: 'Delegate', subtitle: 'Not Important & Urgent', color: COLORS.orange },
+  { key: 'eliminate', title: 'Eliminate', subtitle: 'Not Important & Not Urgent', color: COLORS.gray },
 ]
 
 function classifyTasks(tasks: Task[]): Record<string, Task[]> {

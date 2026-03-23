@@ -96,8 +96,8 @@ All reads come from local IndexedDB. The API is never queried directly for reads
 doit/
   api/                         # Go backend
     cmd/
-      api/main.go              # Server: router, auth, domain stack wiring
-      migrate/main.go          # Goose migration runner CLI
+      api/main.go              # Server: router, auth, domain stack wiring, auto-migrations
+      migrate/main.go          # Goose migration runner CLI (manual operations)
       rebuild/main.go          # Projection rebuilder CLI (replays event log)
     internal/
       auth/                    # JWT (TokenService), Google OAuth, context helpers
@@ -116,12 +116,13 @@ doit/
       components/
         common/                # DatePicker, TimePicker, PriorityPicker, RecurrencePicker,
                                # ListSelect, LabelPicker, Toast, EmptyState,
-                               # MarkdownEditor, InlineMarkdown, InstallBanner
-        layout/                # AppLayout (global FAB, QuickAddModal), Sidebar, BottomNav
+                               # MarkdownEditor, InlineMarkdown, InstallBanner,
+                               # SearchOverlay (Cmd+K global search)
+        layout/                # AppLayout (global FAB, QuickAddModal, SearchOverlay), Sidebar, BottomNav
         tasks/                 # QuickAdd, TaskItem, TaskDetail, TaskList, TaskProperties,
                                # SubtaskSection, LabelsSection
       hooks/                   # useTasks, useLists, useLabels, useTaskDetail
-      pages/                   # Inbox, Today, Upcoming, List, Label, Completed, Trash, Login
+      pages/                   # Inbox, Today, Upcoming, Matrix, Calendar, List, Label, Completed, Trash, Login
       constants.ts             # Shared color palette
     public/                    # PWA manifest, app icons
     Dockerfile

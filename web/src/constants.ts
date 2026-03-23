@@ -14,6 +14,13 @@ export const PRESET_COLORS = [
   COLORS.purple, COLORS.pink, COLORS.gray,
 ]
 
+/** Priority → color mapping used in TaskItem, search results, calendar */
+export const PRIORITY_COLORS: Partial<Record<0 | 1 | 2 | 3, string>> = {
+  1: COLORS.green,
+  2: COLORS.orange,
+  3: COLORS.red,
+}
+
 /** Semantic UI colors used across the app (Apple HIG inspired) */
 export const UI = {
   accent: '#007aff',

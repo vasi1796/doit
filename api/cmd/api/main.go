@@ -20,6 +20,8 @@ import (
 
 	"time"
 
+	"github.com/vasi1796/doit/migrations"
+
 	"github.com/vasi1796/doit/internal/auth"
 	"github.com/vasi1796/doit/internal/broker"
 	"github.com/vasi1796/doit/internal/config"
@@ -110,11 +112,13 @@ func runMigrations(dbURL string, logger zerolog.Logger) error {
 	}
 	defer db.Close()
 
+	goose.SetBaseFS(migrations.FS)
+
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("setting goose dialect: %w", err)
 	}
 
-	if err := goose.Up(db, "migrations"); err != nil {
+	if err := goose.Up(db, "."); err != nil {
 		return fmt.Errorf("running migrations: %w", err)
 	}
 

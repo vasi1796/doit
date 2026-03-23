@@ -41,11 +41,12 @@ web/              React frontend
     api/           Typed fetch client + generated types (from OpenAPI spec)
     crdt/          CRDT merge functions (TypeScript, mirrors Go)
     components/    Common pickers, layout (sidebar/bottom nav, global FAB), task components
-                   MarkdownEditor (CodeMirror 6 live preview), InlineMarkdown (lightweight title renderer)
+                   MarkdownEditor (CodeMirror 6 live preview), InlineMarkdown (lightweight title renderer),
+                   SearchOverlay (Cmd+K global search with keyboard navigation)
     db/            Dexie.js database, operations, sync engine, event merger
     hlc/           Hybrid Logical Clock (TypeScript, mirrors Go)
     hooks/         Dexie.js useLiveQuery hooks (useTasks, useLists, useLabels, useTaskDetail)
-    pages/         Route pages (Inbox, Today, Upcoming, List, Label, Completed, Trash, Login)
+    pages/         Route pages (Inbox, Today, Upcoming, Matrix, Calendar, List, Label, Completed, Trash, Login)
     push.ts        Web Push subscription management (PushManager API)
     constants.ts   Shared color palette + UI semantic colors
   e2e/            Playwright visual regression + accessibility tests

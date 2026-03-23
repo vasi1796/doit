@@ -22,7 +22,7 @@ flowchart LR
     end
 
     subgraph Pages["React Pages"]
-        P[Inbox · Today · Upcoming<br/>List · Label · Completed · Trash]
+        P[Inbox · Today · Upcoming · Matrix · Calendar<br/>List · Label · Completed · Trash]
     end
 
     IS --> DB
