@@ -333,56 +333,45 @@ func (h *CommandHandler) DeleteLabel(ctx context.Context, aggregateID uuid.UUID,
 
 // Aggregate loaders
 
-func (h *CommandHandler) loadTaskAggregate(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*TaskAggregate, error) {
+// aggregate is the common interface shared by TaskAggregate, ListAggregate,
+// and LabelAggregate, enabling the generic loadAggregate helper.
+type aggregate interface {
+	Apply(e eventstore.Event)
+	UserID() uuid.UUID
+}
+
+// loadAggregate is a generic helper that loads events for an aggregate,
+// replays them, and verifies user ownership. All three typed loaders delegate
+// to this function.
+func loadAggregate[T aggregate](ctx context.Context, h *CommandHandler, id, userID uuid.UUID, newFn func() T, notFoundErr error) (T, error) {
 	stored, err := h.store.LoadByAggregate(ctx, id)
 	if err != nil {
-		return nil, err
+		var zero T
+		return zero, err
 	}
 	if len(stored) == 0 {
-		return nil, ErrTaskNotFound
+		var zero T
+		return zero, notFoundErr
 	}
-	agg := NewTaskAggregate()
+	agg := newFn()
 	for _, e := range stored {
 		agg.Apply(e)
 	}
 	if agg.UserID() != userID {
-		return nil, ErrTaskNotFound
+		var zero T
+		return zero, notFoundErr
 	}
 	return agg, nil
+}
+
+func (h *CommandHandler) loadTaskAggregate(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*TaskAggregate, error) {
+	return loadAggregate(ctx, h, id, userID, NewTaskAggregate, ErrTaskNotFound)
 }
 
 func (h *CommandHandler) loadListAggregate(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*ListAggregate, error) {
-	stored, err := h.store.LoadByAggregate(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if len(stored) == 0 {
-		return nil, ErrListNotFound
-	}
-	agg := NewListAggregate()
-	for _, e := range stored {
-		agg.Apply(e)
-	}
-	if agg.UserID() != userID {
-		return nil, ErrListNotFound
-	}
-	return agg, nil
+	return loadAggregate(ctx, h, id, userID, NewListAggregate, ErrListNotFound)
 }
 
 func (h *CommandHandler) loadLabelAggregate(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*LabelAggregate, error) {
-	stored, err := h.store.LoadByAggregate(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if len(stored) == 0 {
-		return nil, ErrLabelNotFound
-	}
-	agg := NewLabelAggregate()
-	for _, e := range stored {
-		agg.Apply(e)
-	}
-	if agg.UserID() != userID {
-		return nil, ErrLabelNotFound
-	}
-	return agg, nil
+	return loadAggregate(ctx, h, id, userID, NewLabelAggregate, ErrLabelNotFound)
 }

@@ -11,18 +11,20 @@ import { SyncEngine } from '../../db/sync-engine'
 import { InstallBanner } from '../common/InstallBanner'
 import { SearchOverlay } from '../common/SearchOverlay'
 import { TaskDetail } from '../tasks/TaskDetail'
-import type { List, Label } from '../../api/types'
+import type { List, Label, Task } from '../../api/types'
+
+interface TaskCounts {
+  inbox: number
+  today: number
+  upcoming: number
+  byList: Record<string, number>
+}
 
 interface LayoutContext {
   lists: List[]
   labels: Label[]
   quickAddRef: React.RefObject<{ focus: () => void } | null>
-  taskCounts: {
-    inbox: number
-    today: number
-    upcoming: number
-    byList: Record<string, number>
-  }
+  taskCounts: TaskCounts
 }
 
 const LayoutCtx = createContext<LayoutContext>({
@@ -35,6 +37,83 @@ const LayoutCtx = createContext<LayoutContext>({
 export function useLayoutContext() {
   return useContext(LayoutCtx)
 }
+
+// ---------------------------------------------------------------------------
+// Extracted hooks (co-located — tightly coupled to AppLayout)
+// ---------------------------------------------------------------------------
+
+function useTaskCounts(tasks: Task[]): TaskCounts {
+  const today = new Date().toISOString().split('T')[0]
+  const nextWeek = new Date()
+  nextWeek.setDate(nextWeek.getDate() + 7)
+  const nextWeekStr = nextWeek.toISOString().split('T')[0]
+
+  return useMemo(() => ({
+    inbox: tasks.filter((t) => !t.list_id).length,
+    today: tasks.filter((t) => t.due_date === today).length,
+    upcoming: tasks.filter((t) => t.due_date && t.due_date > today && t.due_date <= nextWeekStr).length,
+    byList: tasks.reduce<Record<string, number>>((acc, t) => {
+      if (t.list_id) acc[t.list_id] = (acc[t.list_id] || 0) + 1
+      return acc
+    }, {}),
+  }), [tasks, today, nextWeekStr])
+}
+
+function useKeyboardShortcuts({
+  setQuickAddOpen,
+  setSearchOpen,
+}: {
+  setQuickAddOpen: React.Dispatch<React.SetStateAction<boolean>>
+  setSearchOpen: React.Dispatch<React.SetStateAction<boolean>>
+}) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const isInInput = e.target instanceof HTMLElement && (
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable
+      )
+
+      // Cmd+K — open search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+        return
+      }
+      // Cmd+N — open global quick add
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault()
+        setQuickAddOpen(true)
+      }
+      // "/" to open quick add (only if not already in an input)
+      if (e.key === '/' && !isInInput) {
+        e.preventDefault()
+        setQuickAddOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [setQuickAddOpen, setSearchOpen])
+}
+
+function useMobileDrawer(pathname: string) {
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const toggleDrawer = useCallback(() => setDrawerOpen((v) => !v), [])
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+
+  // Close drawer on route change — setState in effect is intentional here
+  const prevPath = useRef(pathname)
+  useEffect(() => {
+    if (prevPath.current !== pathname) {
+      prevPath.current = pathname
+      setDrawerOpen(false) // eslint-disable-line react-hooks/set-state-in-effect
+    }
+  }, [pathname])
+
+  return { drawerOpen, toggleDrawer, closeDrawer }
+}
+
+// ---------------------------------------------------------------------------
+// QuickAddModal (extracted component)
+// ---------------------------------------------------------------------------
 
 function QuickAddModal({ lists, labels, pathname, onClose }: { lists: List[]; labels: Label[]; pathname: string; onClose: () => void }) {
   const quickAddRef = useRef<{ focus: () => void } | null>(null)
@@ -82,11 +161,16 @@ function QuickAddModal({ lists, labels, pathname, onClose }: { lists: List[]; la
   )
 }
 
+// ---------------------------------------------------------------------------
+// AppLayout
+// ---------------------------------------------------------------------------
+
 export function AppLayout() {
   const { lists } = useLists()
   const { labels } = useLabels()
   const { tasks } = useTasks({ is_completed: 'false' })
   const quickAddRef = useRef<{ focus: () => void } | null>(null)
+  const location = useLocation()
 
   // Populate IndexedDB from server, then start sync engine.
   useEffect(() => {
@@ -104,66 +188,14 @@ export function AppLayout() {
     }
   }, [])
 
-  // Compute task counts
-  const today = new Date().toISOString().split('T')[0]
-  const nextWeek = new Date()
-  nextWeek.setDate(nextWeek.getDate() + 7)
-  const nextWeekStr = nextWeek.toISOString().split('T')[0]
+  const taskCounts = useTaskCounts(tasks)
+  const { drawerOpen, toggleDrawer, closeDrawer } = useMobileDrawer(location.pathname)
 
-  const taskCounts = useMemo(() => ({
-    inbox: tasks.filter((t) => !t.list_id).length,
-    today: tasks.filter((t) => t.due_date === today).length,
-    upcoming: tasks.filter((t) => t.due_date && t.due_date > today && t.due_date <= nextWeekStr).length,
-    byList: tasks.reduce<Record<string, number>>((acc, t) => {
-      if (t.list_id) acc[t.list_id] = (acc[t.list_id] || 0) + 1
-      return acc
-    }, {}),
-  }), [tasks, today, nextWeekStr])
-
-  const [drawerOpen, setDrawerOpen] = useState(false)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchSelectedId, setSearchSelectedId] = useState<string | null>(null)
 
-  // Global keyboard shortcuts
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      const isInInput = e.target instanceof HTMLElement && (
-        ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable
-      )
-
-      // Cmd+K — open search
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        setSearchOpen(true)
-        return
-      }
-      // Cmd+N — open global quick add
-      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
-        e.preventDefault()
-        setQuickAddOpen(true)
-      }
-      // "/" to open quick add (only if not already in an input)
-      if (e.key === '/' && !isInInput) {
-        e.preventDefault()
-        setQuickAddOpen(true)
-      }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [])
-  const toggleDrawer = useCallback(() => setDrawerOpen((v) => !v), [])
-  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
-  const location = useLocation()
-
-  // Close drawer on route change — setState in effect is intentional here
-  const prevPath = useRef(location.pathname)
-  useEffect(() => {
-    if (prevPath.current !== location.pathname) {
-      prevPath.current = location.pathname
-      setDrawerOpen(false) // eslint-disable-line react-hooks/set-state-in-effect
-    }
-  }, [location.pathname])
+  useKeyboardShortcuts({ setQuickAddOpen, setSearchOpen })
 
   return (
     <LayoutCtx.Provider value={useMemo(() => ({ lists, labels, quickAddRef, taskCounts }), [lists, labels, quickAddRef, taskCounts])}>

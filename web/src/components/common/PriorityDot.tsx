@@ -1,9 +1,10 @@
 import type { Priority } from '../../api/types'
+import { PRIORITY_COLORS } from '../../constants'
 
 const PRIORITY_FLAGS: Partial<Record<Priority, { color: string; label: string }>> = {
-  1: { color: '#4cd964', label: 'Low' },
-  2: { color: '#ff9500', label: 'Medium' },
-  3: { color: '#ff3b30', label: 'High' },
+  1: { color: PRIORITY_COLORS[1]!, label: 'Low' },
+  2: { color: PRIORITY_COLORS[2]!, label: 'Medium' },
+  3: { color: PRIORITY_COLORS[3]!, label: 'High' },
 }
 
 export function PriorityFlag({ priority, size = 14 }: { priority: Priority; size?: number }) {

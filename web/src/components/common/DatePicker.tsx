@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { usePopover } from '../../hooks/usePopover'
 import { toDateStr, formatDisplayDate } from '../../utils/date'
+import { UI } from '../../constants'
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -71,7 +72,7 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
         onClick={toggle}
         className="flex items-center gap-2 min-h-[40px] px-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={value ? '#007aff' : '#86868b'} strokeWidth="1.5" strokeLinecap="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={value ? UI.accent : UI.textSecondary} strokeWidth="1.5" strokeLinecap="round">
           <rect x="3" y="4" width="18" height="18" rx="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
@@ -127,7 +128,7 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
             {/* Month navigation */}
             <div className="flex items-center justify-between mb-2">
               <button type="button" onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded-lg">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d1d1f" strokeWidth="2" strokeLinecap="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={UI.textPrimary} strokeWidth="2" strokeLinecap="round">
                   <path d="m15 18-6-6 6-6" />
                 </svg>
               </button>
@@ -135,7 +136,7 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
                 {MONTHS[viewMonth]} {viewYear}
               </span>
               <button type="button" onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded-lg">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d1d1f" strokeWidth="2" strokeLinecap="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={UI.textPrimary} strokeWidth="2" strokeLinecap="round">
                   <path d="m9 18 6-6-6-6" />
                 </svg>
               </button>

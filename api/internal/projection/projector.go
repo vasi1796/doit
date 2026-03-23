@@ -71,6 +71,35 @@ func New(pool *pgxpool.Pool, logger zerolog.Logger) *Projector {
 	return &Projector{pool: pool, logger: logger}
 }
 
+// execProjection is a generic helper that encapsulates the common projection pattern:
+// unmarshal JSON payload into a typed struct, execute SQL, and warn if 0 rows affected.
+func execProjection[T any](ctx context.Context, p *Projector, e eventstore.Event, sql string, argsFn func(T) []any, label string) error {
+	var payload T
+	if err := json.Unmarshal(e.Data, &payload); err != nil {
+		return fmt.Errorf("unmarshaling %s: %w", label, err)
+	}
+	tag, err := p.pool.Exec(ctx, sql, argsFn(payload)...)
+	if err != nil {
+		return fmt.Errorf("%s: %w", label, err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msgf("projection: %s affected 0 rows", label)
+	}
+	return nil
+}
+
+// execProjectionDirect handles the simple case where no payload needs unmarshaling.
+func execProjectionDirect(ctx context.Context, p *Projector, e eventstore.Event, sql string, args []any, label string) error {
+	tag, err := p.pool.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("%s: %w", label, err)
+	}
+	if tag.RowsAffected() == 0 {
+		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msgf("projection: %s affected 0 rows", label)
+	}
+	return nil
+}
+
 // Project processes a batch of events, updating read models for each.
 func (p *Projector) Project(ctx context.Context, events []eventstore.Event) error {
 	for _, e := range events {
@@ -86,27 +115,45 @@ func (p *Projector) handleEvent(ctx context.Context, e eventstore.Event) error {
 	case eventstore.EventTaskCreated:
 		return p.handleTaskCreated(ctx, e)
 	case eventstore.EventTaskCompleted:
-		return p.handleTaskCompleted(ctx, e)
+		return execProjection(ctx, p, e, updateTaskCompletedSQL, func(pl domain.TaskCompletedPayload) []any {
+			return []any{e.AggregateID, pl.CompletedAt, e.Timestamp}
+		}, "TaskCompleted")
 	case eventstore.EventTaskUncompleted:
-		return p.handleTaskUncompleted(ctx, e)
+		return execProjectionDirect(ctx, p, e, updateTaskUncompletedSQL, []any{e.AggregateID, e.Timestamp}, "TaskUncompleted")
 	case eventstore.EventTaskDeleted:
-		return p.handleTaskDeleted(ctx, e)
+		return execProjection(ctx, p, e, updateTaskDeletedSQL, func(pl domain.TaskDeletedPayload) []any {
+			return []any{e.AggregateID, pl.DeletedAt, e.Timestamp}
+		}, "TaskDeleted")
 	case eventstore.EventTaskRestored:
-		return p.handleTaskRestored(ctx, e)
+		return execProjectionDirect(ctx, p, e, updateTaskRestoredSQL, []any{e.AggregateID, e.Timestamp}, "TaskRestored")
 	case eventstore.EventTaskMoved:
-		return p.handleTaskMoved(ctx, e)
+		return execProjection(ctx, p, e, updateTaskMovedSQL, func(pl domain.TaskMovedPayload) []any {
+			return []any{e.AggregateID, pl.ListID, pl.Position, e.Timestamp}
+		}, "TaskMoved")
 	case eventstore.EventTaskDescriptionUpdated:
-		return p.handleTaskDescriptionUpdated(ctx, e)
+		return execProjection(ctx, p, e, updateTaskDescriptionSQL, func(pl domain.TaskDescriptionUpdatedPayload) []any {
+			return []any{e.AggregateID, pl.Description, e.Timestamp}
+		}, "TaskDescriptionUpdated")
 	case eventstore.EventTaskTitleUpdated:
-		return p.handleTaskTitleUpdated(ctx, e)
+		return execProjection(ctx, p, e, updateTaskTitleSQL, func(pl domain.TaskTitleUpdatedPayload) []any {
+			return []any{e.AggregateID, pl.Title, e.Timestamp}
+		}, "TaskTitleUpdated")
 	case eventstore.EventTaskPriorityUpdated:
-		return p.handleTaskPriorityUpdated(ctx, e)
+		return execProjection(ctx, p, e, updateTaskPrioritySQL, func(pl domain.TaskPriorityUpdatedPayload) []any {
+			return []any{e.AggregateID, pl.Priority, e.Timestamp}
+		}, "TaskPriorityUpdated")
 	case eventstore.EventTaskDueDateUpdated:
-		return p.handleTaskDueDateUpdated(ctx, e)
+		return execProjection(ctx, p, e, updateTaskDueDateSQL, func(pl domain.TaskDueDateUpdatedPayload) []any {
+			return []any{e.AggregateID, pl.DueDate, e.Timestamp}
+		}, "TaskDueDateUpdated")
 	case eventstore.EventLabelAdded:
-		return p.handleLabelAdded(ctx, e)
+		return execProjection(ctx, p, e, upsertTaskLabelSQL, func(pl domain.LabelAddedPayload) []any {
+			return []any{e.AggregateID, pl.LabelID}
+		}, "LabelAdded")
 	case eventstore.EventLabelRemoved:
-		return p.handleLabelRemoved(ctx, e)
+		return execProjection(ctx, p, e, deleteTaskLabelSQL, func(pl domain.LabelRemovedPayload) []any {
+			return []any{e.AggregateID, pl.LabelID}
+		}, "LabelRemoved")
 	case eventstore.EventListCreated:
 		return p.handleListCreated(ctx, e)
 	case eventstore.EventListDeleted:
@@ -118,17 +165,29 @@ func (p *Projector) handleEvent(ctx context.Context, e eventstore.Event) error {
 	case eventstore.EventSubtaskCreated:
 		return p.handleSubtaskCreated(ctx, e)
 	case eventstore.EventSubtaskTitleUpdated:
-		return p.handleSubtaskTitleUpdated(ctx, e)
+		return execProjection(ctx, p, e, updateSubtaskTitleSQL, func(pl domain.SubtaskTitleUpdatedPayload) []any {
+			return []any{pl.SubtaskID, pl.Title}
+		}, "SubtaskTitleUpdated")
 	case eventstore.EventSubtaskCompleted:
-		return p.handleSubtaskCompleted(ctx, e)
+		return execProjection(ctx, p, e, updateSubtaskCompletedSQL, func(pl domain.SubtaskCompletedPayload) []any {
+			return []any{pl.SubtaskID}
+		}, "SubtaskCompleted")
 	case eventstore.EventSubtaskUncompleted:
-		return p.handleSubtaskUncompleted(ctx, e)
+		return execProjection(ctx, p, e, updateSubtaskUncompletedSQL, func(pl domain.SubtaskUncompletedPayload) []any {
+			return []any{pl.SubtaskID}
+		}, "SubtaskUncompleted")
 	case eventstore.EventTaskRecurrenceUpdated:
-		return p.handleTaskRecurrenceUpdated(ctx, e)
+		return execProjection(ctx, p, e, updateTaskRecurrenceSQL, func(pl domain.TaskRecurrenceUpdatedPayload) []any {
+			return []any{e.AggregateID, pl.RecurrenceRule, e.Timestamp}
+		}, "TaskRecurrenceUpdated")
 	case eventstore.EventTaskDueTimeUpdated:
-		return p.handleTaskDueTimeUpdated(ctx, e)
+		return execProjection(ctx, p, e, updateTaskDueTimeSQL, func(pl domain.TaskDueTimeUpdatedPayload) []any {
+			return []any{e.AggregateID, pl.DueTime, e.Timestamp}
+		}, "TaskDueTimeUpdated")
 	case eventstore.EventTaskReordered:
-		return p.handleTaskReordered(ctx, e)
+		return execProjection(ctx, p, e, updateTaskPositionSQL, func(pl domain.TaskReorderedPayload) []any {
+			return []any{e.AggregateID, pl.Position, e.Timestamp}
+		}, "TaskReordered")
 	default:
 		// Unknown event types are silently skipped for forward compatibility.
 		return nil
@@ -147,157 +206,6 @@ func (p *Projector) handleTaskCreated(ctx context.Context, e eventstore.Event) e
 	)
 	if err != nil {
 		return fmt.Errorf("upserting task: %w", err)
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskCompleted(ctx context.Context, e eventstore.Event) error {
-	var payload domain.TaskCompletedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling TaskCompletedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateTaskCompletedSQL, e.AggregateID, payload.CompletedAt, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task completed: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskCompleted affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskUncompleted(ctx context.Context, e eventstore.Event) error {
-	tag, err := p.pool.Exec(ctx, updateTaskUncompletedSQL, e.AggregateID, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task uncompleted: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskUncompleted affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskDeleted(ctx context.Context, e eventstore.Event) error {
-	var payload domain.TaskDeletedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling TaskDeletedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateTaskDeletedSQL, e.AggregateID, payload.DeletedAt, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task deleted: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskDeleted affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskRestored(ctx context.Context, e eventstore.Event) error {
-	tag, err := p.pool.Exec(ctx, updateTaskRestoredSQL, e.AggregateID, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task restored: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskRestored affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskMoved(ctx context.Context, e eventstore.Event) error {
-	var payload domain.TaskMovedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling TaskMovedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateTaskMovedSQL, e.AggregateID, payload.ListID, payload.Position, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task moved: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskMoved affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskDescriptionUpdated(ctx context.Context, e eventstore.Event) error {
-	var payload domain.TaskDescriptionUpdatedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling TaskDescriptionUpdatedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateTaskDescriptionSQL, e.AggregateID, payload.Description, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task description: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskDescriptionUpdated affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskTitleUpdated(ctx context.Context, e eventstore.Event) error {
-	var payload domain.TaskTitleUpdatedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling TaskTitleUpdatedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateTaskTitleSQL, e.AggregateID, payload.Title, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task title: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskTitleUpdated affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskPriorityUpdated(ctx context.Context, e eventstore.Event) error {
-	var payload domain.TaskPriorityUpdatedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling TaskPriorityUpdatedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateTaskPrioritySQL, e.AggregateID, payload.Priority, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task priority: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskPriorityUpdated affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskDueDateUpdated(ctx context.Context, e eventstore.Event) error {
-	var payload domain.TaskDueDateUpdatedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling TaskDueDateUpdatedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateTaskDueDateSQL, e.AggregateID, payload.DueDate, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task due date: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskDueDateUpdated affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleLabelAdded(ctx context.Context, e eventstore.Event) error {
-	var payload domain.LabelAddedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling LabelAddedPayload: %w", err)
-	}
-	_, err := p.pool.Exec(ctx, upsertTaskLabelSQL, e.AggregateID, payload.LabelID)
-	if err != nil {
-		return fmt.Errorf("upserting task label: %w", err)
-	}
-	return nil
-}
-
-func (p *Projector) handleLabelRemoved(ctx context.Context, e eventstore.Event) error {
-	var payload domain.LabelRemovedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling LabelRemovedPayload: %w", err)
-	}
-	_, err := p.pool.Exec(ctx, deleteTaskLabelSQL, e.AggregateID, payload.LabelID)
-	if err != nil {
-		return fmt.Errorf("deleting task label: %w", err)
 	}
 	return nil
 }
@@ -341,96 +249,6 @@ func (p *Projector) handleSubtaskCreated(ctx context.Context, e eventstore.Event
 	)
 	if err != nil {
 		return fmt.Errorf("upserting subtask: %w", err)
-	}
-	return nil
-}
-
-func (p *Projector) handleSubtaskCompleted(ctx context.Context, e eventstore.Event) error {
-	var payload domain.SubtaskCompletedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling SubtaskCompletedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateSubtaskCompletedSQL, payload.SubtaskID)
-	if err != nil {
-		return fmt.Errorf("updating subtask completed: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("subtask_id", payload.SubtaskID).Msg("projection: SubtaskCompleted affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleSubtaskUncompleted(ctx context.Context, e eventstore.Event) error {
-	var payload domain.SubtaskUncompletedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling SubtaskUncompletedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateSubtaskUncompletedSQL, payload.SubtaskID)
-	if err != nil {
-		return fmt.Errorf("updating subtask uncompleted: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("subtask_id", payload.SubtaskID).Msg("projection: SubtaskUncompleted affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskRecurrenceUpdated(ctx context.Context, e eventstore.Event) error {
-	var payload domain.TaskRecurrenceUpdatedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling TaskRecurrenceUpdatedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateTaskRecurrenceSQL, e.AggregateID, payload.RecurrenceRule, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task recurrence: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskRecurrenceUpdated affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskDueTimeUpdated(ctx context.Context, e eventstore.Event) error {
-	var payload domain.TaskDueTimeUpdatedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling TaskDueTimeUpdatedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateTaskDueTimeSQL, e.AggregateID, payload.DueTime, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task due time: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskDueTimeUpdated affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleTaskReordered(ctx context.Context, e eventstore.Event) error {
-	var payload domain.TaskReorderedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling TaskReorderedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateTaskPositionSQL, e.AggregateID, payload.Position, e.Timestamp)
-	if err != nil {
-		return fmt.Errorf("updating task position: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("aggregate_id", e.AggregateID).Msg("projection: TaskReordered affected 0 rows")
-	}
-	return nil
-}
-
-func (p *Projector) handleSubtaskTitleUpdated(ctx context.Context, e eventstore.Event) error {
-	var payload domain.SubtaskTitleUpdatedPayload
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return fmt.Errorf("unmarshaling SubtaskTitleUpdatedPayload: %w", err)
-	}
-	tag, err := p.pool.Exec(ctx, updateSubtaskTitleSQL, payload.SubtaskID, payload.Title)
-	if err != nil {
-		return fmt.Errorf("updating subtask title: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		p.logger.Warn().Stringer("subtask_id", payload.SubtaskID).Msg("projection: SubtaskTitleUpdated affected 0 rows")
 	}
 	return nil
 }

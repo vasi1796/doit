@@ -261,6 +261,110 @@ func TestTaskHandlerInvalidUUID(t *testing.T) {
 	}
 }
 
+func TestTaskHandlerUpdate(t *testing.T) {
+	userID := uuid.New()
+	taskID := uuid.New()
+
+	tests := []struct {
+		name       string
+		body       string
+		cmdErr     error
+		hasUser    bool
+		hasTaskID  bool
+		taskIDVal  string
+		wantStatus int
+	}{
+		{
+			name:       "success with title",
+			body:       `{"title":"Updated title"}`,
+			hasUser:    true,
+			hasTaskID:  true,
+			taskIDVal:  taskID.String(),
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "success with priority",
+			body:       `{"priority":2}`,
+			hasUser:    true,
+			hasTaskID:  true,
+			taskIDVal:  taskID.String(),
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "success with due_date",
+			body:       `{"due_date":"2026-06-15"}`,
+			hasUser:    true,
+			hasTaskID:  true,
+			taskIDVal:  taskID.String(),
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "invalid JSON body",
+			body:       `{bad`,
+			hasUser:    true,
+			hasTaskID:  true,
+			taskIDVal:  taskID.String(),
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "no auth",
+			body:       `{"title":"Updated title"}`,
+			hasUser:    false,
+			hasTaskID:  true,
+			taskIDVal:  taskID.String(),
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "not found",
+			body:       `{"title":"Updated title"}`,
+			cmdErr:     domain.ErrTaskNotFound,
+			hasUser:    true,
+			hasTaskID:  true,
+			taskIDVal:  taskID.String(),
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:       "invalid task UUID",
+			body:       `{"title":"Updated title"}`,
+			hasUser:    true,
+			hasTaskID:  true,
+			taskIDVal:  "not-a-uuid",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "version conflict",
+			body:       `{"title":"Updated title"}`,
+			cmdErr:     domain.ErrVersionConflict,
+			hasUser:    true,
+			hasTaskID:  true,
+			taskIDVal:  taskID.String(),
+			wantStatus: http.StatusConflict,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockTaskCommander{err: tc.cmdErr}
+			h := NewTaskHandler(mock, nil, zerolog.Nop())
+
+			req := httptest.NewRequest(http.MethodPatch, "/api/v1/tasks/"+tc.taskIDVal, strings.NewReader(tc.body))
+			if tc.hasUser {
+				req = withUserContext(req, userID)
+			}
+			if tc.hasTaskID {
+				req = withChiParam(req, "id", tc.taskIDVal)
+			}
+
+			rr := httptest.NewRecorder()
+			h.Update(rr, req)
+
+			if rr.Code != tc.wantStatus {
+				t.Errorf("status = %d, want %d", rr.Code, tc.wantStatus)
+			}
+		})
+	}
+}
+
 func TestTaskHandlerCreateSubtask(t *testing.T) {
 	taskID := uuid.New()
 

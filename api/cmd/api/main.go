@@ -269,8 +269,9 @@ func healthHandler(pool *pgxpool.Pool, logger zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if err := pool.Ping(r.Context()); err != nil {
+			logger.Error().Err(err).Msg("health check failed: database ping error")
 			w.WriteHeader(http.StatusServiceUnavailable)
-			if encErr := json.NewEncoder(w).Encode(map[string]string{"status": "unhealthy", "error": err.Error()}); encErr != nil {
+			if encErr := json.NewEncoder(w).Encode(map[string]string{"status": "unhealthy", "error": "database unavailable"}); encErr != nil {
 				logger.Error().Err(encErr).Msg("failed to encode health response")
 			}
 			return

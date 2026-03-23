@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -289,8 +290,7 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 		return h.cmds.DeleteLabel(ctx, aggID, userID, domain.DeleteLabel{DeletedAt: time.Now().UTC()})
 
 	default:
-		h.logger.Warn().Str("type", op.Type).Msg("sync: unknown operation type")
-		return nil
+		return fmt.Errorf("sync: unknown operation type %q", op.Type)
 	}
 }
 
