@@ -42,19 +42,76 @@ function getCalendarDays(year: number, month: number): { date: string; inMonth: 
   return days
 }
 
-function CalendarTask({ task, onSelect }: { task: Task; onSelect: (id: string) => void }) {
-  const dotColor = PRIORITY_DOT_COLORS[task.priority]
+interface CalendarEntry {
+  task: Task
+  isPhantom: boolean
+}
+
+function buildEntriesByDate(tasks: Task[], rangeStart: string, rangeEnd: string): Record<string, CalendarEntry[]> {
+  const map: Record<string, CalendarEntry[]> = {}
+
+  const addEntry = (dateStr: string, entry: CalendarEntry) => {
+    if (!map[dateStr]) map[dateStr] = []
+    map[dateStr].push(entry)
+  }
+
+  for (const task of tasks) {
+    // Add the actual task on its due date
+    if (task.due_date) {
+      addEntry(task.due_date, { task, isPhantom: false })
+    }
+
+    // Expand recurring tasks into phantom future entries
+    if (!task.recurrence_rule || !task.due_date) continue
+
+    const limit = new Date(rangeEnd + 'T00:00:00')
+    const cursor = new Date(task.due_date + 'T00:00:00')
+    advanceCursor(cursor, task.recurrence_rule)
+
+    let safety = 0
+    while (cursor <= limit && safety < 60) {
+      const dateStr = toDateStr(cursor)
+      if (dateStr >= rangeStart && dateStr <= rangeEnd) {
+        addEntry(dateStr, { task, isPhantom: true })
+      }
+      advanceCursor(cursor, task.recurrence_rule)
+      safety++
+    }
+  }
+
+  return map
+}
+
+function advanceCursor(cursor: Date, rule: string) {
+  switch (rule) {
+    case 'daily': cursor.setDate(cursor.getDate() + 1); break
+    case 'weekly': cursor.setDate(cursor.getDate() + 7); break
+    case 'monthly': cursor.setMonth(cursor.getMonth() + 1); break
+    case 'yearly': cursor.setFullYear(cursor.getFullYear() + 1); break
+  }
+}
+
+function CalendarTask({ entry, onSelect }: { entry: CalendarEntry; onSelect: (id: string) => void }) {
+  const dotColor = PRIORITY_DOT_COLORS[entry.task.priority]
 
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); onSelect(task.id) }}
-      className="w-full text-left text-[11px] leading-tight px-1 py-0.5 rounded hover:bg-black/5 truncate flex items-center gap-1 min-h-[22px]"
+      onClick={(e) => { e.stopPropagation(); onSelect(entry.task.id) }}
+      className={`w-full text-left text-[11px] leading-tight px-1 py-0.5 rounded hover:bg-black/5 truncate flex items-center gap-1 min-h-[22px] ${
+        entry.isPhantom ? 'opacity-50' : ''
+      }`}
     >
       {dotColor && (
         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
       )}
-      <InlineMarkdown text={task.title} className="truncate" />
+      {entry.isPhantom && (
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-secondary">
+          <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
+          <path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
+        </svg>
+      )}
+      <InlineMarkdown text={entry.task.title} className="truncate" />
     </button>
   )
 }
@@ -72,16 +129,11 @@ export function CalendarPage() {
 
   const days = useMemo(() => getCalendarDays(year, month), [year, month])
 
-  const tasksByDate = useMemo(() => {
-    const map: Record<string, Task[]> = {}
-    for (const t of tasks) {
-      if (t.due_date) {
-        if (!map[t.due_date]) map[t.due_date] = []
-        map[t.due_date].push(t)
-      }
-    }
-    return map
-  }, [tasks])
+  const entriesByDate = useMemo(() => {
+    const rangeStart = days[0].date
+    const rangeEnd = days[days.length - 1].date
+    return buildEntriesByDate(tasks, rangeStart, rangeEnd)
+  }, [tasks, days])
 
   const goToPrev = () => {
     if (month === 0) { setYear(year - 1); setMonth(11) }
@@ -148,7 +200,7 @@ export function CalendarPage() {
           {/* Calendar grid */}
           <div className="grid grid-cols-7 border-t border-l border-gray-200">
             {days.map((day) => {
-              const dayTasks = tasksByDate[day.date] || []
+              const dayTasks = entriesByDate[day.date] || []
               const isToday = day.date === todayStr
               const dayNum = parseInt(day.date.split('-')[2], 10)
 
@@ -171,8 +223,8 @@ export function CalendarPage() {
                     </span>
                   </div>
                   <div className="space-y-0.5">
-                    {dayTasks.slice(0, 3).map((t) => (
-                      <CalendarTask key={t.id} task={t} onSelect={setSelectedId} />
+                    {dayTasks.slice(0, 3).map((entry, i) => (
+                      <CalendarTask key={`${entry.task.id}-${entry.isPhantom ? 'p' : 'r'}-${i}`} entry={entry} onSelect={setSelectedId} />
                     ))}
                     {dayTasks.length > 3 && (
                       <span className="text-[10px] text-text-secondary pl-1">+{dayTasks.length - 3} more</span>
