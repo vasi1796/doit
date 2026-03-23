@@ -131,7 +131,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
         <button
           type="button"
-          onClick={() => { resetForm(); setExpanded(false) }}
+          onClick={() => { resetForm(); setExpanded(false); if (initialExpanded) onCreated?.() }}
           className="text-sm text-text-secondary hover:text-text-primary min-h-[36px] px-1"
         >
           Cancel
