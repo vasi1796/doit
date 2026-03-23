@@ -154,7 +154,7 @@ export function CalendarPage() {
           <button
             type="button"
             onClick={goToToday}
-            className="text-xs text-accent font-medium px-2 min-h-[44px]"
+            className="text-xs text-accent font-medium px-3 min-h-[44px] min-w-[44px]"
           >
             Today
           </button>

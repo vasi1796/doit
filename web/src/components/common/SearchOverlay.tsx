@@ -3,7 +3,7 @@ import { useTasks } from '../../hooks/useTasks'
 import { InlineMarkdown } from './InlineMarkdown'
 import { PriorityFlag } from './PriorityDot'
 import { formatDueDate } from '../../utils/date'
-import { PRIORITY_COLORS } from '../../constants'
+import { COLORS, PRIORITY_COLORS } from '../../constants'
 import type { Task } from '../../api/types'
 
 interface SearchOverlayProps {
@@ -82,7 +82,7 @@ export function SearchOverlay({ onClose, onSelectTask }: SearchOverlayProps) {
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 border-b border-gray-200">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86868b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={COLORS.gray} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -193,8 +193,8 @@ function SearchResult({ task, isActive, onSelect }: { task: Task; isActive: bool
                 key={label.id}
                 className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
                 style={{
-                  backgroundColor: (label.colour || '#86868b') + '18',
-                  color: label.colour || '#86868b',
+                  backgroundColor: (label.colour || COLORS.gray) + '18',
+                  color: label.colour || COLORS.gray,
                 }}
               >
                 {label.name}
