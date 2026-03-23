@@ -32,8 +32,7 @@ type Config struct {
 	VAPIDPublicKey     string
 	VAPIDPrivateKey    string
 	VAPIDSubject       string
-	ICalBaseURL          string
-	DeployWebhookSecret  string
+	ICalBaseURL        string
 }
 
 func Load() (*Config, error) {
@@ -65,8 +64,7 @@ func Load() (*Config, error) {
 		VAPIDPublicKey:     os.Getenv("VAPID_PUBLIC_KEY"),
 		VAPIDPrivateKey:    os.Getenv("VAPID_PRIVATE_KEY"),
 		VAPIDSubject:       envString("VAPID_SUBJECT", "admin@localhost"),
-		ICalBaseURL:          envString("ICAL_BASE_URL", ""),
-		DeployWebhookSecret:  os.Getenv("DEPLOY_WEBHOOK_SECRET"),
+		ICalBaseURL:        envString("ICAL_BASE_URL", ""),
 	}
 
 	if !cfg.DevMode && cfg.JWTSecret == "" {

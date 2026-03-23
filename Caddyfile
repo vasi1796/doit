@@ -39,9 +39,9 @@
 		reverse_proxy doit-api:8080
 	}
 
-	# Deploy webhook
+	# Deploy webhook (sidecar container)
 	handle /deploy/* {
-		reverse_proxy doit-api:8080
+		reverse_proxy doit-deployer:9000
 	}
 
 	# -------------------------------------------------------------------------
