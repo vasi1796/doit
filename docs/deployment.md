@@ -177,24 +177,9 @@ signing in with your Google account.
 
 ---
 
-## 9. Systemd Auto-Start
+## 9. Auto-Start on Reboot
 
-To ensure DoIt starts automatically after a VM reboot:
-
-```bash
-sudo cp scripts/doit.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable doit.service
-```
-
-Manage the service:
-
-```bash
-sudo systemctl start doit     # Start
-sudo systemctl stop doit      # Stop
-sudo systemctl status doit    # Check status
-sudo journalctl -u doit       # View logs
-```
+All Docker Compose services use `restart: unless-stopped`, so they automatically restart when Docker starts. Docker itself starts on boot by default on Ubuntu. No additional setup needed.
 
 ---
 
