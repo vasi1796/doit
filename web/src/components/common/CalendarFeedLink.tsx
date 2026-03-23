@@ -3,35 +3,46 @@ import { useToast } from './Toast'
 
 export function CalendarFeedLink() {
   const { toast } = useToast()
-  const [enabled, setEnabled] = useState(false)
+  const [feedUrl, setFeedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetch('/api/v1/ical/token', { credentials: 'include' })
-      .then((res) => {
-        setEnabled(res.ok)
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json() as { enabled: boolean; url?: string }
+          if (data.enabled && data.url) setFeedUrl(data.url)
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
-  const handleToggle = async () => {
+  const handleClick = async () => {
     setLoading(true)
     try {
-      if (enabled) {
-        await fetch('/api/v1/ical/token', { method: 'DELETE', credentials: 'include' })
-        setEnabled(false)
-        toast('Calendar feed disabled', 'success')
-      } else {
+      let url = feedUrl
+      if (!url) {
         const res = await fetch('/api/v1/ical/token', { method: 'POST', credentials: 'include' })
         if (!res.ok) throw new Error('Failed to enable calendar feed')
         const data = await res.json() as { url: string }
-        await navigator.clipboard.writeText(data.url)
-        setEnabled(true)
-        toast('Calendar feed URL copied!', 'success')
+        url = data.url
+        setFeedUrl(url)
       }
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch {
+        // Fallback for non-HTTPS or no focus — select text in a temp input
+        const input = document.createElement('input')
+        input.value = url
+        document.body.appendChild(input)
+        input.select()
+        document.execCommand('copy')
+        document.body.removeChild(input)
+      }
+      toast('Calendar feed URL copied!', 'success')
     } catch {
-      toast('Failed to update calendar feed', 'error')
+      toast('Failed to copy calendar feed URL', 'error')
     } finally {
       setLoading(false)
     }
@@ -41,40 +52,19 @@ export function CalendarFeedLink() {
     <div className="px-2">
       <button
         type="button"
-        onClick={handleToggle}
+        onClick={handleClick}
         disabled={loading}
-        className="flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[13px] text-text-secondary hover:bg-black/[0.03] w-full transition-colors"
+        title={feedUrl ? 'Copy calendar feed URL' : 'Enable and copy calendar feed URL'}
+        className="flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[13px] text-text-secondary hover:bg-black/[0.03] w-full transition-colors group"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-          <path d="M8 14h2v2H8z" />
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </svg>
         <span className="flex-1 text-left">Calendar Feed</span>
-        <span style={{
-          display: 'inline-block',
-          flexShrink: 0,
-          width: 44,
-          height: 26,
-          borderRadius: 13,
-          backgroundColor: enabled ? '#007aff' : '#d1d5db',
-          position: 'relative',
-          transition: 'background-color 0.2s',
-        }}>
-          <span style={{
-            position: 'absolute',
-            top: 3,
-            left: enabled ? 21 : 3,
-            width: 20,
-            height: 20,
-            borderRadius: 10,
-            backgroundColor: '#fff',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-            transition: 'left 0.2s',
-          }} />
-        </span>
+        {feedUrl && (
+          <span className="text-[10px] text-accent font-medium">Active</span>
+        )}
       </button>
     </div>
   )

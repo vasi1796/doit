@@ -208,10 +208,11 @@ func (h *ICalHandler) GetTokenStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var token string
 	var createdAt time.Time
 	err := h.pool.QueryRow(r.Context(),
-		`SELECT created_at FROM ical_tokens WHERE user_id = $1`, userID,
-	).Scan(&createdAt)
+		`SELECT token, created_at FROM ical_tokens WHERE user_id = $1`, userID,
+	).Scan(&token, &createdAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			writeJSON(w, h.logger, http.StatusOK, map[string]any{"enabled": false})
@@ -222,8 +223,12 @@ func (h *ICalHandler) GetTokenStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	base := h.resolveBaseURL(r)
+	feedURL := fmt.Sprintf("%s/ical/%s/calendar.ics", base, token)
+
 	writeJSON(w, h.logger, http.StatusOK, map[string]any{
 		"enabled":    true,
+		"url":        feedURL,
 		"created_at": createdAt.Format(time.RFC3339),
 	})
 }
