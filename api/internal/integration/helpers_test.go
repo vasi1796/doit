@@ -57,15 +57,9 @@ func setupHarness(t *testing.T) *testHarness {
 	}
 	t.Cleanup(func() { pool.Close() })
 
-	// Truncate all tables for test isolation
-	tables := []string{
-		"subtasks", "task_labels", "tasks", "labels", "lists",
-		"aggregate_snapshots", "user_config", "outbox", "events", "users",
-	}
-	for _, table := range tables {
-		if _, err := pool.Exec(ctx, "TRUNCATE "+table+" CASCADE"); err != nil {
-			t.Fatalf("truncating %s: %v", table, err)
-		}
+	// Truncate all tables in a single statement to avoid deadlocks
+	if _, err := pool.Exec(ctx, "TRUNCATE subtasks, task_labels, tasks, labels, lists, aggregate_snapshots, ical_tokens, push_subscriptions, user_config, outbox, events, users CASCADE"); err != nil {
+		t.Fatalf("truncating tables: %v", err)
 	}
 
 	// Insert a test user for FK constraints

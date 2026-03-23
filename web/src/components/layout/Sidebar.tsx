@@ -4,6 +4,7 @@ import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { SyncStatus } from '../common/SyncStatus'
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '../../push'
+import { CalendarFeedLink } from '../common/CalendarFeedLink'
 import type { List, Label } from '../../api/types'
 import { PRESET_COLORS } from '../../constants'
 
@@ -360,6 +361,9 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
 
       {/* Notification toggle */}
       <NotificationToggle />
+
+      {/* Calendar feed */}
+      <CalendarFeedLink />
 
       {/* Logout */}
       <div className="px-2 pb-4">
