@@ -9,6 +9,7 @@ import { RecurrencePicker } from '../common/RecurrencePicker'
 import { ListSelect } from '../common/ListSelect'
 import { InlineLabelCreator } from '../common/InlineLabelCreator'
 import type { List, Label, Priority } from '../../api/types'
+import { COLORS, UI } from '../../constants'
 
 interface QuickAddProps {
   listId?: string
@@ -115,7 +116,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
         onClick={() => { setExpanded(true); setTimeout(() => inputRef.current?.focus(), 50) }}
         className="mx-4 my-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#f8f8fa] hover:bg-[#f0f0f2] transition-colors text-[15px] text-text-secondary w-[calc(100%-32px)]"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={UI.accent} strokeWidth="2" strokeLinecap="round">
           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
         </svg>
         New task...
@@ -204,8 +205,8 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
                     selected ? 'ring-1 ring-offset-1' : 'opacity-40 hover:opacity-70'
                   }`}
                   style={{
-                    backgroundColor: (label.colour || '#86868b') + (selected ? '25' : '12'),
-                    color: label.colour || '#86868b',
+                    backgroundColor: (label.colour || COLORS.gray) + (selected ? '25' : '12'),
+                    color: label.colour || COLORS.gray,
                   }}
                 >
                   {selected && '✓ '}{label.name}

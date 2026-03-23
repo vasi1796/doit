@@ -1,10 +1,11 @@
 import type { Priority } from '../../api/types'
+import { COLORS, PRIORITY_COLORS } from '../../constants'
 
 const PRIORITIES: { value: Priority; label: string; color: string }[] = [
-  { value: 0, label: 'None', color: '#86868b' },
-  { value: 1, label: 'Low', color: '#4cd964' },
-  { value: 2, label: 'Medium', color: '#ff9500' },
-  { value: 3, label: 'High', color: '#ff3b30' },
+  { value: 0, label: 'None', color: COLORS.gray },
+  { value: 1, label: 'Low', color: PRIORITY_COLORS[1]! },
+  { value: 2, label: 'Medium', color: PRIORITY_COLORS[2]! },
+  { value: 3, label: 'High', color: PRIORITY_COLORS[3]! },
 ]
 
 interface PriorityPickerProps {
@@ -66,7 +67,7 @@ export function PriorityPicker({ value, onChange, compact = false }: PriorityPic
               <line x1="4" y1="22" x2="4" y2="15" />
             </svg>
           )}
-          <span className="hidden sm:inline" style={{ color: p.value === 0 ? '#86868b' : p.color }}>{p.label}</span>
+          <span className="hidden sm:inline" style={{ color: p.value === 0 ? COLORS.gray : p.color }}>{p.label}</span>
         </button>
       ))}
     </div>

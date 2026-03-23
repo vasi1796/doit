@@ -2,7 +2,7 @@ import { useState } from 'react'
 import * as operations from '../../db/operations'
 import { useToast } from './Toast'
 import type { Label } from '../../api/types'
-import { PRESET_COLORS } from '../../constants'
+import { PRESET_COLORS, COLORS, UI } from '../../constants'
 
 interface LabelPickerProps {
   allLabels: Label[]
@@ -51,11 +51,11 @@ export function LabelPicker({ allLabels, attachedIds, taskId }: LabelPickerProps
         >
           <span
             className="w-3 h-3 rounded-full shrink-0"
-            style={{ backgroundColor: label.colour || '#86868b' }}
+            style={{ backgroundColor: label.colour || COLORS.gray }}
           />
           <span className="text-sm flex-1 text-left">{label.name}</span>
           {attachedIds.has(label.id) && (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={UI.accent} strokeWidth="2.5" strokeLinecap="round">
               <path d="m5 12 5 5L20 7" />
             </svg>
           )}
