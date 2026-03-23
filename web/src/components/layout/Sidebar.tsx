@@ -210,27 +210,45 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
           </button>
         </div>
         {addingList && (
-          <form onSubmit={handleCreateList} className="px-3 mb-2 space-y-2">
-            <input
-              type="text"
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              placeholder="List name"
-              className="w-full text-sm outline-none border-b border-gray-300 py-1 bg-transparent"
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
-            />
-            <div className="flex items-center gap-1">
+          <form onSubmit={handleCreateList} className="mx-1 mb-2 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-3 pt-3 pb-2">
+              <input
+                type="text"
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                placeholder="List name"
+                className="w-full text-[16px] font-medium outline-none bg-transparent text-text-primary placeholder:text-text-tertiary"
+                // eslint-disable-next-line jsx-a11y/no-autofocus
+                autoFocus
+              />
+            </div>
+            <div className="px-3 pb-3 flex items-center gap-1.5">
               {PRESET_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setNewListColour(c)}
-                  className={`w-5 h-5 rounded-full ${newListColour === c ? 'ring-2 ring-offset-1 ring-accent/30' : ''}`}
+                  className={`w-6 h-6 rounded-full transition-transform ${newListColour === c ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
                   style={{ backgroundColor: c }}
+                  aria-label={`Color ${c}`}
                 />
               ))}
-              <button type="submit" className="ml-auto text-xs text-accent font-medium">Create</button>
+            </div>
+            <div className="flex border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => { setNewListName(''); setAddingList(false) }}
+                className="flex-1 text-sm text-text-secondary font-medium py-2.5 hover:bg-gray-50 transition-colors min-h-[44px]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!newListName.trim()}
+                className="flex-1 text-sm text-accent font-semibold py-2.5 hover:bg-accent/5 transition-colors border-l border-gray-100 min-h-[44px] disabled:opacity-30"
+              >
+                Create
+              </button>
             </div>
           </form>
         )}
