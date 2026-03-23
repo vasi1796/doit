@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -89,6 +90,7 @@ func envInt(key string, fallback int) int {
 	}
 	n, err := strconv.Atoi(v)
 	if err != nil {
+		log.Printf("WARNING: env %s=%q is not a valid int, using fallback %d: %v", key, v, fallback, err)
 		return fallback
 	}
 	return n
@@ -101,6 +103,7 @@ func envBool(key string, fallback bool) bool {
 	}
 	b, err := strconv.ParseBool(v)
 	if err != nil {
+		log.Printf("WARNING: env %s=%q is not a valid bool, using fallback %v: %v", key, v, fallback, err)
 		return fallback
 	}
 	return b
@@ -129,6 +132,7 @@ func envDuration(key string, fallback time.Duration) time.Duration {
 	}
 	d, err := time.ParseDuration(v)
 	if err != nil {
+		log.Printf("WARNING: env %s=%q is not a valid duration, using fallback %v: %v", key, v, fallback, err)
 		return fallback
 	}
 	return d
