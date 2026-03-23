@@ -104,10 +104,15 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -155,7 +160,7 @@ jobs:
             git commit -m "test(web): update Linux visual regression baselines [ci skip]
 
           Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
-            git push origin HEAD:${{ github.head_ref }}
+            git push
           fi
 
       - name: Fail if visual tests failed and no snapshots updated
