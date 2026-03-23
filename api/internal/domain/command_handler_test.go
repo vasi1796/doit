@@ -55,88 +55,106 @@ func (m *mockPool) Begin(_ context.Context) (pgx.Tx, error) {
 	return mockTx{}, nil
 }
 
-func TestCommandHandlerCreateTask(t *testing.T) {
-	store := &mockEventStore{}
-	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
+func TestCommandHandler(t *testing.T) {
+	loadErr := errors.New("db connection failed")
 
-	cmd := CreateTask{
-		TaskID:   uuid.New(),
-		UserID:   uuid.New(),
-		Title:    "Test task",
-		Priority: 1,
-		Position: "a",
-	}
-
-	err := handler.CreateTask(context.Background(), cmd)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(store.appended) != 1 {
-		t.Fatalf("appended %d events, want 1", len(store.appended))
-	}
-	if store.appended[0].EventType != eventstore.EventTaskCreated {
-		t.Errorf("EventType = %q, want %q", store.appended[0].EventType, eventstore.EventTaskCreated)
-	}
-}
-
-func TestCommandHandlerCompleteTask(t *testing.T) {
-	aggID := uuid.New()
-	store := &mockEventStore{
-		events: []eventstore.Event{
-			taskEvent(aggID, eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
+	tests := []struct {
+		name           string
+		store          *mockEventStore
+		action         func(h *CommandHandler) error
+		wantErr        error
+		wantAppended   int
+		checkEventType eventstore.EventType
+		checkVersion   int
+	}{
+		{
+			name:  "create task appends TaskCreated event",
+			store: &mockEventStore{},
+			action: func(h *CommandHandler) error {
+				return h.CreateTask(context.Background(), CreateTask{
+					TaskID:   uuid.New(),
+					UserID:   uuid.New(),
+					Title:    "Test task",
+					Priority: 1,
+					Position: "a",
+				})
+			},
+			wantAppended:   1,
+			checkEventType: eventstore.EventTaskCreated,
+		},
+		{
+			name: "complete task appends event with version 2",
+			store: &mockEventStore{
+				events: []eventstore.Event{
+					taskEvent(uuid.MustParse("00000000-0000-0000-0000-000000000001"), eventstore.EventTaskCreated, 1, TaskCreatedPayload{Title: "x"}),
+				},
+			},
+			action: func(h *CommandHandler) error {
+				return h.CompleteTask(context.Background(), uuid.MustParse("00000000-0000-0000-0000-000000000001"), testUserID, CompleteTask{CompletedAt: testNow})
+			},
+			wantAppended: 1,
+			checkVersion: 2,
+		},
+		{
+			name:  "complete task returns ErrTaskNotFound for empty event history",
+			store: &mockEventStore{events: []eventstore.Event{}},
+			action: func(h *CommandHandler) error {
+				return h.CompleteTask(context.Background(), uuid.New(), testUserID, CompleteTask{CompletedAt: testNow})
+			},
+			wantErr: ErrTaskNotFound,
+		},
+		{
+			name:  "create task returns ErrVersionConflict on append error",
+			store: &mockEventStore{appendErr: eventstore.ErrVersionConflict},
+			action: func(h *CommandHandler) error {
+				return h.CreateTask(context.Background(), CreateTask{
+					TaskID:   uuid.New(),
+					UserID:   uuid.New(),
+					Title:    "Test",
+					Priority: 0,
+					Position: "a",
+				})
+			},
+			wantErr: ErrVersionConflict,
+		},
+		{
+			name:  "complete task returns load error",
+			store: &mockEventStore{loadErr: loadErr},
+			action: func(h *CommandHandler) error {
+				return h.CompleteTask(context.Background(), uuid.New(), testUserID, CompleteTask{CompletedAt: testNow})
+			},
+			wantErr: loadErr,
 		},
 	}
-	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
 
-	err := handler.CompleteTask(context.Background(), aggID, testUserID, CompleteTask{CompletedAt: testNow})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(store.appended) != 1 {
-		t.Fatalf("appended %d events, want 1", len(store.appended))
-	}
-	if store.appended[0].Version != 2 {
-		t.Errorf("Version = %d, want 2", store.appended[0].Version)
-	}
-}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := NewCommandHandler(tc.store, &mockPool{}, hlc.New())
 
-func TestCommandHandlerTaskNotFound(t *testing.T) {
-	store := &mockEventStore{events: []eventstore.Event{}}
-	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
+			err := tc.action(handler)
 
-	err := handler.CompleteTask(context.Background(), uuid.New(), testUserID, CompleteTask{CompletedAt: testNow})
-	if !errors.Is(err, ErrTaskNotFound) {
-		t.Fatalf("got error %v, want %v", err, ErrTaskNotFound)
-	}
-}
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("got error %v, want %v", err, tc.wantErr)
+				}
+				return
+			}
 
-func TestCommandHandlerAppendError(t *testing.T) {
-	store := &mockEventStore{
-		appendErr: eventstore.ErrVersionConflict,
-	}
-	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 
-	cmd := CreateTask{
-		TaskID:   uuid.New(),
-		UserID:   uuid.New(),
-		Title:    "Test",
-		Priority: 0,
-		Position: "a",
-	}
+			if tc.wantAppended > 0 && len(tc.store.appended) != tc.wantAppended {
+				t.Fatalf("appended %d events, want %d", len(tc.store.appended), tc.wantAppended)
+			}
 
-	err := handler.CreateTask(context.Background(), cmd)
-	if !errors.Is(err, ErrVersionConflict) {
-		t.Fatalf("got error %v, want %v", err, ErrVersionConflict)
-	}
-}
+			if tc.checkEventType != "" && tc.store.appended[0].EventType != tc.checkEventType {
+				t.Errorf("EventType = %q, want %q", tc.store.appended[0].EventType, tc.checkEventType)
+			}
 
-func TestCommandHandlerLoadError(t *testing.T) {
-	loadErr := errors.New("db connection failed")
-	store := &mockEventStore{loadErr: loadErr}
-	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
-
-	err := handler.CompleteTask(context.Background(), uuid.New(), testUserID, CompleteTask{CompletedAt: testNow})
-	if !errors.Is(err, loadErr) {
-		t.Fatalf("got error %v, want %v", err, loadErr)
+			if tc.checkVersion > 0 && tc.store.appended[0].Version != tc.checkVersion {
+				t.Errorf("Version = %d, want %d", tc.store.appended[0].Version, tc.checkVersion)
+			}
+		})
 	}
 }

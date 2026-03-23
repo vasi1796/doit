@@ -340,6 +340,292 @@ func TestSyncUpdateTaskPositionOnlyDispatchesReorder(t *testing.T) {
 	}
 }
 
+func TestSyncDispatchOpAllTypes(t *testing.T) {
+	labelID := uuid.New()
+	subtaskID := uuid.New()
+
+	tests := []struct {
+		name        string
+		opType      string
+		data        map[string]any
+		wantCalls   []string
+		wantFailed  bool
+	}{
+		{
+			name:      "DeleteTask dispatches DeleteTask",
+			opType:    "DeleteTask",
+			data:      map[string]any{},
+			wantCalls: []string{"DeleteTask"},
+		},
+		{
+			name:      "RestoreTask dispatches RestoreTask",
+			opType:    "RestoreTask",
+			data:      map[string]any{},
+			wantCalls: []string{"RestoreTask"},
+		},
+		{
+			name:      "UncompleteTask dispatches UncompleteTask",
+			opType:    "UncompleteTask",
+			data:      map[string]any{},
+			wantCalls: []string{"UncompleteTask"},
+		},
+		{
+			name:      "AddLabel dispatches AddLabel with label_id",
+			opType:    "AddLabel",
+			data:      map[string]any{"label_id": labelID.String()},
+			wantCalls: []string{"AddLabel"},
+		},
+		{
+			name:       "AddLabel fails with invalid label_id",
+			opType:     "AddLabel",
+			data:       map[string]any{"label_id": "not-a-uuid"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:      "RemoveLabel dispatches RemoveLabel with label_id",
+			opType:    "RemoveLabel",
+			data:      map[string]any{"label_id": labelID.String()},
+			wantCalls: []string{"RemoveLabel"},
+		},
+		{
+			name:       "RemoveLabel fails with invalid label_id",
+			opType:     "RemoveLabel",
+			data:       map[string]any{"label_id": "bad"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:      "CreateSubtask dispatches with subtask_id, title, position",
+			opType:    "CreateSubtask",
+			data:      map[string]any{"subtask_id": subtaskID.String(), "title": "Sub 1", "position": "a"},
+			wantCalls: []string{"CreateSubtask"},
+		},
+		{
+			name:       "CreateSubtask fails with invalid subtask_id",
+			opType:     "CreateSubtask",
+			data:       map[string]any{"subtask_id": "bad", "title": "Sub 1", "position": "a"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:      "CompleteSubtask dispatches with subtask_id",
+			opType:    "CompleteSubtask",
+			data:      map[string]any{"subtask_id": subtaskID.String()},
+			wantCalls: []string{"CompleteSubtask"},
+		},
+		{
+			name:       "CompleteSubtask fails with invalid subtask_id",
+			opType:     "CompleteSubtask",
+			data:       map[string]any{"subtask_id": "bad"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:      "UncompleteSubtask dispatches with subtask_id",
+			opType:    "UncompleteSubtask",
+			data:      map[string]any{"subtask_id": subtaskID.String()},
+			wantCalls: []string{"UncompleteSubtask"},
+		},
+		{
+			name:       "UncompleteSubtask fails with invalid subtask_id",
+			opType:     "UncompleteSubtask",
+			data:       map[string]any{"subtask_id": "bad"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:      "UpdateSubtaskTitle dispatches with subtask_id and title",
+			opType:    "UpdateSubtaskTitle",
+			data:      map[string]any{"subtask_id": subtaskID.String(), "title": "Updated sub"},
+			wantCalls: []string{"UpdateSubtaskTitle"},
+		},
+		{
+			name:       "UpdateSubtaskTitle fails with invalid subtask_id",
+			opType:     "UpdateSubtaskTitle",
+			data:       map[string]any{"subtask_id": "bad", "title": "Updated sub"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:      "CreateList dispatches with name, colour, position",
+			opType:    "CreateList",
+			data:      map[string]any{"name": "Work", "colour": "#ff0000", "position": "a"},
+			wantCalls: []string{"CreateList:Work"},
+		},
+		{
+			name:      "DeleteList dispatches DeleteList",
+			opType:    "DeleteList",
+			data:      map[string]any{},
+			wantCalls: []string{"DeleteList"},
+		},
+		{
+			name:      "CreateLabel dispatches with name, colour",
+			opType:    "CreateLabel",
+			data:      map[string]any{"name": "Urgent", "colour": "#ff0000"},
+			wantCalls: []string{"CreateLabel:Urgent"},
+		},
+		{
+			name:      "DeleteLabel dispatches DeleteLabel",
+			opType:    "DeleteLabel",
+			data:      map[string]any{},
+			wantCalls: []string{"DeleteLabel"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cmds := &mockSyncCommander{}
+			h := newTestSyncHandler(cmds)
+			userID := uuid.New()
+			aggID := uuid.New()
+
+			w := doSyncRequest(t, h, userID, syncRequest{
+				Operations: []syncOperation{
+					{
+						Type:        tc.opType,
+						AggregateID: aggID.String(),
+						Data:        tc.data,
+						HLCTime:     time.Now().UnixMilli(),
+					},
+				},
+			})
+
+			if w.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200", w.Code)
+			}
+
+			var resp syncResponse
+			json.NewDecoder(w.Body).Decode(&resp)
+
+			if tc.wantFailed {
+				if len(resp.FailedOps) == 0 {
+					t.Errorf("expected operation to fail, but FailedOps is empty")
+				}
+				if len(cmds.calls) != 0 {
+					t.Errorf("calls = %v, want none for failed operation", cmds.calls)
+				}
+				return
+			}
+
+			if len(resp.FailedOps) != 0 {
+				t.Errorf("FailedOps = %v, want none", resp.FailedOps)
+			}
+
+			if len(cmds.calls) != len(tc.wantCalls) {
+				t.Fatalf("calls = %v, want %v", cmds.calls, tc.wantCalls)
+			}
+			for i, want := range tc.wantCalls {
+				if cmds.calls[i] != want {
+					t.Errorf("calls[%d] = %q, want %q", i, cmds.calls[i], want)
+				}
+			}
+		})
+	}
+}
+
+func TestSyncUpdateTaskFieldCombinations(t *testing.T) {
+	listID := uuid.New()
+
+	tests := []struct {
+		name      string
+		data      map[string]any
+		wantCalls []string
+	}{
+		{
+			name:      "description only",
+			data:      map[string]any{"description": "A detailed description"},
+			wantCalls: []string{"UpdateTaskDescription"},
+		},
+		{
+			name:      "due_date only with valid date",
+			data:      map[string]any{"due_date": "2026-04-15"},
+			wantCalls: []string{"UpdateTaskDueDate"},
+		},
+		{
+			name:      "due_time only",
+			data:      map[string]any{"due_time": "14:30"},
+			wantCalls: []string{"UpdateTaskDueTime"},
+		},
+		{
+			name:      "recurrence_rule only",
+			data:      map[string]any{"recurrence_rule": "FREQ=DAILY;INTERVAL=1"},
+			wantCalls: []string{"UpdateTaskRecurrence"},
+		},
+		{
+			name:      "list_id + position dispatches MoveTask",
+			data:      map[string]any{"list_id": listID.String(), "position": "c"},
+			wantCalls: []string{"MoveTask"},
+		},
+		{
+			name:      "clearing due_date with null value",
+			data:      map[string]any{"due_date": nil},
+			wantCalls: []string{"UpdateTaskDueDate"},
+		},
+		{
+			name:      "clearing due_time with null value",
+			data:      map[string]any{"due_time": nil},
+			wantCalls: []string{"UpdateTaskDueTime"},
+		},
+		{
+			name:      "description + due_date + priority together",
+			data:      map[string]any{"description": "desc", "due_date": "2026-05-01", "priority": float64(3)},
+			wantCalls: []string{"UpdateTaskDescription", "UpdateTaskPriority", "UpdateTaskDueDate"},
+		},
+		{
+			name:      "title + recurrence_rule + due_time",
+			data:      map[string]any{"title": "Updated", "recurrence_rule": "FREQ=WEEKLY", "due_time": "09:00"},
+			wantCalls: []string{"UpdateTaskTitle:Updated", "UpdateTaskDueTime", "UpdateTaskRecurrence"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cmds := &mockSyncCommander{}
+			h := newTestSyncHandler(cmds)
+			userID := uuid.New()
+			taskID := uuid.New()
+
+			w := doSyncRequest(t, h, userID, syncRequest{
+				Operations: []syncOperation{
+					{
+						Type:        "UpdateTask",
+						AggregateID: taskID.String(),
+						Data:        tc.data,
+						HLCTime:     time.Now().UnixMilli(),
+					},
+				},
+			})
+
+			if w.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200", w.Code)
+			}
+
+			var resp syncResponse
+			json.NewDecoder(w.Body).Decode(&resp)
+
+			if len(resp.FailedOps) != 0 {
+				t.Errorf("FailedOps = %v, want none", resp.FailedOps)
+			}
+
+			if len(cmds.calls) != len(tc.wantCalls) {
+				t.Fatalf("calls = %v, want %v", cmds.calls, tc.wantCalls)
+			}
+
+			// Check that all expected calls are present (order may vary for some fields)
+			callSet := make(map[string]bool)
+			for _, c := range cmds.calls {
+				callSet[c] = true
+			}
+			for _, want := range tc.wantCalls {
+				if !callSet[want] {
+					t.Errorf("expected call %q not found in %v", want, cmds.calls)
+				}
+			}
+		})
+	}
+}
+
 func TestSyncMalformedDataDoesNotPanic(t *testing.T) {
 	cmds := &mockSyncCommander{}
 	h := newTestSyncHandler(cmds)
