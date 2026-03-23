@@ -222,13 +222,13 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 autoFocus
               />
             </div>
-            <div className="px-3 pb-3 flex items-center gap-1.5">
+            <div className="px-3 pb-2 flex items-center gap-1">
               {PRESET_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setNewListColour(c)}
-                  className={`w-6 h-6 rounded-full transition-transform ${newListColour === c ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
+                  className={`w-5 h-5 rounded-full ${newListColour === c ? 'ring-2 ring-offset-1 ring-accent/40' : ''}`}
                   style={{ backgroundColor: c }}
                   aria-label={`Color ${c}`}
                 />
