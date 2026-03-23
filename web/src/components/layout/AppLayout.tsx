@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Outlet, useLocation } from 'react-router'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
+import { QuickAdd } from '../tasks/QuickAdd'
 import { useLists } from '../../hooks/useLists'
 import { useLabels } from '../../hooks/useLabels'
 import { useTasks } from '../../hooks/useTasks'
@@ -31,6 +32,52 @@ const LayoutCtx = createContext<LayoutContext>({
 
 export function useLayoutContext() {
   return useContext(LayoutCtx)
+}
+
+function QuickAddModal({ lists, labels, pathname, onClose }: { lists: List[]; labels: Label[]; pathname: string; onClose: () => void }) {
+  const quickAddRef = useRef<{ focus: () => void } | null>(null)
+
+  // Derive context from current route
+  const listMatch = pathname.match(/^\/lists\/(.+)/)
+  const labelMatch = pathname.match(/^\/labels\/(.+)/)
+  const isToday = pathname === '/today'
+
+  const prefilledListId = listMatch ? listMatch[1] : undefined
+  const prefilledDueDate = isToday ? new Date().toISOString().split('T')[0] : undefined
+  const prefilledLabelId = labelMatch ? labelMatch[1] : undefined
+
+  // Auto-focus on mount + Escape to close
+  useEffect(() => {
+    setTimeout(() => quickAddRef.current?.focus(), 50)
+    const handleEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [onClose])
+
+  return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions
+    <div
+      className="fixed inset-0 bg-black/20 z-[60] flex items-start justify-center pt-[15vh] animate-[fade-in_0.15s_ease-out]"
+      role="dialog"
+      aria-modal="true"
+      aria-label="New task"
+      onClick={onClose}
+    >
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div className="w-full max-w-[480px] mx-4" onClick={(e) => e.stopPropagation()}>
+        <QuickAdd
+          ref={quickAddRef}
+          lists={lists}
+          labels={labels}
+          listId={prefilledListId}
+          dueDate={prefilledDueDate}
+          labelId={prefilledLabelId}
+          onCreated={onClose}
+          initialExpanded
+        />
+      </div>
+    </div>
+  )
 }
 
 export function AppLayout() {
@@ -71,27 +118,30 @@ export function AppLayout() {
     }, {}),
   }), [tasks, today, nextWeekStr])
 
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      const isInInput = e.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)
+      const isInInput = e.target instanceof HTMLElement && (
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable
+      )
 
-      // Cmd+N — always try (works in PWA, browser may also capture)
+      // Cmd+N — open global quick add
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault()
-        quickAddRef.current?.focus()
+        setQuickAddOpen(true)
       }
-      // "/" to focus quick add (only if not already in an input)
+      // "/" to open quick add (only if not already in an input)
       if (e.key === '/' && !isInInput) {
         e.preventDefault()
-        quickAddRef.current?.focus()
+        setQuickAddOpen(true)
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [])
-
-  const [drawerOpen, setDrawerOpen] = useState(false)
   const toggleDrawer = useCallback(() => setDrawerOpen((v) => !v), [])
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
   const location = useLocation()
@@ -138,6 +188,28 @@ export function AppLayout() {
         </main>
 
         <BottomNav taskCounts={taskCounts} onMenuToggle={toggleDrawer} />
+
+        {/* Global quick-add FAB */}
+        <button
+          type="button"
+          onClick={() => setQuickAddOpen(true)}
+          aria-label="New task"
+          className="fixed right-5 bottom-[80px] md:bottom-6 w-[56px] h-[56px] rounded-full bg-accent text-white shadow-lg flex items-center justify-center z-40 hover:bg-accent/90 active:scale-95 transition-transform"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+
+        {/* Quick-add modal overlay */}
+        {quickAddOpen && (
+          <QuickAddModal
+            lists={lists}
+            labels={labels}
+            pathname={location.pathname}
+            onClose={() => setQuickAddOpen(false)}
+          />
+        )}
       </div>
     </LayoutCtx.Provider>
   )

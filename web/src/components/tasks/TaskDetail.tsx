@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import * as operations from '../../db/operations'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
 import { useLabels } from '../../hooks/useLabels'
 import { useToast } from '../common/Toast'
+import { MarkdownEditor } from '../common/MarkdownEditor'
+import { InlineMarkdown } from '../common/InlineMarkdown'
 import { TaskProperties } from './TaskProperties'
 import { SubtaskSection } from './SubtaskSection'
 import { LabelsSection } from './LabelsSection'
@@ -35,6 +37,20 @@ export function TaskDetail({ taskId, lists, onClose }: TaskDetailProps) {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [onClose])
+
+  const descTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const resolvedTaskId = task?.id
+  const saveDescription = useCallback((val: string) => {
+    if (descTimerRef.current) clearTimeout(descTimerRef.current)
+    descTimerRef.current = setTimeout(() => {
+      if (resolvedTaskId) operations.updateTask(resolvedTaskId, { description: val })
+    }, 500)
+  }, [resolvedTaskId])
+
+  // Clear debounce timer on unmount
+  useEffect(() => () => {
+    if (descTimerRef.current) clearTimeout(descTimerRef.current)
+  }, [])
 
   if (loading || !task) {
     return (
@@ -139,7 +155,7 @@ export function TaskDetail({ taskId, lists, onClose }: TaskDetailProps) {
                 onClick={() => { setEditingTitle(true); setTimeout(() => titleRef.current?.select(), 10) }}
                 className="text-lg font-medium text-text-primary cursor-text hover:bg-gray-50 rounded px-1 -mx-1 py-0.5"
               >
-                {task.title}
+                <InlineMarkdown text={task.title} />
               </h2>
             )}
           </div>
@@ -153,15 +169,13 @@ export function TaskDetail({ taskId, lists, onClose }: TaskDetailProps) {
 
         <TaskProperties task={task} lists={lists} onSave={save} />
 
-        <textarea
-          defaultValue={task.description || ''}
-          onBlur={(e) => {
-            if (e.target.value !== (task.description || '')) save('description', e.target.value)
-          }}
-          placeholder="Add notes..."
-          aria-label="Task notes"
-          className="w-full min-h-[80px] text-base text-text-primary placeholder:text-text-secondary outline-none resize-none border border-gray-200 rounded-lg p-3 mb-4 focus:border-accent"
-        />
+        <div className="border border-gray-200 rounded-lg p-3 mb-4 focus-within:border-accent transition-colors">
+          <MarkdownEditor
+            value={task.description || ''}
+            onChange={saveDescription}
+            placeholder="Add notes..."
+          />
+        </div>
 
         <SubtaskSection taskId={task.id} subtasks={task.subtasks || []} />
 

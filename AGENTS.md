@@ -115,8 +115,9 @@ doit/
       api/                     # Typed fetch client + TS interfaces
       components/
         common/                # DatePicker, TimePicker, PriorityPicker, RecurrencePicker,
-                               # ListSelect, LabelPicker, Toast, EmptyState
-        layout/                # AppLayout, Sidebar, BottomNav
+                               # ListSelect, LabelPicker, Toast, EmptyState,
+                               # MarkdownEditor, InlineMarkdown, InstallBanner
+        layout/                # AppLayout (global FAB, QuickAddModal), Sidebar, BottomNav
         tasks/                 # QuickAdd, TaskItem, TaskDetail, TaskList, TaskProperties,
                                # SubtaskSection, LabelsSection
       hooks/                   # useTasks, useLists, useLabels, useTaskDetail

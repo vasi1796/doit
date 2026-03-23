@@ -40,14 +40,16 @@ web/              React frontend
   src/
     api/           Typed fetch client + generated types (from OpenAPI spec)
     crdt/          CRDT merge functions (TypeScript, mirrors Go)
-    components/    Common pickers, layout (sidebar/bottom nav), task components
+    components/    Common pickers, layout (sidebar/bottom nav, global FAB), task components
+                   MarkdownEditor (CodeMirror 6 live preview), InlineMarkdown (lightweight title renderer)
     db/            Dexie.js database, operations, sync engine, event merger
     hlc/           Hybrid Logical Clock (TypeScript, mirrors Go)
     hooks/         Dexie.js useLiveQuery hooks (useTasks, useLists, useLabels, useTaskDetail)
     pages/         Route pages (Inbox, Today, Upcoming, List, Label, Completed, Trash, Login)
-    constants.ts   Shared color palette
+    push.ts        Web Push subscription management (PushManager API)
+    constants.ts   Shared color palette + UI semantic colors
   e2e/            Playwright visual regression + accessibility tests
-  public/sw.js    Service worker (app shell caching for offline launch)
+  public/sw.js    Service worker (app shell caching + push notification handlers)
 docs/adr/         Architecture Decision Records
 docs/diagrams/    Mermaid architecture diagrams
 scripts/          Backup and utility scripts
@@ -225,6 +227,9 @@ make generate
 
 # Build frontend
 cd web && npm run build
+
+# Run frontend unit tests (Vitest)
+cd web && npm test
 
 # Run frontend lint (includes jsx-a11y)
 cd web && npm run lint

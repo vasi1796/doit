@@ -1,4 +1,5 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
+import { MarkdownEditor } from '../common/MarkdownEditor'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { PriorityPicker } from '../common/PriorityPicker'
@@ -11,21 +12,25 @@ import type { List, Label, Priority } from '../../api/types'
 
 interface QuickAddProps {
   listId?: string
+  dueDate?: string
+  labelId?: string
   lists?: List[]
   labels?: Label[]
+  onCreated?: () => void
+  initialExpanded?: boolean
 }
 
-export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(function QuickAdd({ listId, lists, labels }, ref) {
+export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(function QuickAdd({ listId, dueDate: initialDueDate, labelId: initialLabelId, lists, labels, onCreated, initialExpanded }, ref) {
   const { toast } = useToast()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<Priority>(0)
-  const [dueDate, setDueDate] = useState('')
+  const [dueDate, setDueDate] = useState(initialDueDate || '')
   const [dueTime, setDueTime] = useState('')
   const [recurrence, setRecurrence] = useState('')
   const [selectedListId, setSelectedListId] = useState(listId || '')
-  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([])
-  const [expanded, setExpanded] = useState(false)
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>(initialLabelId ? [initialLabelId] : [])
+  const [expanded, setExpanded] = useState(initialExpanded ?? false)
   const [submitting, setSubmitting] = useState(false)
   const [creatingLabel, setCreatingLabel] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -85,7 +90,11 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
 
       resetForm()
       toast('Task created', 'success')
-      setTimeout(() => inputRef.current?.focus(), 50)
+      if (onCreated) {
+        onCreated()
+      } else {
+        setTimeout(() => inputRef.current?.focus(), 50)
+      }
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to create task', 'error')
     } finally {
@@ -152,13 +161,11 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
       </div>
 
       <div className="px-4 pb-3">
-        <textarea
+        <MarkdownEditor
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={setDescription}
           placeholder="Notes"
-          aria-label="Task notes"
-          rows={2}
-          className="w-full text-[16px] outline-none placeholder:text-text-tertiary resize-none text-text-note"
+          minHeight="48px"
         />
       </div>
 
