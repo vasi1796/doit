@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,7 +13,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog"
 
 	"time"
@@ -40,6 +43,11 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Run migrations before anything else
+	if err := runMigrations(cfg.DatabaseURL, logger); err != nil {
+		logger.Fatal().Err(err).Msg("failed to run migrations")
+	}
 
 	pool, err := connectDB(ctx, cfg, logger)
 	if err != nil {
@@ -93,6 +101,25 @@ func main() {
 	}
 
 	logger.Info().Msg("server stopped")
+}
+
+func runMigrations(dbURL string, logger zerolog.Logger) error {
+	db, err := sql.Open("pgx", dbURL)
+	if err != nil {
+		return fmt.Errorf("opening database for migrations: %w", err)
+	}
+	defer db.Close()
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("setting goose dialect: %w", err)
+	}
+
+	if err := goose.Up(db, "migrations"); err != nil {
+		return fmt.Errorf("running migrations: %w", err)
+	}
+
+	logger.Info().Msg("database migrations applied")
+	return nil
 }
 
 func newLogger(level, format string) zerolog.Logger {

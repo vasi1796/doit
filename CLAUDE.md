@@ -182,11 +182,8 @@ No rollback on failure — the sync engine retries with exponential backoff.
 # Terminal 1: Postgres + RabbitMQ
 docker compose up postgres rabbitmq -d
 
-# Terminal 2: Migrations + API (includes outbox poller)
+# Terminal 2: API (runs migrations on startup, includes outbox poller)
 cd api && DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable \
-RABBITMQ_URL=amqp://doit:changeme@localhost:5672/ \
-DEV_MODE=true SECURE_COOKIES=false go run ./cmd/migrate up && \
-DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable \
 RABBITMQ_URL=amqp://doit:changeme@localhost:5672/ \
 DEV_MODE=true SECURE_COOKIES=false go run ./cmd/api
 
