@@ -41,11 +41,12 @@ web/              React frontend
     api/           Typed fetch client + generated types (from OpenAPI spec)
     crdt/          CRDT merge functions (TypeScript, mirrors Go)
     components/    Common pickers, layout (sidebar/bottom nav, global FAB), task components
-                   MarkdownEditor (CodeMirror 6 live preview), InlineMarkdown (lightweight title renderer)
+                   MarkdownEditor (CodeMirror 6 live preview), InlineMarkdown (lightweight title renderer),
+                   SearchOverlay (Cmd+K global search with keyboard navigation)
     db/            Dexie.js database, operations, sync engine, event merger
     hlc/           Hybrid Logical Clock (TypeScript, mirrors Go)
     hooks/         Dexie.js useLiveQuery hooks (useTasks, useLists, useLabels, useTaskDetail)
-    pages/         Route pages (Inbox, Today, Upcoming, List, Label, Completed, Trash, Login)
+    pages/         Route pages (Inbox, Today, Upcoming, Matrix, Calendar, List, Label, Completed, Trash, Login)
     push.ts        Web Push subscription management (PushManager API)
     constants.ts   Shared color palette + UI semantic colors
   e2e/            Playwright visual regression + accessibility tests
@@ -182,11 +183,8 @@ No rollback on failure — the sync engine retries with exponential backoff.
 # Terminal 1: Postgres + RabbitMQ
 docker compose up postgres rabbitmq -d
 
-# Terminal 2: Migrations + API (includes outbox poller)
+# Terminal 2: API (runs migrations on startup, includes outbox poller)
 cd api && DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable \
-RABBITMQ_URL=amqp://doit:changeme@localhost:5672/ \
-DEV_MODE=true SECURE_COOKIES=false go run ./cmd/migrate up && \
-DATABASE_URL=postgres://doit:changeme@localhost:5432/doit?sslmode=disable \
 RABBITMQ_URL=amqp://doit:changeme@localhost:5672/ \
 DEV_MODE=true SECURE_COOKIES=false go run ./cmd/api
 

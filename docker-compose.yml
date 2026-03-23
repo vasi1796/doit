@@ -9,6 +9,7 @@ volumes:
   caddy_data:
   caddy_config:
   rabbitmq_data:
+  web_dist:
 
 services:
   # ---------------------------------------------------------------------------
@@ -65,6 +66,18 @@ services:
     stop_grace_period: 20s
 
   # ---------------------------------------------------------------------------
+  # Web Build — builds React frontend, outputs dist to shared volume
+  # ---------------------------------------------------------------------------
+  web-build:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: doit-web-build
+    volumes:
+      - web_dist:/out
+    entrypoint: ["cp", "-r", "/app/dist/.", "/out/"]
+
+  # ---------------------------------------------------------------------------
   # Caddy — TLS termination, reverse proxy, PWA static assets
   # ---------------------------------------------------------------------------
   caddy:
@@ -79,10 +92,12 @@ services:
       - "443:443/udp"   # HTTP/3
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./web/dist:/srv/web:ro
+      - web_dist:/srv/web:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
+      web-build:
+        condition: service_completed_successfully
       doit-api:
         condition: service_healthy
     healthcheck:

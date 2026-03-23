@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { to: '/inbox', label: 'Inbox', icon: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z' },
   { to: '/today', label: 'Today', icon: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' },
   { to: '/upcoming', label: 'Upcoming', icon: 'M13 17l5-5-5-5M6 17l5-5-5-5' },
+  { to: '/matrix', label: 'Matrix', icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' },
+  { to: '/calendar', label: 'Calendar', icon: 'M8 2v4M16 2v4M3 10h18M21 6v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
 ]
 
 const BOTTOM_ITEMS = [
@@ -27,6 +29,7 @@ interface SidebarProps {
     upcoming: number
     byList: Record<string, number>
   }
+  onSearchOpen?: () => void
 }
 
 function NotificationToggle() {
@@ -129,7 +132,7 @@ function NavItem({ to, label, icon, count }: { to: string; label: string; icon: 
   )
 }
 
-export function Sidebar({ lists, labels, taskCounts }: SidebarProps) {
+export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProps) {
   const { toast } = useToast()
   const navigate = useNavigate()
   const [addingList, setAddingList] = useState(false)
@@ -158,6 +161,24 @@ export function Sidebar({ lists, labels, taskCounts }: SidebarProps) {
       <div className="px-4 pt-4 pb-2">
         <h1 className="text-lg font-semibold text-text-primary">DoIt</h1>
       </div>
+
+      {/* Search */}
+      {onSearchOpen && (
+        <div className="px-2 mb-1">
+          <button
+            type="button"
+            onClick={onSearchOpen}
+            className="flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[14px] text-text-secondary hover:bg-black/[0.03] w-full transition-colors"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <span className="flex-1 text-left">Search</span>
+            <kbd className="hidden md:inline-block text-[11px] text-text-tertiary border border-gray-200 rounded px-1.5 py-0.5">⌘K</kbd>
+          </button>
+        </div>
+      )}
 
       {/* Smart lists */}
       <nav className="px-2 space-y-0.5">
@@ -189,27 +210,45 @@ export function Sidebar({ lists, labels, taskCounts }: SidebarProps) {
           </button>
         </div>
         {addingList && (
-          <form onSubmit={handleCreateList} className="px-3 mb-2 space-y-2">
-            <input
-              type="text"
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              placeholder="List name"
-              className="w-full text-sm outline-none border-b border-gray-300 py-1 bg-transparent"
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
-            />
-            <div className="flex items-center gap-1">
+          <form onSubmit={handleCreateList} className="mx-1 mb-2 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-3 pt-3 pb-2">
+              <input
+                type="text"
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                placeholder="List name"
+                className="w-full text-[16px] font-medium outline-none bg-transparent text-text-primary placeholder:text-text-tertiary"
+                // eslint-disable-next-line jsx-a11y/no-autofocus
+                autoFocus
+              />
+            </div>
+            <div className="px-3 pb-2 flex items-center gap-1">
               {PRESET_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setNewListColour(c)}
-                  className={`w-5 h-5 rounded-full ${newListColour === c ? 'ring-2 ring-offset-1 ring-accent/30' : ''}`}
+                  className={`w-5 h-5 rounded-full ${newListColour === c ? 'ring-2 ring-offset-1 ring-accent/40' : ''}`}
                   style={{ backgroundColor: c }}
+                  aria-label={`Color ${c}`}
                 />
               ))}
-              <button type="submit" className="ml-auto text-xs text-accent font-medium">Create</button>
+            </div>
+            <div className="flex border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => { setNewListName(''); setAddingList(false) }}
+                className="flex-1 text-sm text-text-secondary font-medium py-2.5 hover:bg-gray-50 transition-colors min-h-[44px]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!newListName.trim()}
+                className="flex-1 text-sm text-accent font-semibold py-2.5 hover:bg-accent/5 transition-colors border-l border-gray-100 min-h-[44px] disabled:opacity-30"
+              >
+                Create
+              </button>
             </div>
           </form>
         )}

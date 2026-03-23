@@ -58,6 +58,18 @@ test.describe('Visual regression — pages with data', () => {
     await waitForPage(page)
     await expect(page).toHaveScreenshot('label-page.png')
   })
+
+  test('Eisenhower Matrix page', async ({ page }) => {
+    await page.goto('/matrix')
+    await waitForPage(page)
+    await expect(page).toHaveScreenshot('matrix.png')
+  })
+
+  test('Calendar page', async ({ page }) => {
+    await page.goto('/calendar')
+    await waitForPage(page)
+    await expect(page).toHaveScreenshot('calendar.png')
+  })
 })
 
 test.describe('Visual regression — interactive components', () => {
@@ -69,10 +81,15 @@ test.describe('Visual regression — interactive components', () => {
     await page.goto('/inbox')
     await waitForPage(page)
 
+    // Wait for task list to render before looking for QuickAdd
+    await page.locator('[role="button"]').first().waitFor({ state: 'visible', timeout: 10_000 })
+
     // Click the "New task..." button to expand QuickAdd
-    await page.getByText('New task...').click()
+    const newTaskBtn = page.getByText('New task...')
+    await newTaskBtn.waitFor({ state: 'visible', timeout: 10_000 })
+    await newTaskBtn.click()
     // Wait for the expanded form to render
-    await page.getByPlaceholder('Task name').waitFor({ state: 'visible' })
+    await page.getByPlaceholder('Task name').waitFor({ state: 'visible', timeout: 10_000 })
     await page.waitForTimeout(300)
 
     await expect(page).toHaveScreenshot('quickadd-expanded.png')
@@ -101,5 +118,17 @@ test.describe('Visual regression — empty states', () => {
     await page.goto('/trash')
     await waitForPage(page)
     await expect(page).toHaveScreenshot('trash-empty.png')
+  })
+
+  test('Matrix empty state', async ({ page }) => {
+    await page.goto('/matrix')
+    await waitForPage(page)
+    await expect(page).toHaveScreenshot('matrix-empty.png')
+  })
+
+  test('Calendar empty state', async ({ page }) => {
+    await page.goto('/calendar')
+    await waitForPage(page)
+    await expect(page).toHaveScreenshot('calendar-empty.png')
   })
 })

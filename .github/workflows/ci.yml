@@ -104,10 +104,15 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -135,3 +140,34 @@ jobs:
       - name: Visual regression tests
         working-directory: web
         run: npm run test:visual
+        continue-on-error: true
+        id: visual
+
+      - name: Update snapshots if visual tests failed on PR
+        if: steps.visual.outcome == 'failure' && github.event_name == 'pull_request'
+        working-directory: web
+        run: npm run test:visual:update
+
+      - name: Commit updated snapshots
+        if: steps.visual.outcome == 'failure' && github.event_name == 'pull_request'
+        id: snapshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add web/e2e/visual-regression.spec.ts-snapshots/
+          if git diff --cached --quiet; then
+            echo "No snapshot changes to commit"
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "test(web): update Linux visual regression baselines
+
+          Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+            git push
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fail if snapshots were updated (re-run will pass)
+        if: steps.snapshots.outputs.updated == 'true'
+        run: |
+          echo "Linux baselines were updated and pushed. Re-run CI to validate."
+          exit 1

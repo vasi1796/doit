@@ -6,13 +6,8 @@ import { useToast } from '../common/Toast'
 import { InlineMarkdown } from '../common/InlineMarkdown'
 import { PriorityFlag } from '../common/PriorityDot'
 import { formatDueDate } from '../../utils/date'
-import type { Task, Priority } from '../../api/types'
-
-const PRIORITY_COLORS: Partial<Record<Priority, string>> = {
-  1: '#4cd964',
-  2: '#ff9500',
-  3: '#ff3b30',
-}
+import { PRIORITY_COLORS } from '../../constants'
+import type { Task } from '../../api/types'
 
 interface TaskItemProps {
   task: Task
@@ -102,7 +97,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
       <button
         type="button"
         aria-label="Drag to reorder"
-        className="w-[44px] h-[44px] -ml-5 -my-3 flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-tertiary hover:text-text-secondary"
+        className="w-[44px] min-h-[44px] -ml-5 -my-3 self-stretch flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-tertiary hover:text-text-secondary"
         {...dragHandleProps}
         onClick={(e) => e.stopPropagation()}
       >

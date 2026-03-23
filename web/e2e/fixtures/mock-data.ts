@@ -28,6 +28,7 @@ const today = new Date().toISOString().split('T')[0]
 const tomorrow = new Date(Date.now() + 86_400_000).toISOString().split('T')[0]
 const yesterday = new Date(Date.now() - 86_400_000).toISOString().split('T')[0]
 const inThreeDays = new Date(Date.now() + 3 * 86_400_000).toISOString().split('T')[0]
+const inFiveDays = new Date(Date.now() + 5 * 86_400_000).toISOString().split('T')[0]
 
 export const MOCK_TASKS: Task[] = [
   {
@@ -82,7 +83,32 @@ export const MOCK_TASKS: Task[] = [
     is_deleted: false,
     created_at: '2026-03-12T00:00:00Z',
     updated_at: '2026-03-12T00:00:00Z',
-    recurrence_rule: 'FREQ=WEEKLY',
+    recurrence_rule: 'weekly',
+  },
+  {
+    // Matrix: Schedule quadrant (important + not urgent)
+    id: 'task-7',
+    title: 'Prepare quarterly review',
+    priority: 3,
+    due_date: inFiveDays,
+    position: '7',
+    is_completed: false,
+    is_deleted: false,
+    created_at: '2026-03-13T00:00:00Z',
+    updated_at: '2026-03-13T00:00:00Z',
+    labels: [MOCK_LABELS[0]],
+  },
+  {
+    // Matrix: Delegate quadrant (not important + urgent/overdue)
+    id: 'task-8',
+    title: 'Reply to vendor email',
+    priority: 1,
+    due_date: yesterday,
+    position: '8',
+    is_completed: false,
+    is_deleted: false,
+    created_at: '2026-03-09T00:00:00Z',
+    updated_at: '2026-03-09T00:00:00Z',
   },
 ]
 
