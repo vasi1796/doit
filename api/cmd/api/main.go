@@ -187,6 +187,10 @@ func newRouter(pool *pgxpool.Pool, store *eventstore.Store, logger zerolog.Logge
 	r.Head("/healthz", healthHandler(pool, logger))
 	r.Get("/healthz", healthHandler(pool, logger))
 
+	// Deploy webhook (unauthenticated, HMAC-verified)
+	deployHandler := handler.NewDeployHandler(cfg.DeployWebhookSecret, logger)
+	r.Post("/deploy/webhook", deployHandler.Webhook)
+
 	// Auth
 	tokenSvc := auth.NewTokenService(cfg.JWTSecret, cfg.JWTExpiryHours)
 	googleOAuth := auth.NewGoogleOAuth(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURL)

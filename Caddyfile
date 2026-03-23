@@ -39,6 +39,11 @@
 		reverse_proxy doit-api:8080
 	}
 
+	# Deploy webhook
+	handle /deploy/* {
+		reverse_proxy doit-api:8080
+	}
+
 	# -------------------------------------------------------------------------
 	# PWA static assets — served from /srv/web (the built React app)
 	# -------------------------------------------------------------------------
