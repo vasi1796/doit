@@ -35,10 +35,16 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Navigation requests: serve cached index.html (SPA fallback)
+  // Navigation requests: network-first for index.html so deploys take effect
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/index.html').then((cached) => cached || fetch(event.request))
+      fetch('/index.html')
+        .then((response) => {
+          const clone = response.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone))
+          return response
+        })
+        .catch(() => caches.match('/index.html'))
     )
     return
   }
