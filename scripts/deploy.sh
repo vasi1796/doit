@@ -39,6 +39,9 @@ fi
 # Build & Start
 # ---------------------------------------------------------------------------
 log "Building and starting containers..."
+# Remove the web-build one-shot container so it re-runs and copies
+# fresh frontend assets into the shared volume Caddy serves from.
+docker compose rm -fsv web-build 2>/dev/null || true
 docker compose up -d --build
 
 # ---------------------------------------------------------------------------
