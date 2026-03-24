@@ -4,7 +4,7 @@
 //  1. Morning digest — at REMINDER_HOUR, one aggregated notification per user
 //     for tasks with a due_date but no due_time.
 //  2. Due-time alerts — individual notifications for tasks whose due_time
-//     falls within the current polling window.
+//     has passed today (catches up missed tasks).
 package main
 
 import (
@@ -70,29 +70,12 @@ const (
 		FROM tasks t
 		WHERE t.due_date = $1
 		  AND t.due_time IS NOT NULL
-		  AND t.due_time >= $2::time
-		  AND t.due_time < $3::time
+		  AND t.due_time <= $2::time
 		  AND NOT t.is_completed
 		  AND NOT t.is_deleted
 		  AND NOT EXISTS (
 		      SELECT 1 FROM task_reminder_log r
 		      WHERE r.task_id = t.id AND r.due_date = $1
-		  )`
-
-	queryDueTimeTasksMidnight = `
-		SELECT t.id, t.user_id, t.title, t.due_date
-		FROM tasks t
-		WHERE NOT t.is_completed
-		  AND NOT t.is_deleted
-		  AND t.due_time IS NOT NULL
-		  AND (
-		      (t.due_date = $1 AND t.due_time >= $2::time)
-		      OR
-		      (t.due_date = $3 AND t.due_time < $4::time)
-		  )
-		  AND NOT EXISTS (
-		      SELECT 1 FROM task_reminder_log r
-		      WHERE r.task_id = t.id AND r.due_date = t.due_date
 		  )`
 
 	execLogTaskReminder = `
@@ -150,7 +133,7 @@ func main() {
 
 	// Run immediately on startup, then on interval
 	now := time.Now().In(loc)
-	tick(ctx, pool, vapidOpts, interval, reminderHour, now, logger)
+	tick(ctx, pool, vapidOpts, reminderHour, now, logger)
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -162,21 +145,21 @@ func main() {
 			return
 		case <-ticker.C:
 			now := time.Now().In(loc)
-			tick(ctx, pool, vapidOpts, interval, reminderHour, now, logger)
+			tick(ctx, pool, vapidOpts, reminderHour, now, logger)
 		}
 	}
 }
 
 // tick runs both reminder strategies on each interval.
-func tick(ctx context.Context, pool *pgxpool.Pool, opts *webpush.Options, interval time.Duration, reminderHour int, now time.Time, logger zerolog.Logger) {
+func tick(ctx context.Context, pool *pgxpool.Pool, opts *webpush.Options, reminderHour int, now time.Time, logger zerolog.Logger) {
 
 	// Strategy 1: morning digest for tasks with due_date but no due_time
 	if now.Hour() == reminderHour {
 		sendMorningDigest(ctx, pool, opts, now, logger)
 	}
 
-	// Strategy 2: per-task alerts for tasks with a due_time in the current window
-	sendDueTimeAlerts(ctx, pool, opts, now, interval, logger)
+	// Strategy 2: per-task alerts for tasks with a due_time at or before now
+	sendDueTimeAlerts(ctx, pool, opts, now, logger)
 }
 
 // sendMorningDigest sends one aggregated notification per user for tasks
@@ -255,27 +238,13 @@ func sendMorningDigest(ctx context.Context, pool *pgxpool.Pool, opts *webpush.Op
 }
 
 // sendDueTimeAlerts sends individual notifications for tasks whose due_time
-// falls within [now-interval, now).
-func sendDueTimeAlerts(ctx context.Context, pool *pgxpool.Pool, opts *webpush.Options, now time.Time, interval time.Duration, logger zerolog.Logger) {
+// is at or before now. The task_reminder_log table ensures each task is only
+// notified once per due_date, so overdue tasks that were missed are caught up.
+func sendDueTimeAlerts(ctx context.Context, pool *pgxpool.Pool, opts *webpush.Options, now time.Time, logger zerolog.Logger) {
 	today := now.Format("2006-01-02")
-	windowStart := now.Add(-interval)
-	windowStartTime := windowStart.Format("15:04:05")
-	windowEndTime := now.Format("15:04:05")
+	nowTime := now.Format("15:04:05")
 
-	// Handle midnight crossing: if the window spans midnight (e.g. 23:55–00:05),
-	// use OR to match both sides. Also check yesterday's date for the pre-midnight part.
-	var query string
-	var args []any
-	if windowStartTime > windowEndTime {
-		yesterday := windowStart.Format("2006-01-02")
-		query = queryDueTimeTasksMidnight
-		args = []any{yesterday, windowStartTime, today, windowEndTime}
-	} else {
-		query = queryDueTimeTasks
-		args = []any{today, windowStartTime, windowEndTime}
-	}
-
-	rows, err := pool.Query(ctx, query, args...)
+	rows, err := pool.Query(ctx, queryDueTimeTasks, today, nowTime)
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to query due-time tasks")
 		return

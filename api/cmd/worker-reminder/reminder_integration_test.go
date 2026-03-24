@@ -192,16 +192,15 @@ func TestSendDueTimeAlerts(t *testing.T) {
 	logger := zerolog.Nop()
 	opts := dummyVAPIDOpts()
 	ctx := context.Background()
-	interval := 10 * time.Minute
 
 	tests := []struct {
-		name          string
-		setup         func(t *testing.T) uuid.UUID
-		now           time.Time
-		wantLogCount  int // expected total rows in task_reminder_log for this task
+		name         string
+		setup        func(t *testing.T) uuid.UUID
+		now          time.Time
+		wantLogCount int // expected total rows in task_reminder_log for this task
 	}{
 		{
-			name: "sends alert for task in current window",
+			name: "sends alert for task due before now",
 			now:  time.Date(2026, 3, 24, 14, 5, 0, 0, time.UTC),
 			setup: func(t *testing.T) uuid.UUID {
 				userID := insertTestUser(t, pool)
@@ -214,7 +213,20 @@ func TestSendDueTimeAlerts(t *testing.T) {
 			wantLogCount: 1,
 		},
 		{
-			name: "skips task outside window",
+			name: "catches up overdue task from earlier today",
+			now:  time.Date(2026, 3, 24, 18, 0, 0, 0, time.UTC),
+			setup: func(t *testing.T) uuid.UUID {
+				userID := insertTestUser(t, pool)
+				taskID := uuid.New()
+				dueTime := "09:00:00"
+				insertTask(t, pool, taskID, userID, "Missed morning task", "2026-03-24", &dueTime)
+				insertSubscription(t, pool, userID)
+				return taskID
+			},
+			wantLogCount: 1,
+		},
+		{
+			name: "skips future task",
 			now:  time.Date(2026, 3, 24, 14, 5, 0, 0, time.UTC),
 			setup: func(t *testing.T) uuid.UUID {
 				userID := insertTestUser(t, pool)
@@ -270,32 +282,6 @@ func TestSendDueTimeAlerts(t *testing.T) {
 			},
 			wantLogCount: 0,
 		},
-		{
-			name: "midnight crossing — task due at 23:58 caught by 00:05 tick",
-			now:  time.Date(2026, 3, 25, 0, 5, 0, 0, time.UTC),
-			setup: func(t *testing.T) uuid.UUID {
-				userID := insertTestUser(t, pool)
-				taskID := uuid.New()
-				dueTime := "23:58:00"
-				insertTask(t, pool, taskID, userID, "Late night task", "2026-03-24", &dueTime)
-				insertSubscription(t, pool, userID)
-				return taskID
-			},
-			wantLogCount: 1,
-		},
-		{
-			name: "midnight crossing — task due at 00:02 caught by 00:05 tick",
-			now:  time.Date(2026, 3, 25, 0, 5, 0, 0, time.UTC),
-			setup: func(t *testing.T) uuid.UUID {
-				userID := insertTestUser(t, pool)
-				taskID := uuid.New()
-				dueTime := "00:02:00"
-				insertTask(t, pool, taskID, userID, "Early morning task", "2026-03-25", &dueTime)
-				insertSubscription(t, pool, userID)
-				return taskID
-			},
-			wantLogCount: 1,
-		},
 	}
 
 	for _, tc := range tests {
@@ -304,7 +290,7 @@ func TestSendDueTimeAlerts(t *testing.T) {
 
 			taskID := tc.setup(t)
 
-			sendDueTimeAlerts(ctx, pool, opts, tc.now, interval, logger)
+			sendDueTimeAlerts(ctx, pool, opts, tc.now, logger)
 
 			var count int
 			_ = pool.QueryRow(ctx,
@@ -349,7 +335,7 @@ func TestTick_HourGating(t *testing.T) {
 			_, _ = pool.Exec(ctx, `TRUNCATE task_reminder_log, reminder_log CASCADE`)
 
 			now := time.Date(2026, 3, 24, tc.hour, 5, 0, 0, time.UTC)
-			tick(ctx, pool, opts, 10*time.Minute, tc.reminderHour, now, logger)
+			tick(ctx, pool, opts, tc.reminderHour, now, logger)
 
 			var exists bool
 			_ = pool.QueryRow(ctx,
