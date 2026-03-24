@@ -76,7 +76,7 @@ Features are prioritised as P0 (MVP -- must ship in Phase 1), P1 (core -- Phase 
 | Feature           | Description                                                                                    | Priority |
 | ----------------- | ---------------------------------------------------------------------------------------------- | -------- |
 | Inbox             | Default capture location. Tasks with no list assigned land here for later triage.              | P0       |
-| Today View        | All tasks due today plus manually added "today" tasks. Primary daily working view.             | P0       |
+| Today View        | All tasks due today plus overdue tasks (shown in a separate "Overdue" section above today's tasks). Primary daily working view. | P0       |
 | Upcoming View     | Tasks due in the next 7 days, grouped by day.                                                  | P0       |
 | List View         | All tasks within a specific list, with filters and sort options.                               | P0       |
 | Completed View    | Archive of completed tasks, grouped by completion date. Searchable.                            | P0       |
@@ -133,7 +133,7 @@ The system follows an event-sourced, CQRS architecture with offline-first client
 **Language:** Go 1.22+
 **Router:** Chi (lightweight, idiomatic, middleware-friendly)
 **Database:** PostgreSQL 16 (event store + read models). Connection pooling via Go `database/sql`: API gets `SetMaxOpenConns(10)`, each worker gets 3, outbox poller gets 3. `SetConnMaxLifetime(5m)` to recycle connections.
-**Message Queue:** RabbitMQ 3.13+ (event fan-out, async workers, dead-letter queues)
+**Message Queue:** RabbitMQ 3.13+ (event fan-out, async workers, dead-letter queues, auto-reconnect with exponential backoff)
 **Auth:** Google OAuth 2.0 -> JWT (`golang.org/x/oauth2`, `golang-jwt/jwt`)
 **WebSockets:** `gorilla/websocket` or `nhooyr.io/websocket` for real-time push
 **Deployment:** Single binary + Docker Compose. Phase 1: Go app + Postgres + Caddy (synchronous in-process projections, no message queue). Phase 3: adds RabbitMQ + Transactional Outbox + workers.
@@ -151,7 +151,7 @@ The backend exposes a REST API for CRUD operations and a WebSocket endpoint for 
 **Build:** Vite
 **Target Engine:** Safari/WebKit exclusively. CSS and JS must be tested against WebKit. No reliance on Chromium-only APIs.
 
-The PWA operates as an offline-first client targeting Safari on macOS, iOS, and iPadOS. All user interactions write to IndexedDB immediately via Dexie.js, which triggers `useLiveQuery` re-renders automatically. The sync engine batches CRDT operations and sends them to the server when online. Incoming changes from other devices arrive via WebSocket and are merged into the local CRDT state. Because Safari lacks Background Sync, the app aggressively syncs on every foreground event and maintains a polling interval (base 30s, exponential backoff with jitter on failure) when active. Per-aggregate snapshots are updated server-side on every sync as insurance against Safari storage eviction.
+The PWA operates as an offline-first client targeting Safari on macOS, iOS, and iPadOS. All user interactions write to IndexedDB immediately via Dexie.js, which triggers `useLiveQuery` re-renders automatically. The sync engine batches CRDT operations and sends them to the server when online. Failed sync operations are retained in the queue with a retry count (max 5 retries) before being discarded. Incoming changes from other devices arrive via WebSocket and are merged into the local CRDT state using per-field LWW timestamps. Because Safari lacks Background Sync, the app aggressively syncs on every foreground event and maintains a polling interval (base 30s, exponential backoff with jitter on failure) when active. Per-aggregate snapshots are updated server-side on every sync as insurance against Safari storage eviction.
 
 ### 3.3 Data Flow
 
@@ -201,7 +201,7 @@ Projected from the event stream. These are disposable and can be rebuilt from ev
 
 ### 4.3 CRDT Strategy
 
-- **Scalar fields** (title, description, priority, due_date): **LWW-Register** -- last writer wins based on hybrid logical clock timestamp. Title and description store raw markdown strings; the entire string is the CRDT unit (no character-level merging). This is appropriate for 1--3 users where simultaneous edits to the same field are rare.
+- **Scalar fields** (title, description, priority, due_date): **LWW-Register** -- last writer wins based on per-field hybrid logical clock timestamps. Each scalar field tracks its own HLC timestamp independently, so concurrent edits to different fields on the same task are both preserved (e.g., Device A edits title while Device B edits due_date -- both edits survive). Title and description store raw markdown strings; the entire string is the CRDT unit (no character-level merging). This is appropriate for 1--3 users where simultaneous edits to the same field are rare.
 - **Set fields** (labels on a task): **OR-Set** (Observed-Remove Set) -- concurrent add and remove resolve without conflict
 - **Ordering** (task position within list): **Fractional Indexing** -- positions are strings that sort lexicographically, allowing insertions between any two items without reindexing
 - **Completed/deleted state**: **LWW-Flag** -- boolean with timestamp, last toggle wins

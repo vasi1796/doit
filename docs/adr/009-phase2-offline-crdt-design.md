@@ -67,7 +67,9 @@ service worker). No Background Sync API (Safari doesn't support it).
 **Slice 4: CRDT Types**
 Shared implementations in Go and TypeScript:
 - **LWW-Register** — for scalar fields (title, description, priority, due_date,
-  due_time, recurrence_rule). Compare HLC timestamps, keep later value.
+  due_time, recurrence_rule). Each field tracks its own HLC timestamp independently
+  (per-field LWW), so concurrent edits to different fields on the same task are
+  both preserved. Compare HLC timestamps per field, keep later value.
 - **OR-Set** (Observed-Remove Set) — for labels on a task. Tracks add/remove
   operations with unique tags. Concurrent add+remove of same label resolves
   correctly.
@@ -80,8 +82,10 @@ Client-side sync engine triggered by:
 - Polling interval: 30s base, exponential backoff on failure (30→60→120,
   capped at 5 minutes), random jitter ±5s
 Operations are batched from the `sync_queue` table and sent via
-`POST /api/v1/sync`. The server validates, appends events, and returns
-a confirmation with the server-assigned HLC timestamp.
+`POST /api/v1/sync`. Failed operations are retained in the queue with a retry
+count (max 5 retries) instead of being permanently deleted on first failure.
+The server validates, appends events, and returns a confirmation with the
+server-assigned HLC timestamp.
 
 **Slice 6: Sync Engine — Pull**
 The sync endpoint returns remote events since the client's last sync

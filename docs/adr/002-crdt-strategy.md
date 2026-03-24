@@ -23,7 +23,7 @@ We will use the following CRDT strategies:
 
 | Data Type | CRDT | Rationale |
 |-----------|------|-----------|
-| Scalar fields (title, due date, status, priority) | **LWW-Register** | Simple, deterministic, acceptable for 1-3 users |
+| Scalar fields (title, due date, status, priority) | **LWW-Register** | Simple, deterministic, per-field HLC tracking, acceptable for 1-3 users |
 | Markdown description | **LWW-Register** | Whole-string replacement (see ADR-006) |
 | Labels on a task | **OR-Set** (Observed-Remove Set) | Correctly handles concurrent add/remove of the same label |
 | Task ordering within a list | **Fractional Indexing** | Allows insertion between any two items without reindexing |
@@ -51,9 +51,11 @@ Beyond CRDT mechanics, we define these application-level policies:
 - Application-level policies (edit resurrects delete) match user expectations.
 
 **Costs:**
-- **LWW can silently lose concurrent edits** — if two users edit the same scalar
-  field at the same time, one edit is discarded. This is an acceptable tradeoff
-  for 1-3 users where simultaneous editing of the exact same field is rare.
+- **LWW can silently lose concurrent edits to the same field** — if two users
+  edit the same scalar field at the same time, one edit is discarded. HLC
+  timestamps are tracked per field (not per task), so concurrent edits to
+  *different* fields on the same task are both preserved. This is an acceptable
+  tradeoff for 1-3 users where simultaneous editing of the exact same field is rare.
 - Fractional indexing keys can grow long after many insertions between the same
   two items (mitigated by periodic rebalancing).
 - HLC adds clock management complexity compared to simple wall-clock timestamps.
