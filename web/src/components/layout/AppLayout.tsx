@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { QuickAdd } from '../tasks/QuickAdd'
@@ -227,16 +227,14 @@ export function AppLayout() {
 
         <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0">
           <InstallBanner />
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.15 }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
+          >
+            <Outlet />
+          </motion.div>
         </main>
 
         <BottomNav taskCounts={taskCounts} onMenuToggle={toggleDrawer} />
