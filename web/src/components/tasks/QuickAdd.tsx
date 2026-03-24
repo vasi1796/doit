@@ -1,4 +1,5 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { MarkdownEditor } from '../common/MarkdownEditor'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
@@ -109,130 +110,140 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
     )
   }
 
-  if (!expanded) {
-    return (
-      <button
-        type="button"
-        onClick={() => { setExpanded(true); setTimeout(() => inputRef.current?.focus(), 50) }}
-        className="mx-4 my-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#f8f8fa] hover:bg-[#f0f0f2] transition-colors text-[15px] text-text-secondary w-[calc(100%-32px)]"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={UI.accent} strokeWidth="2" strokeLinecap="round">
-          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        New task...
-      </button>
-    )
-  }
-
   return (
-    <div
-      ref={formRef}
-      className="mx-4 my-3 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.1)] border border-gray-200"
-    >
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-        <button
+    <AnimatePresence mode="wait" initial={false}>
+      {!expanded ? (
+        <motion.button
+          key="collapsed"
           type="button"
-          onClick={() => { resetForm(); setExpanded(false); if (initialExpanded) onCreated?.() }}
-          className="text-sm text-text-secondary hover:text-text-primary min-h-[36px] px-1"
+          onClick={() => { setExpanded(true); setTimeout(() => inputRef.current?.focus(), 50) }}
+          className="mx-4 my-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#f8f8fa] hover:bg-[#f0f0f2] transition-colors text-[15px] text-text-secondary w-[calc(100%-32px)]"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.15 }}
         >
-          Cancel
-        </button>
-        <span className="text-sm font-semibold text-text-primary">New Task</span>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!title.trim() || submitting}
-          className="text-sm font-semibold text-accent min-h-[36px] px-1 disabled:opacity-30"
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={UI.accent} strokeWidth="2" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          New task...
+        </motion.button>
+      ) : (
+        <motion.div
+          key="expanded"
+          ref={formRef}
+          className="mx-4 my-3 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.1)] border border-gray-200 overflow-hidden"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
         >
-          {submitting ? 'Adding...' : 'Add'}
-        </button>
-      </div>
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+            <button
+              type="button"
+              onClick={() => { resetForm(); setExpanded(false); if (initialExpanded) onCreated?.() }}
+              className="text-sm text-text-secondary hover:text-text-primary min-h-[36px] px-1"
+            >
+              Cancel
+            </button>
+            <span className="text-sm font-semibold text-text-primary">New Task</span>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!title.trim() || submitting}
+              className="text-sm font-semibold text-accent min-h-[36px] px-1 disabled:opacity-30"
+            >
+              {submitting ? 'Adding...' : 'Add'}
+            </button>
+          </div>
 
-      <div className="px-4 pt-3 pb-1">
-        <input
-          ref={inputRef}
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
-          placeholder="Task name"
-          aria-label="Task name"
-          className="w-full text-[17px] font-medium outline-none placeholder:text-text-tertiary"
-        />
-      </div>
-
-      <div className="px-4 pb-3">
-        <MarkdownEditor
-          value={description}
-          onChange={setDescription}
-          placeholder="Notes"
-          minHeight="48px"
-        />
-      </div>
-
-      <div className="border-t border-gray-100">
-        <div className="flex items-center px-1 border-b border-gray-50">
-          <DatePicker value={dueDate} onChange={setDueDate} onClear={() => setDueDate('')} />
-          <TimePicker value={dueTime} onChange={setDueTime} onClear={() => setDueTime('')} />
-        </div>
-
-        <div className="flex items-center px-1 border-b border-gray-50">
-          <RecurrencePicker value={recurrence} onChange={setRecurrence} />
-          {lists && !listId && (
-            <ListSelect
-              value={selectedListId}
-              lists={lists}
-              onChange={setSelectedListId}
+          <div className="px-4 pt-3 pb-1">
+            <input
+              ref={inputRef}
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
+              placeholder="Task name"
+              aria-label="Task name"
+              className="w-full text-[17px] font-medium outline-none placeholder:text-text-tertiary"
             />
-          )}
-        </div>
+          </div>
 
-        <div className="px-4 py-2.5 border-b border-gray-50">
-          <p className="text-[11px] text-text-secondary font-medium uppercase tracking-wider mb-1.5">Priority</p>
-          <PriorityPicker value={priority} onChange={setPriority} compact />
-        </div>
+          <div className="px-4 pb-3">
+            <MarkdownEditor
+              value={description}
+              onChange={setDescription}
+              placeholder="Notes"
+              minHeight="48px"
+            />
+          </div>
 
-        {labels && (
-          <div className="px-4 py-2.5 flex flex-wrap gap-1.5 items-center">
-            {labels.map((label) => {
-              const selected = selectedLabelIds.includes(label.id)
-              return (
-                <button
-                  key={label.id}
-                  type="button"
-                  onClick={() => toggleLabel(label.id)}
-                  className={`text-[12px] px-2.5 py-1 rounded-full font-medium transition-all ${
-                    selected ? 'ring-1 ring-offset-1' : 'opacity-40 hover:opacity-70'
-                  }`}
-                  style={{
-                    backgroundColor: (label.colour || COLORS.gray) + (selected ? '25' : '12'),
-                    color: label.colour || COLORS.gray,
-                  }}
-                >
-                  {selected && '✓ '}{label.name}
-                </button>
-              )
-            })}
-            {creatingLabel ? (
-              <InlineLabelCreator
-                onCreated={(labelId) => {
-                  setSelectedLabelIds(prev => [...prev, labelId])
-                  setCreatingLabel(false)
-                }}
-                onCancel={() => setCreatingLabel(false)}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setCreatingLabel(true)}
-                className="text-[12px] px-2.5 py-1 rounded-full font-medium text-accent bg-accent/8 hover:bg-accent/15 transition-all"
-              >
-                + New
-              </button>
+          <div className="border-t border-gray-100">
+            <div className="flex items-center px-1 border-b border-gray-50">
+              <DatePicker value={dueDate} onChange={setDueDate} onClear={() => setDueDate('')} />
+              <TimePicker value={dueTime} onChange={setDueTime} onClear={() => setDueTime('')} />
+            </div>
+
+            <div className="flex items-center px-1 border-b border-gray-50">
+              <RecurrencePicker value={recurrence} onChange={setRecurrence} />
+              {lists && !listId && (
+                <ListSelect
+                  value={selectedListId}
+                  lists={lists}
+                  onChange={setSelectedListId}
+                />
+              )}
+            </div>
+
+            <div className="px-4 py-2.5 border-b border-gray-50">
+              <p className="text-[11px] text-text-secondary font-medium uppercase tracking-wider mb-1.5">Priority</p>
+              <PriorityPicker value={priority} onChange={setPriority} compact />
+            </div>
+
+            {labels && (
+              <div className="px-4 py-2.5 flex flex-wrap gap-1.5 items-center">
+                {labels.map((label) => {
+                  const selected = selectedLabelIds.includes(label.id)
+                  return (
+                    <button
+                      key={label.id}
+                      type="button"
+                      onClick={() => toggleLabel(label.id)}
+                      className={`text-[12px] px-2.5 py-1 rounded-full font-medium transition-all ${
+                        selected ? 'ring-1 ring-offset-1' : 'opacity-40 hover:opacity-70'
+                      }`}
+                      style={{
+                        backgroundColor: (label.colour || COLORS.gray) + (selected ? '25' : '12'),
+                        color: label.colour || COLORS.gray,
+                      }}
+                    >
+                      {selected && '✓ '}{label.name}
+                    </button>
+                  )
+                })}
+                {creatingLabel ? (
+                  <InlineLabelCreator
+                    onCreated={(labelId) => {
+                      setSelectedLabelIds(prev => [...prev, labelId])
+                      setCreatingLabel(false)
+                    }}
+                    onCancel={() => setCreatingLabel(false)}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCreatingLabel(true)}
+                    className="text-[12px] px-2.5 py-1 rounded-full font-medium text-accent bg-accent/8 hover:bg-accent/15 transition-all"
+                  >
+                    + New
+                  </button>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 })

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
+import { motion } from 'framer-motion'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { QuickAdd } from '../tasks/QuickAdd'
@@ -180,11 +181,11 @@ export function AppLayout() {
       .catch(() => engine.start()) // Start sync even if initial load fails (may be offline)
 
     // Expose for testing — allows Playwright to trigger sync on demand
-    ;(window as unknown as { __syncEngine?: SyncEngine }).__syncEngine = engine
+    window.__syncEngine = engine
 
     return () => {
       engine.stop()
-      delete (window as unknown as { __syncEngine?: SyncEngine }).__syncEngine
+      delete window.__syncEngine
     }
   }, [])
 
@@ -226,7 +227,14 @@ export function AppLayout() {
 
         <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0">
           <InstallBanner />
-          <Outlet />
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
+          >
+            <Outlet />
+          </motion.div>
         </main>
 
         <BottomNav taskCounts={taskCounts} onMenuToggle={toggleDrawer} />

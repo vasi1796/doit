@@ -1,8 +1,11 @@
+import { useEffect, useRef } from 'react'
+import { useAnimate } from 'framer-motion'
 import { PriorityPicker } from '../common/PriorityPicker'
 import { DatePicker } from '../common/DatePicker'
 import { TimePicker } from '../common/TimePicker'
 import { RecurrencePicker } from '../common/RecurrencePicker'
 import { ListSelect } from '../common/ListSelect'
+import { PRIORITY_COLORS } from '../../constants'
 import type { Task, List } from '../../api/types'
 
 interface TaskPropertiesProps {
@@ -12,9 +15,25 @@ interface TaskPropertiesProps {
 }
 
 export function TaskProperties({ task, lists, onSave }: TaskPropertiesProps) {
+  const [scope, animate] = useAnimate()
+  const prevPriority = useRef(task.priority)
+
+  useEffect(() => {
+    if (prevPriority.current !== task.priority) {
+      prevPriority.current = task.priority
+      const color = PRIORITY_COLORS[task.priority]
+      if (color) {
+        animate(scope.current, { backgroundColor: [color + '30', 'transparent'] }, { duration: 0.6, ease: 'easeOut' })
+      }
+    }
+  }, [task.priority, animate, scope])
+
   return (
     <div className="space-y-2 mb-4 bg-gray-50 rounded-lg p-3">
-      <div className="flex items-center gap-3">
+      <div
+        ref={scope}
+        className="flex items-center gap-3 rounded-md px-1 -mx-1"
+      >
         <span className="text-xs text-text-secondary w-16 shrink-0">Priority</span>
         <PriorityPicker value={task.priority} onChange={(p) => onSave('priority', p)} />
       </div>

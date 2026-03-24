@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router'
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { SyncStatus } from '../common/SyncStatus'
@@ -110,24 +111,35 @@ function NotificationToggle() {
   )
 }
 
-function NavItem({ to, label, icon, count }: { to: string; label: string; icon: string; count?: number }) {
+function NavItem({ to, label, icon, count, layoutId = 'sidebar-active' }: { to: string; label: string; icon: string; count?: number; layoutId?: string }) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[14px] transition-colors ${
+        `relative flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[14px] transition-colors ${
           isActive
-            ? 'bg-accent/10 text-accent font-medium'
+            ? 'text-accent font-medium'
             : 'text-text-primary hover:bg-black/[0.03]'
         }`
       }
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-        <path d={icon} />
-      </svg>
-      <span className="flex-1">{label}</span>
-      {count !== undefined && count > 0 && (
-        <span className="text-[11px] text-text-secondary font-medium">{count}</span>
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <motion.div
+              layoutId={layoutId}
+              className="absolute inset-0 bg-accent/10 rounded-xl"
+              transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+            />
+          )}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 relative z-[1]">
+            <path d={icon} />
+          </svg>
+          <span className="flex-1 relative z-[1]">{label}</span>
+          {count !== undefined && count > 0 && (
+            <span className="text-[11px] text-text-secondary font-medium relative z-[1]">{count}</span>
+          )}
+        </>
       )}
     </NavLink>
   )
@@ -182,6 +194,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
       )}
 
       {/* Smart lists */}
+      <LayoutGroup>
       <nav className="px-2 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const countMap: Record<string, number> = {
@@ -210,8 +223,16 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
             </svg>
           </button>
         </div>
+        <AnimatePresence initial={false}>
         {addingList && (
-          <form onSubmit={handleCreateList} className="mx-1 mb-2 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
+          <motion.form
+            onSubmit={handleCreateList}
+            className="mx-1 mb-2 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
             <div className="px-3 pt-3 pb-2">
               <input
                 type="text"
@@ -251,28 +272,40 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 Create
               </button>
             </div>
-          </form>
+          </motion.form>
         )}
+        </AnimatePresence>
         <div className="space-y-0.5">
           {lists.map((list) => (
             <div key={list.id} className="group flex items-center">
               <NavLink
                 to={`/lists/${list.id}`}
                 className={({ isActive }) =>
-                  `flex-1 flex items-center gap-3 px-3 min-h-[36px] rounded-lg text-[14px] transition-colors ${
+                  `relative flex-1 flex items-center gap-3 px-3 min-h-[36px] rounded-lg text-[14px] transition-colors ${
                     isActive
-                      ? 'bg-accent/10 text-accent font-medium'
+                      ? 'text-accent font-medium'
                       : 'text-text-primary hover:bg-black/5'
                   }`
                 }
               >
-                <span
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: list.colour || '#86868b' }}
-                />
-                <span className="flex-1">{list.name}</span>
-                {(taskCounts.byList[list.id] || 0) > 0 && (
-                  <span className="text-[11px] text-text-secondary font-medium">{taskCounts.byList[list.id]}</span>
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.div
+                        layoutId="sidebar-active"
+                        className="absolute inset-0 bg-accent/10 rounded-lg"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0 relative z-[1]"
+                      style={{ backgroundColor: list.colour || '#86868b' }}
+                    />
+                    <span className="flex-1 relative z-[1]">{list.name}</span>
+                    {(taskCounts.byList[list.id] || 0) > 0 && (
+                      <span className="text-[11px] text-text-secondary font-medium relative z-[1]">{taskCounts.byList[list.id]}</span>
+                    )}
+                  </>
                 )}
               </NavLink>
               <button
@@ -310,18 +343,29 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 <NavLink
                   to={`/labels/${label.id}`}
                   className={({ isActive }) =>
-                    `flex-1 flex items-center gap-3 px-3 min-h-[36px] rounded-lg text-[14px] transition-colors ${
+                    `relative flex-1 flex items-center gap-3 px-3 min-h-[36px] rounded-lg text-[14px] transition-colors ${
                       isActive
-                        ? 'bg-accent/10 text-accent font-medium'
+                        ? 'text-accent font-medium'
                         : 'text-text-primary hover:bg-black/5'
                     }`
                   }
                 >
-                  <span
-                    className="w-3 h-3 rounded-sm shrink-0"
-                    style={{ backgroundColor: label.colour || '#86868b' }}
-                  />
-                  <span>{label.name}</span>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.div
+                          layoutId="sidebar-active"
+                          className="absolute inset-0 bg-accent/10 rounded-lg"
+                          transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                        />
+                      )}
+                      <span
+                        className="w-3 h-3 rounded-sm shrink-0 relative z-[1]"
+                        style={{ backgroundColor: label.colour || '#86868b' }}
+                      />
+                      <span className="relative z-[1]">{label.name}</span>
+                    </>
+                  )}
                 </NavLink>
                 <button
                   type="button"
@@ -355,6 +399,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
           <NavItem key={item.to} {...item} />
         ))}
       </nav>
+      </LayoutGroup>
 
       {/* Sync status */}
       <SyncStatus />

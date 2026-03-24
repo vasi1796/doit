@@ -83,7 +83,7 @@ export function LoginPage() {
                 value={devEmail}
                 onChange={(e) => setDevEmail(e.target.value)}
                 placeholder="dev@test.com"
-                className="w-full min-h-[50px] px-4 bg-[#f5f5f7] border border-transparent rounded-2xl text-sm outline-none focus:border-accent focus:bg-white transition-all"
+                className="w-full min-h-[50px] px-4 bg-[#f5f5f7] border border-transparent rounded-2xl text-[16px] outline-none focus:border-accent focus:bg-white transition-all"
               />
               <button
                 type="submit"

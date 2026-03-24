@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import type { Subtask } from '../../api/types'
@@ -7,6 +8,7 @@ function SubtaskItem({ subtask, taskId }: { subtask: Subtask; taskId: string }) 
   const { toast } = useToast()
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(subtask.title)
+  const [completing, setCompleting] = useState(false)
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -14,9 +16,11 @@ function SubtaskItem({ subtask, taskId }: { subtask: Subtask; taskId: string }) 
       if (subtask.is_completed) {
         await operations.uncompleteSubtask(taskId, subtask.id)
       } else {
+        setCompleting(true)
         await operations.completeSubtask(taskId, subtask.id)
       }
     } catch (err) {
+      setCompleting(false)
       toast(err instanceof Error ? err.message : 'Failed', 'error')
     }
   }
@@ -36,17 +40,19 @@ function SubtaskItem({ subtask, taskId }: { subtask: Subtask; taskId: string }) 
     }
   }
 
+  const checked = subtask.is_completed || completing
+
   return (
     <div className="flex items-center gap-2 min-h-[36px] px-1 rounded hover:bg-gray-50 group">
       <button
         type="button"
         onClick={handleToggle}
-        className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-colors ${
-          subtask.is_completed ? 'bg-accent border-accent' : 'border-gray-300 hover:border-accent'
+        className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-all duration-200 ${
+          checked ? 'bg-accent border-accent scale-110' : 'border-gray-300 hover:border-accent'
         }`}
       >
-        {subtask.is_completed && (
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
+        {checked && (
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" className="animate-[check_0.2s_ease-out]">
             <path d="m5 12 5 5L20 7" />
           </svg>
         )}
@@ -68,7 +74,7 @@ function SubtaskItem({ subtask, taskId }: { subtask: Subtask; taskId: string }) 
           onKeyDown={(e) => { if (e.key === 'Enter' && !subtask.is_completed) setEditing(true) }}
           role="button"
           tabIndex={subtask.is_completed ? -1 : 0}
-          className={`flex-1 text-sm cursor-text ${subtask.is_completed ? 'line-through text-text-secondary' : ''}`}
+          className={`flex-1 text-sm cursor-text transition-colors duration-200 ${checked ? 'line-through text-text-secondary' : ''}`}
         >
           {subtask.title}
         </span>
@@ -110,9 +116,20 @@ export function SubtaskSection({ taskId, subtasks }: SubtaskSectionProps) {
         Subtasks{subtasks.length > 0 && ` (${completed}/${subtasks.length})`}
       </h3>
       <div className="space-y-0.5">
-        {subtasks.map((st) => (
-          <SubtaskItem key={st.id} subtask={st} taskId={taskId} />
-        ))}
+        <AnimatePresence initial={false}>
+          {subtasks.map((st) => (
+            <motion.div
+              key={st.id}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              <SubtaskItem subtask={st} taskId={taskId} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
         <form onSubmit={handleAdd} className="flex items-center gap-2 min-h-[36px] px-1">
           <span className="w-4 h-4 rounded border border-gray-200 shrink-0" />
           <input

@@ -4,6 +4,88 @@ import { compare, type HLCTimestamp } from '../hlc/hlc'
 import { mergeLWW } from '../crdt/lww'
 import type { Priority } from '../api/types'
 
+// ---------------------------------------------------------------------------
+// Typed payload interfaces for each event type
+// ---------------------------------------------------------------------------
+
+interface TaskCreatedPayload {
+  title: string
+  description?: string
+  priority?: number
+  due_date?: string
+  due_time?: string
+  list_id?: string
+  position: string
+}
+
+interface TaskTitleUpdatedPayload {
+  title: string
+}
+
+interface TaskDescriptionUpdatedPayload {
+  description: string
+}
+
+interface TaskPriorityUpdatedPayload {
+  priority: number
+}
+
+interface TaskDueDateUpdatedPayload {
+  due_date?: string
+}
+
+interface TaskDueTimeUpdatedPayload {
+  due_time?: string
+}
+
+interface TaskRecurrenceUpdatedPayload {
+  recurrence_rule?: string
+}
+
+interface TaskCompletedPayload {
+  completed_at: string
+}
+
+interface TaskMovedPayload {
+  list_id: string
+  position: string
+}
+
+interface TaskReorderedPayload {
+  position: string
+}
+
+interface LabelOnTaskPayload {
+  label_id: string
+}
+
+interface SubtaskCreatedPayload {
+  subtask_id: string
+  title: string
+  position: string
+}
+
+interface SubtaskIdPayload {
+  subtask_id: string
+}
+
+interface SubtaskTitleUpdatedPayload {
+  subtask_id: string
+  title: string
+}
+
+interface ListCreatedPayload {
+  name: string
+  colour?: string
+  icon?: string
+  position: string
+}
+
+interface LabelCreatedPayload {
+  name: string
+  colour?: string
+}
+
 /**
  * A remote event received from the sync response.
  * Matches the Go eventstore.Event JSON shape.
@@ -53,16 +135,17 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
 
   switch (event.event_type) {
     // ---- Task events ----
-    case 'TaskCreated':
+    case 'TaskCreated': {
+      const p = data as unknown as TaskCreatedPayload
       await db.tasks.put({
         id: aggId,
-        title: data.title as string,
-        description: data.description as string | undefined,
-        priority: ((data.priority as number) ?? 0) as Priority,
-        due_date: data.due_date ? (data.due_date as string).split('T')[0] : undefined,
-        due_time: data.due_time as string | undefined,
-        list_id: data.list_id as string | undefined,
-        position: data.position as string,
+        title: p.title,
+        description: p.description,
+        priority: (p.priority ?? 0) as Priority,
+        due_date: p.due_date ? p.due_date.split('T')[0] : undefined,
+        due_time: p.due_time,
+        list_id: p.list_id,
+        position: p.position,
         is_completed: false,
         is_deleted: false,
         created_at: updatedAt,
@@ -71,39 +154,53 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
         hlc_counter: eventHLC.counter,
       })
       break
+    }
 
-    case 'TaskTitleUpdated':
-      await mergeTaskField(aggId, eventHLC, { title: data.title as string })
+    case 'TaskTitleUpdated': {
+      const p = data as unknown as TaskTitleUpdatedPayload
+      await mergeTaskField(aggId, eventHLC, { title: p.title })
       break
+    }
 
-    case 'TaskDescriptionUpdated':
-      await mergeTaskField(aggId, eventHLC, { description: data.description as string })
+    case 'TaskDescriptionUpdated': {
+      const p = data as unknown as TaskDescriptionUpdatedPayload
+      await mergeTaskField(aggId, eventHLC, { description: p.description })
       break
+    }
 
-    case 'TaskPriorityUpdated':
-      await mergeTaskField(aggId, eventHLC, { priority: data.priority as number })
+    case 'TaskPriorityUpdated': {
+      const p = data as unknown as TaskPriorityUpdatedPayload
+      await mergeTaskField(aggId, eventHLC, { priority: p.priority })
       break
+    }
 
     case 'TaskDueDateUpdated': {
-      const dueDate = data.due_date ? (data.due_date as string).split('T')[0] : undefined
+      const p = data as unknown as TaskDueDateUpdatedPayload
+      const dueDate = p.due_date ? p.due_date.split('T')[0] : undefined
       await mergeTaskField(aggId, eventHLC, { due_date: dueDate })
       break
     }
 
-    case 'TaskDueTimeUpdated':
-      await mergeTaskField(aggId, eventHLC, { due_time: data.due_time as string | undefined })
+    case 'TaskDueTimeUpdated': {
+      const p = data as unknown as TaskDueTimeUpdatedPayload
+      await mergeTaskField(aggId, eventHLC, { due_time: p.due_time })
       break
+    }
 
-    case 'TaskRecurrenceUpdated':
-      await mergeTaskField(aggId, eventHLC, { recurrence_rule: data.recurrence_rule as string | undefined })
+    case 'TaskRecurrenceUpdated': {
+      const p = data as unknown as TaskRecurrenceUpdatedPayload
+      await mergeTaskField(aggId, eventHLC, { recurrence_rule: p.recurrence_rule })
       break
+    }
 
-    case 'TaskCompleted':
+    case 'TaskCompleted': {
+      const p = data as unknown as TaskCompletedPayload
       await mergeTaskField(aggId, eventHLC, {
         is_completed: true,
-        completed_at: data.completed_at as string,
+        completed_at: p.completed_at,
       })
       break
+    }
 
     case 'TaskUncompleted':
       await mergeTaskField(aggId, eventHLC, { is_completed: false, completed_at: undefined })
@@ -117,76 +214,96 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
       await mergeTaskField(aggId, eventHLC, { is_deleted: false })
       break
 
-    case 'TaskMoved':
+    case 'TaskMoved': {
+      const p = data as unknown as TaskMovedPayload
       await mergeTaskField(aggId, eventHLC, {
-        list_id: data.list_id as string,
-        position: data.position as string,
+        list_id: p.list_id,
+        position: p.position,
       })
       break
+    }
 
-    case 'TaskReordered':
+    case 'TaskReordered': {
+      const p = data as unknown as TaskReorderedPayload
       await mergeTaskField(aggId, eventHLC, {
-        position: data.position as string,
+        position: p.position,
       })
       break
+    }
 
     // ---- Label-on-task events ----
-    case 'LabelAdded':
-      await db.taskLabels.put({ taskId: aggId, labelId: data.label_id as string })
+    case 'LabelAdded': {
+      const p = data as unknown as LabelOnTaskPayload
+      await db.taskLabels.put({ taskId: aggId, labelId: p.label_id })
       break
+    }
 
-    case 'LabelRemoved':
-      await db.taskLabels.where({ taskId: aggId, labelId: data.label_id as string }).delete()
+    case 'LabelRemoved': {
+      const p = data as unknown as LabelOnTaskPayload
+      await db.taskLabels.where({ taskId: aggId, labelId: p.label_id }).delete()
       break
+    }
 
     // ---- Subtask events ----
-    case 'SubtaskCreated':
+    case 'SubtaskCreated': {
+      const p = data as unknown as SubtaskCreatedPayload
       await db.subtasks.put({
-        id: data.subtask_id as string,
+        id: p.subtask_id,
         taskId: aggId,
-        title: data.title as string,
+        title: p.title,
         is_completed: false,
-        position: data.position as string,
+        position: p.position,
       })
       break
+    }
 
-    case 'SubtaskCompleted':
-      await db.subtasks.update(data.subtask_id as string, { is_completed: true })
+    case 'SubtaskCompleted': {
+      const p = data as unknown as SubtaskIdPayload
+      await db.subtasks.update(p.subtask_id, { is_completed: true })
       break
+    }
 
-    case 'SubtaskUncompleted':
-      await db.subtasks.update(data.subtask_id as string, { is_completed: false })
+    case 'SubtaskUncompleted': {
+      const p = data as unknown as SubtaskIdPayload
+      await db.subtasks.update(p.subtask_id, { is_completed: false })
       break
+    }
 
-    case 'SubtaskTitleUpdated':
-      await db.subtasks.update(data.subtask_id as string, { title: data.title as string })
+    case 'SubtaskTitleUpdated': {
+      const p = data as unknown as SubtaskTitleUpdatedPayload
+      await db.subtasks.update(p.subtask_id, { title: p.title })
       break
+    }
 
     // ---- List events ----
-    case 'ListCreated':
+    case 'ListCreated': {
+      const p = data as unknown as ListCreatedPayload
       await db.lists.put({
         id: aggId,
-        name: data.name as string,
-        colour: data.colour as string | undefined,
-        icon: data.icon as string | undefined,
-        position: data.position as string,
+        name: p.name,
+        colour: p.colour,
+        icon: p.icon,
+        position: p.position,
         created_at: updatedAt,
         updated_at: updatedAt,
       })
       break
+    }
 
     case 'ListDeleted':
       await db.lists.delete(aggId)
       break
 
     // ---- Label events ----
-    case 'LabelCreated':
+    case 'LabelCreated': {
+      const p = data as unknown as LabelCreatedPayload
       await db.labels.put({
         id: aggId,
-        name: data.name as string,
-        colour: data.colour as string | undefined,
+        name: p.name,
+        colour: p.colour,
       })
       break
+    }
 
     case 'LabelDeleted':
       await db.labels.delete(aggId)

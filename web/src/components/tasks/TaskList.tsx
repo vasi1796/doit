@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import {
   DndContext,
   closestCenter,
@@ -78,13 +79,15 @@ export function TaskList({ tasks, loading, emptyMessage, emptyHint, emptyAction,
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div className="divide-y divide-gray-100">
-          {tasks.map((task) => (
-            <SortableTaskItem
-              key={task.id}
-              task={task}
-              onSelect={onTaskSelect}
-            />
-          ))}
+          <AnimatePresence initial={false}>
+            {tasks.map((task) => (
+              <SortableTaskItem
+                key={task.id}
+                task={task}
+                onSelect={onTaskSelect}
+              />
+            ))}
+          </AnimatePresence>
         </div>
       </SortableContext>
     </DndContext>

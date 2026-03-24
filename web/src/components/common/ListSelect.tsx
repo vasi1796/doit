@@ -91,7 +91,7 @@ export function ListSelect({ value, lists, onChange }: ListSelectProps) {
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     placeholder="List name"
-                    className="w-full text-[15px] outline-none border-b border-gray-200 pb-1"
+                    className="w-full text-[16px] outline-none border-b border-gray-200 pb-1"
                     // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
                   />

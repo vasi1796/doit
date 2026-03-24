@@ -43,7 +43,7 @@ export function InlineLabelCreator({ onCreated, onCancel }: InlineLabelCreatorPr
         value={name}
         onChange={e => setName(e.target.value)}
         placeholder="Name"
-        className="text-[12px] outline-none border-b border-gray-200 py-0.5 w-20"
+        className="text-[16px] outline-none border-b border-gray-200 py-0.5 w-20"
         // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus
       />

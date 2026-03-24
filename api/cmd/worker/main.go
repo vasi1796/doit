@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/vasi1796/doit/internal/broker"
+	"github.com/vasi1796/doit/internal/config"
 	"github.com/vasi1796/doit/internal/eventstore"
 	"github.com/vasi1796/doit/internal/projection"
 )
@@ -20,25 +21,25 @@ import (
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Str("service", "worker-projection").Logger()
 
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		logger.Fatal().Msg("DATABASE_URL is required")
+	cfg, err := config.LoadWorker()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
+		os.Exit(1)
 	}
-	rabbitURL := os.Getenv("RABBITMQ_URL")
-	if rabbitURL == "" {
+	if cfg.RabbitMQURL == "" {
 		logger.Fatal().Msg("RABBITMQ_URL is required")
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	pool, err := pgxpool.New(ctx, dbURL)
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect to database")
 	}
 	defer pool.Close()
 
-	b, err := broker.New(rabbitURL, logger)
+	b, err := broker.New(cfg.RabbitMQURL, logger)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect to RabbitMQ")
 	}
@@ -101,8 +102,4 @@ func main() {
 			}
 		}
 	}
-}
-
-func init() {
-	_ = fmt.Sprintf // avoid unused import
 }

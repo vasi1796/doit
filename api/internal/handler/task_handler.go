@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -116,19 +117,19 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Collect commands to dispatch from non-nil fields
 	type cmdFn func() error
-	var cmds []cmdFn
+	var updates []cmdFn
 
 	if req.Title != nil {
 		v := *req.Title
-		cmds = append(cmds, func() error { return h.cmds.UpdateTaskTitle(ctx, taskID, userID, domain.UpdateTaskTitle{Title: v}) })
+		updates = append(updates, func() error { return h.cmds.UpdateTaskTitle(ctx, taskID, userID, domain.UpdateTaskTitle{Title: v}) })
 	}
 	if req.Description != nil {
 		v := *req.Description
-		cmds = append(cmds, func() error { return h.cmds.UpdateTaskDescription(ctx, taskID, userID, domain.UpdateTaskDescription{Description: v}) })
+		updates = append(updates, func() error { return h.cmds.UpdateTaskDescription(ctx, taskID, userID, domain.UpdateTaskDescription{Description: v}) })
 	}
 	if req.Priority != nil {
 		v := *req.Priority
-		cmds = append(cmds, func() error { return h.cmds.UpdateTaskPriority(ctx, taskID, userID, domain.UpdateTaskPriority{Priority: domain.Priority(v)}) })
+		updates = append(updates, func() error { return h.cmds.UpdateTaskPriority(ctx, taskID, userID, domain.UpdateTaskPriority{Priority: domain.Priority(v)}) })
 	}
 	if req.DueDate != nil {
 		var dueDate *time.Time
@@ -140,22 +141,22 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 			}
 			dueDate = &parsed
 		}
-		cmds = append(cmds, func() error { return h.cmds.UpdateTaskDueDate(ctx, taskID, userID, domain.UpdateTaskDueDate{DueDate: dueDate}) })
+		updates = append(updates, func() error { return h.cmds.UpdateTaskDueDate(ctx, taskID, userID, domain.UpdateTaskDueDate{DueDate: dueDate}) })
 	}
 	if req.DueTime != nil {
 		v := req.DueTime
-		cmds = append(cmds, func() error { return h.cmds.UpdateTaskDueTime(ctx, taskID, userID, domain.UpdateTaskDueTime{DueTime: v}) })
+		updates = append(updates, func() error { return h.cmds.UpdateTaskDueTime(ctx, taskID, userID, domain.UpdateTaskDueTime{DueTime: v}) })
 	}
 	if req.RecurrenceRule != nil {
 		v := *req.RecurrenceRule
-		cmds = append(cmds, func() error { return h.cmds.UpdateTaskRecurrence(ctx, taskID, userID, domain.UpdateTaskRecurrence{RecurrenceRule: domain.RecurrenceRule(v)}) })
+		updates = append(updates, func() error { return h.cmds.UpdateTaskRecurrence(ctx, taskID, userID, domain.UpdateTaskRecurrence{RecurrenceRule: domain.RecurrenceRule(v)}) })
 	}
 	if req.ListId != nil && req.Position != nil {
 		lid, pos := *req.ListId, *req.Position
-		cmds = append(cmds, func() error { return h.cmds.MoveTask(ctx, taskID, userID, domain.MoveTask{ListID: lid, Position: pos}) })
+		updates = append(updates, func() error { return h.cmds.MoveTask(ctx, taskID, userID, domain.MoveTask{ListID: lid, Position: pos}) })
 	}
 
-	for _, fn := range cmds {
+	for _, fn := range updates {
 		if mapDomainError(w, h.logger, fn()) {
 			return
 		}
@@ -530,7 +531,7 @@ func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	t, err := scanTaskRow(row)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			writeError(w, h.logger, http.StatusNotFound, "task not found")
 			return
 		}

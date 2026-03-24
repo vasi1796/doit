@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+
 interface EmptyStateProps {
   message?: string
   hint?: string
@@ -6,7 +8,12 @@ interface EmptyStateProps {
 
 export function EmptyState({ message = 'No tasks', hint, action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-text-secondary">
+    <motion.div
+      className="flex flex-col items-center justify-center py-16 text-text-secondary"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+    >
       <svg
         width="48"
         height="48"
@@ -31,6 +38,6 @@ export function EmptyState({ message = 'No tasks', hint, action }: EmptyStatePro
           {action.label}
         </button>
       )}
-    </div>
+    </motion.div>
   )
 }

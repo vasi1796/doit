@@ -91,7 +91,7 @@ const (
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Str("service", "worker-reminder").Logger()
 
-	cfg, err := config.Load()
+	cfg, err := config.LoadWorker()
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to load config")
 	}
@@ -109,9 +109,9 @@ func main() {
 	}
 	defer pool.Close()
 
-	interval := envDuration("REMINDER_INTERVAL", 10*time.Minute)
-	reminderHour := envInt("REMINDER_HOUR", 8)
-	tz := envString("REMINDER_TZ", "UTC")
+	interval := cfg.ReminderInterval
+	reminderHour := cfg.ReminderHour
+	tz := cfg.ReminderTZ
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
 		logger.Warn().Str("tz", tz).Msg("invalid timezone, falling back to UTC")
@@ -221,7 +221,11 @@ func sendMorningDigest(ctx context.Context, pool *pgxpool.Pool, opts *webpush.Op
 			"body":  body,
 			"url":   "/today",
 		}
-		payloadJSON, _ := json.Marshal(payload)
+		payloadJSON, err := json.Marshal(payload)
+		if err != nil {
+			logger.Error().Err(err).Str("user_id", s.UserID.String()).Msg("failed to marshal morning digest payload")
+			continue
+		}
 
 		sent := sendToUser(ctx, pool, opts, s.UserID, payloadJSON, logger)
 
@@ -276,7 +280,11 @@ func sendDueTimeAlerts(ctx context.Context, pool *pgxpool.Pool, opts *webpush.Op
 			"body":  t.Title,
 			"url":   "/today",
 		}
-		payloadJSON, _ := json.Marshal(payload)
+		payloadJSON, err := json.Marshal(payload)
+		if err != nil {
+			logger.Error().Err(err).Str("task_id", t.ID.String()).Msg("failed to marshal due-time alert payload")
+			continue
+		}
 
 		sent := sendToUser(ctx, pool, opts, t.UserID, payloadJSON, logger)
 
@@ -350,33 +358,3 @@ func pluralS(n int) string {
 	return "s"
 }
 
-func envString(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
-
-func envInt(key string, fallback int) int {
-	v := os.Getenv(key)
-	if v == "" {
-		return fallback
-	}
-	var n int
-	if _, err := fmt.Sscanf(v, "%d", &n); err != nil {
-		return fallback
-	}
-	return n
-}
-
-func envDuration(key string, fallback time.Duration) time.Duration {
-	v := os.Getenv(key)
-	if v == "" {
-		return fallback
-	}
-	d, err := time.ParseDuration(v)
-	if err != nil {
-		return fallback
-	}
-	return d
-}
