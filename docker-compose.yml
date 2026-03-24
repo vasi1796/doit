@@ -181,7 +181,7 @@ services:
         condition: service_healthy
 
   # ---------------------------------------------------------------------------
-  # Reminder Worker — push notifications for tasks due today
+  # Reminder Worker — morning digest + per-task due-time push notifications
   # ---------------------------------------------------------------------------
   worker-reminder:
     build:
@@ -200,6 +200,7 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
       VAPID_SUBJECT: ${VAPID_SUBJECT}
+      REMINDER_INTERVAL: "10m"
       REMINDER_HOUR: "8"
       REMINDER_TZ: "UTC"
     depends_on:
