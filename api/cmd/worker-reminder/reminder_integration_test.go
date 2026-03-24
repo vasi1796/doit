@@ -96,10 +96,10 @@ func TestSendMorningDigest(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name            string
-		setup           func(t *testing.T) uuid.UUID
-		wantDigestSent  bool
-		wantDigestCount int
+		name             string
+		setup            func(t *testing.T) uuid.UUID
+		wantLogCount     int // expected total rows in reminder_log for this user
+		wantTaskCount    int // expected task_count value in the log (only checked if wantLogCount > 0)
 	}{
 		{
 			name: "sends digest for date-only tasks",
@@ -110,8 +110,8 @@ func TestSendMorningDigest(t *testing.T) {
 				insertSubscription(t, pool, userID)
 				return userID
 			},
-			wantDigestSent:  true,
-			wantDigestCount: 2,
+			wantLogCount:  1,
+			wantTaskCount: 2,
 		},
 		{
 			name: "skips tasks with due_time set",
@@ -122,7 +122,7 @@ func TestSendMorningDigest(t *testing.T) {
 				insertSubscription(t, pool, userID)
 				return userID
 			},
-			wantDigestSent: false,
+			wantLogCount: 0,
 		},
 		{
 			name: "skips completed tasks",
@@ -134,7 +134,7 @@ func TestSendMorningDigest(t *testing.T) {
 				insertSubscription(t, pool, userID)
 				return userID
 			},
-			wantDigestSent: false,
+			wantLogCount: 0,
 		},
 		{
 			name: "idempotent — does not send twice",
@@ -149,13 +149,13 @@ func TestSendMorningDigest(t *testing.T) {
 				)
 				return userID
 			},
-			wantDigestSent: false,
+			wantLogCount:  1, // pre-existing record, function should not add another
+			wantTaskCount: 1, // original task_count preserved (not overwritten)
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// Clean between subtests
 			_, _ = pool.Exec(ctx, `TRUNCATE task_reminder_log, reminder_log, push_subscriptions, tasks CASCADE`)
 
 			userID := tc.setup(t)
@@ -163,27 +163,24 @@ func TestSendMorningDigest(t *testing.T) {
 
 			sendMorningDigest(ctx, pool, opts, now, logger)
 
-			var exists bool
+			var count int
 			_ = pool.QueryRow(ctx,
-				`SELECT EXISTS(SELECT 1 FROM reminder_log WHERE user_id = $1 AND sent_date = '2026-03-24')`,
+				`SELECT COUNT(*) FROM reminder_log WHERE user_id = $1 AND sent_date = '2026-03-24'`,
 				userID,
-			).Scan(&exists)
+			).Scan(&count)
 
-			if tc.wantDigestSent && !exists {
-				t.Error("expected morning digest to be logged, but it was not")
-			}
-			if !tc.wantDigestSent && exists {
-				t.Error("expected no morning digest, but one was logged")
+			if count != tc.wantLogCount {
+				t.Errorf("reminder_log count = %d, want %d", count, tc.wantLogCount)
 			}
 
-			if tc.wantDigestSent && tc.wantDigestCount > 0 {
-				var count int
+			if tc.wantLogCount > 0 && tc.wantTaskCount > 0 {
+				var taskCount int
 				_ = pool.QueryRow(ctx,
 					`SELECT task_count FROM reminder_log WHERE user_id = $1 AND sent_date = '2026-03-24'`,
 					userID,
-				).Scan(&count)
-				if count != tc.wantDigestCount {
-					t.Errorf("digest task_count = %d, want %d", count, tc.wantDigestCount)
+				).Scan(&taskCount)
+				if taskCount != tc.wantTaskCount {
+					t.Errorf("digest task_count = %d, want %d", taskCount, tc.wantTaskCount)
 				}
 			}
 		})
@@ -198,11 +195,10 @@ func TestSendDueTimeAlerts(t *testing.T) {
 	interval := 10 * time.Minute
 
 	tests := []struct {
-		name      string
-		setup     func(t *testing.T) uuid.UUID
-		now       time.Time
-		taskID    uuid.UUID
-		wantAlert bool
+		name          string
+		setup         func(t *testing.T) uuid.UUID
+		now           time.Time
+		wantLogCount  int // expected total rows in task_reminder_log for this task
 	}{
 		{
 			name: "sends alert for task in current window",
@@ -215,7 +211,7 @@ func TestSendDueTimeAlerts(t *testing.T) {
 				insertSubscription(t, pool, userID)
 				return taskID
 			},
-			wantAlert: true,
+			wantLogCount: 1,
 		},
 		{
 			name: "skips task outside window",
@@ -228,7 +224,7 @@ func TestSendDueTimeAlerts(t *testing.T) {
 				insertSubscription(t, pool, userID)
 				return taskID
 			},
-			wantAlert: false,
+			wantLogCount: 0,
 		},
 		{
 			name: "skips task with no due_time",
@@ -240,7 +236,7 @@ func TestSendDueTimeAlerts(t *testing.T) {
 				insertSubscription(t, pool, userID)
 				return taskID
 			},
-			wantAlert: false,
+			wantLogCount: 0,
 		},
 		{
 			name: "idempotent — does not alert twice",
@@ -258,7 +254,7 @@ func TestSendDueTimeAlerts(t *testing.T) {
 				)
 				return taskID
 			},
-			wantAlert: false, // already logged, should not send again
+			wantLogCount: 1, // pre-existing record, function should not add another
 		},
 		{
 			name: "skips deleted task",
@@ -272,7 +268,7 @@ func TestSendDueTimeAlerts(t *testing.T) {
 				insertSubscription(t, pool, userID)
 				return taskID
 			},
-			wantAlert: false,
+			wantLogCount: 0,
 		},
 		{
 			name: "midnight crossing — task due at 23:58 caught by 00:05 tick",
@@ -281,12 +277,11 @@ func TestSendDueTimeAlerts(t *testing.T) {
 				userID := insertTestUser(t, pool)
 				taskID := uuid.New()
 				dueTime := "23:58:00"
-				// Task is on the previous day (2026-03-24) with due_time 23:58
 				insertTask(t, pool, taskID, userID, "Late night task", "2026-03-24", &dueTime)
 				insertSubscription(t, pool, userID)
 				return taskID
 			},
-			wantAlert: true,
+			wantLogCount: 1,
 		},
 		{
 			name: "midnight crossing — task due at 00:02 caught by 00:05 tick",
@@ -295,35 +290,30 @@ func TestSendDueTimeAlerts(t *testing.T) {
 				userID := insertTestUser(t, pool)
 				taskID := uuid.New()
 				dueTime := "00:02:00"
-				// Task is on the current day (2026-03-25) with due_time 00:02
 				insertTask(t, pool, taskID, userID, "Early morning task", "2026-03-25", &dueTime)
 				insertSubscription(t, pool, userID)
 				return taskID
 			},
-			wantAlert: true,
+			wantLogCount: 1,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// Clean between subtests
 			_, _ = pool.Exec(ctx, `TRUNCATE task_reminder_log, reminder_log, push_subscriptions, tasks CASCADE`)
 
 			taskID := tc.setup(t)
 
 			sendDueTimeAlerts(ctx, pool, opts, tc.now, interval, logger)
 
-			var exists bool
+			var count int
 			_ = pool.QueryRow(ctx,
-				`SELECT EXISTS(SELECT 1 FROM task_reminder_log WHERE task_id = $1 AND due_date = '2026-03-24')`,
+				`SELECT COUNT(*) FROM task_reminder_log WHERE task_id = $1`,
 				taskID,
-			).Scan(&exists)
+			).Scan(&count)
 
-			if tc.wantAlert && !exists {
-				t.Error("expected due-time alert to be logged, but it was not")
-			}
-			if !tc.wantAlert && exists {
-				t.Error("expected no due-time alert, but one was logged")
+			if count != tc.wantLogCount {
+				t.Errorf("task_reminder_log count = %d, want %d", count, tc.wantLogCount)
 			}
 		})
 	}

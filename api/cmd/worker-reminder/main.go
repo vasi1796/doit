@@ -41,9 +41,10 @@ type dueTaskSummary struct {
 }
 
 type dueTimeTask struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
-	Title  string
+	ID      uuid.UUID
+	UserID  uuid.UUID
+	Title   string
+	DueDate time.Time
 }
 
 // SQL queries — extracted for readability.
@@ -65,7 +66,7 @@ const (
 		INSERT INTO reminder_log (user_id, sent_date, task_count) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`
 
 	queryDueTimeTasks = `
-		SELECT t.id, t.user_id, t.title
+		SELECT t.id, t.user_id, t.title, t.due_date
 		FROM tasks t
 		WHERE t.due_date = $1
 		  AND t.due_time IS NOT NULL
@@ -79,7 +80,7 @@ const (
 		  )`
 
 	queryDueTimeTasksMidnight = `
-		SELECT t.id, t.user_id, t.title
+		SELECT t.id, t.user_id, t.title, t.due_date
 		FROM tasks t
 		WHERE NOT t.is_completed
 		  AND NOT t.is_deleted
@@ -284,7 +285,7 @@ func sendDueTimeAlerts(ctx context.Context, pool *pgxpool.Pool, opts *webpush.Op
 	var tasks []dueTimeTask
 	for rows.Next() {
 		var t dueTimeTask
-		if err := rows.Scan(&t.ID, &t.UserID, &t.Title); err != nil {
+		if err := rows.Scan(&t.ID, &t.UserID, &t.Title, &t.DueDate); err != nil {
 			logger.Error().Err(err).Msg("failed to scan due-time task row")
 			continue
 		}
@@ -310,7 +311,7 @@ func sendDueTimeAlerts(ctx context.Context, pool *pgxpool.Pool, opts *webpush.Op
 
 		sent := sendToUser(ctx, pool, opts, t.UserID, payloadJSON, logger)
 
-		if _, err := pool.Exec(ctx, execLogTaskReminder, t.ID, today); err != nil {
+		if _, err := pool.Exec(ctx, execLogTaskReminder, t.ID, t.DueDate); err != nil {
 			logger.Error().Err(err).Str("task_id", t.ID.String()).Msg("failed to log task reminder")
 		}
 
