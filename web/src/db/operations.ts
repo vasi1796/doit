@@ -1,4 +1,5 @@
 import { db } from './database'
+import type { FieldHLC } from './database'
 import { clock } from './clock'
 import type { CreateTaskRequest, UpdateTaskRequest, CreateListRequest, CreateLabelRequest } from '../api/types'
 
@@ -42,6 +43,22 @@ function hlcFields() {
   }
 }
 
+/** Build a FieldHLC map for the given field names using the provided HLC. */
+function buildFieldHlcs(fieldNames: string[], hlc: { time: number; counter: number }): FieldHLC {
+  const result: FieldHLC = {}
+  for (const name of fieldNames) {
+    result[name] = { time: hlc.time, counter: hlc.counter }
+  }
+  return result
+}
+
+/** Merge new per-field HLCs into an existing task's field_hlcs. */
+async function mergeLocalFieldHlcs(taskId: string, newFieldHlcs: FieldHLC): Promise<FieldHLC> {
+  const task = await db.tasks.get(taskId)
+  const existing = task?.field_hlcs ?? {}
+  return { ...existing, ...newFieldHlcs }
+}
+
 async function queueOp(operationType: string, aggregateId: string, hlc: { time: number; counter: number }, data: Record<string, unknown> = {}) {
   await db.syncQueue.add({
     operationType,
@@ -63,6 +80,12 @@ export async function createTask(data: CreateTaskRequest): Promise<string> {
   const id = uuid()
   const { hlc, fields } = hlcFields()
 
+  const allTaskFields = [
+    'title', 'description', 'priority', 'due_date', 'due_time',
+    'recurrence_rule', 'list_id', 'position', 'is_completed', 'is_deleted',
+  ]
+  const field_hlcs = buildFieldHlcs(allTaskFields, hlc)
+
   await db.tasks.put({
     id,
     title: data.title,
@@ -75,6 +98,7 @@ export async function createTask(data: CreateTaskRequest): Promise<string> {
     is_completed: false,
     is_deleted: false,
     created_at: new Date().toISOString(),
+    field_hlcs,
     ...fields,
   })
 
@@ -84,15 +108,20 @@ export async function createTask(data: CreateTaskRequest): Promise<string> {
 
 export async function updateTask(id: string, data: UpdateTaskRequest): Promise<void> {
   const { hlc, fields } = hlcFields()
-  await db.tasks.update(id, { ...data, ...fields })
+  const changedFields = Object.keys(data)
+  const newFieldHlcs = buildFieldHlcs(changedFields, hlc)
+  const field_hlcs = await mergeLocalFieldHlcs(id, newFieldHlcs)
+  await db.tasks.update(id, { ...data, ...fields, field_hlcs })
   await queueOp(SyncOpType.UPDATE_TASK, id, hlc, data)
 }
 
 export async function completeTask(id: string): Promise<void> {
   const { hlc, fields } = hlcFields()
+  const field_hlcs = await mergeLocalFieldHlcs(id, buildFieldHlcs(['is_completed'], hlc))
   await db.tasks.update(id, {
     is_completed: true,
     completed_at: new Date().toISOString(),
+    field_hlcs,
     ...fields,
   })
   await queueOp(SyncOpType.COMPLETE_TASK, id, hlc)
@@ -100,9 +129,11 @@ export async function completeTask(id: string): Promise<void> {
 
 export async function uncompleteTask(id: string): Promise<void> {
   const { hlc, fields } = hlcFields()
+  const field_hlcs = await mergeLocalFieldHlcs(id, buildFieldHlcs(['is_completed'], hlc))
   await db.tasks.update(id, {
     is_completed: false,
     completed_at: undefined,
+    field_hlcs,
     ...fields,
   })
   await queueOp(SyncOpType.UNCOMPLETE_TASK, id, hlc)
@@ -110,13 +141,15 @@ export async function uncompleteTask(id: string): Promise<void> {
 
 export async function deleteTask(id: string): Promise<void> {
   const { hlc, fields } = hlcFields()
-  await db.tasks.update(id, { is_deleted: true, ...fields })
+  const field_hlcs = await mergeLocalFieldHlcs(id, buildFieldHlcs(['is_deleted'], hlc))
+  await db.tasks.update(id, { is_deleted: true, field_hlcs, ...fields })
   await queueOp(SyncOpType.DELETE_TASK, id, hlc)
 }
 
 export async function restoreTask(id: string): Promise<void> {
   const { hlc, fields } = hlcFields()
-  await db.tasks.update(id, { is_deleted: false, ...fields })
+  const field_hlcs = await mergeLocalFieldHlcs(id, buildFieldHlcs(['is_deleted'], hlc))
+  await db.tasks.update(id, { is_deleted: false, field_hlcs, ...fields })
   await queueOp(SyncOpType.RESTORE_TASK, id, hlc)
 }
 
