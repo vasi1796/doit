@@ -104,6 +104,8 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func runDeploy() {
+	composeFile := repoDir + "/docker-compose.yml"
+
 	// git pull
 	pullCmd := exec.Command("git", "-C", repoDir, "pull", "--ff-only")
 	pullOut, err := pullCmd.CombinedOutput()
@@ -113,8 +115,15 @@ func runDeploy() {
 	}
 	log.Printf("git pull: %s", pullOut)
 
+	// Force rebuild and re-run the web-build one-shot container so new
+	// assets are copied into the shared volume that Caddy serves from.
+	rmCmd := exec.Command("docker", "compose", "-f", composeFile, "rm", "-fsv", "web-build")
+	rmCmd.Dir = repoDir
+	rmOut, _ := rmCmd.CombinedOutput()
+	log.Printf("web-build rm: %s", rmOut)
+
 	// docker compose up -d --build
-	composeCmd := exec.Command("docker", "compose", "-f", repoDir+"/docker-compose.yml", "up", "-d", "--build")
+	composeCmd := exec.Command("docker", "compose", "-f", composeFile, "up", "-d", "--build")
 	composeCmd.Dir = repoDir
 	composeOut, err := composeCmd.CombinedOutput()
 	if err != nil {
