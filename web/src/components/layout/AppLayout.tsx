@@ -227,12 +227,11 @@ export function AppLayout() {
 
         <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0">
           <InstallBanner />
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={location.pathname}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
               <Outlet />

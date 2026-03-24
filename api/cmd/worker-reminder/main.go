@@ -91,7 +91,7 @@ const (
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Str("service", "worker-reminder").Logger()
 
-	cfg, err := config.Load()
+	cfg, err := config.LoadWorker()
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to load config")
 	}

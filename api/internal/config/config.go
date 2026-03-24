@@ -39,7 +39,31 @@ type Config struct {
 	ReminderTZ         string
 }
 
+// Load reads all configuration from environment variables.
+// Use LoadWorker for worker processes that don't need auth config.
 func Load() (*Config, error) {
+	cfg, err := loadBase()
+	if err != nil {
+		return nil, err
+	}
+
+	if !cfg.DevMode && cfg.JWTSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET is required when DEV_MODE is not enabled")
+	}
+
+	if !cfg.DevMode && (cfg.GoogleClientID == "" || cfg.GoogleClientSecret == "" || cfg.GoogleRedirectURL == "") {
+		return nil, fmt.Errorf("GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URL are required when DEV_MODE is not enabled")
+	}
+
+	return cfg, nil
+}
+
+// LoadWorker reads configuration needed by worker processes (no auth validation).
+func LoadWorker() (*Config, error) {
+	return loadBase()
+}
+
+func loadBase() (*Config, error) {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL is required")
@@ -73,14 +97,6 @@ func Load() (*Config, error) {
 		ReminderInterval:   envDuration("REMINDER_INTERVAL", 10*time.Minute),
 		ReminderHour:       envInt("REMINDER_HOUR", 8),
 		ReminderTZ:         envString("REMINDER_TZ", "UTC"),
-	}
-
-	if !cfg.DevMode && cfg.JWTSecret == "" {
-		return nil, fmt.Errorf("JWT_SECRET is required when DEV_MODE is not enabled")
-	}
-
-	if !cfg.DevMode && (cfg.GoogleClientID == "" || cfg.GoogleClientSecret == "" || cfg.GoogleRedirectURL == "") {
-		return nil, fmt.Errorf("GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URL are required when DEV_MODE is not enabled")
 	}
 
 	return cfg, nil

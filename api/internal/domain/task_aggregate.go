@@ -85,6 +85,7 @@ func (a *TaskAggregate) Apply(e eventstore.Event) {
 		var p TaskCreatedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		a.title = p.Title
 		a.description = p.Description
@@ -97,6 +98,7 @@ func (a *TaskAggregate) Apply(e eventstore.Event) {
 		var p TaskRecurrenceUpdatedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		a.recurrenceRule = p.RecurrenceRule
 	case eventstore.EventTaskCompleted:
@@ -111,36 +113,42 @@ func (a *TaskAggregate) Apply(e eventstore.Event) {
 		var p TaskTitleUpdatedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		a.title = p.Title
 	case eventstore.EventTaskDescriptionUpdated:
 		var p TaskDescriptionUpdatedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		a.description = p.Description
 	case eventstore.EventTaskPriorityUpdated:
 		var p TaskPriorityUpdatedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		a.priority = p.Priority
 	case eventstore.EventTaskDueDateUpdated:
 		var p TaskDueDateUpdatedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		a.dueDate = p.DueDate
 	case eventstore.EventTaskDueTimeUpdated:
 		var p TaskDueTimeUpdatedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		a.dueTime = p.DueTime
 	case eventstore.EventTaskMoved:
 		var mp TaskMovedPayload
 		if err := json.Unmarshal(e.Data, &mp); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		listID := mp.ListID
 		a.listID = &listID
@@ -149,30 +157,35 @@ func (a *TaskAggregate) Apply(e eventstore.Event) {
 		var p TaskReorderedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		a.position = p.Position
 	case eventstore.EventLabelAdded:
 		var p LabelAddedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		a.labels[p.LabelID] = true
 	case eventstore.EventLabelRemoved:
 		var p LabelRemovedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		delete(a.labels, p.LabelID)
 	case eventstore.EventSubtaskCreated:
 		var p SubtaskCreatedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		a.subtasks[p.SubtaskID] = &subtaskState{id: p.SubtaskID}
 	case eventstore.EventSubtaskCompleted:
 		var p SubtaskCompletedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		if st, ok := a.subtasks[p.SubtaskID]; ok {
 			st.completed = true
@@ -181,6 +194,7 @@ func (a *TaskAggregate) Apply(e eventstore.Event) {
 		var p SubtaskUncompletedPayload
 		if err := json.Unmarshal(e.Data, &p); err != nil {
 			log.Printf("warn: failed to unmarshal %s event payload: %v", e.EventType, err)
+			return
 		}
 		if st, ok := a.subtasks[p.SubtaskID]; ok {
 			st.completed = false

@@ -139,6 +139,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.3}
+        dragDirectionLock
         style={{ x: swipeX }}
         onDragEnd={handleSwipeEnd}
         className="relative bg-white"
@@ -158,6 +159,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
             aria-label="Drag to reorder"
             className="w-[44px] min-h-[44px] -ml-5 -my-3 self-stretch flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-tertiary hover:text-text-secondary"
             {...dragHandleProps}
+            onPointerDownCapture={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

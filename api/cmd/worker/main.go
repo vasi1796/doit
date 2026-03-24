@@ -21,7 +21,7 @@ import (
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Str("service", "worker-projection").Logger()
 
-	cfg, err := config.Load()
+	cfg, err := config.LoadWorker()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
 		os.Exit(1)
