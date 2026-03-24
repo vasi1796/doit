@@ -21,6 +21,7 @@ export interface SyncOp {
   hlcTime: number
   hlcCounter: number
   createdAt: number
+  retryCount?: number
 }
 
 /** Tracks the last sync point for incremental pull. */
@@ -30,10 +31,16 @@ export interface SyncCursor {
   hlcCounter: number
 }
 
+/** Per-field HLC timestamps for fine-grained LWW merge. */
+export interface FieldHLC {
+  [field: string]: { time: number; counter: number }
+}
+
 /** Task record stored in IndexedDB — includes HLC fields for LWW merge. */
 export type StoredTask = Omit<Task, 'subtasks' | 'labels'> & {
-  hlc_time?: number
-  hlc_counter?: number
+  hlc_time?: number      // keep for backward compat during migration
+  hlc_counter?: number   // keep for backward compat during migration
+  field_hlcs?: FieldHLC  // per-field HLC tracking
 }
 
 class DoItDB extends Dexie {
@@ -59,6 +66,10 @@ class DoItDB extends Dexie {
 
     this.version(2).stores({
       syncState: '&key',
+    })
+
+    this.version(3).stores({
+      syncQueue: '++id, createdAt',
     })
   }
 }
