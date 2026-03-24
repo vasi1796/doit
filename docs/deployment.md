@@ -182,5 +182,7 @@ git remote set-url origin https://<user>:<token>@github.com/user/doit.git
 - Make this persistent: `sudo apt install iptables-persistent && sudo netfilter-persistent save`
 
 ### RabbitMQ connection refused on startup
-- Normal — RabbitMQ takes longer to start than the API. The API retries
-  and connects once RabbitMQ is ready. Check with `docker compose logs doit-api`
+- Normal — RabbitMQ takes longer to start than the API. The broker client
+  auto-reconnects with exponential backoff and workers have reconnection-aware
+  consume loops, so transient RabbitMQ outages are handled automatically.
+  Check with `docker compose logs doit-api`

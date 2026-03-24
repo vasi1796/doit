@@ -43,6 +43,8 @@ We will use **RabbitMQ 3.13+** with topic exchanges and dead-letter queues.
 - Mature, well-documented, battle-tested in production systems.
 - Easy to self-host via Docker with the `rabbitmq:3.13-management` image.
 - Supports quorum queues for durability (useful even at small scale).
+- Broker client auto-reconnects with exponential backoff; workers have
+  reconnection-aware consume loops that survive transient RabbitMQ outages.
 
 **Costs:**
 - **Heavier than NATS** — more memory and CPU usage, but acceptable for a

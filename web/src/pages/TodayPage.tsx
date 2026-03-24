@@ -10,6 +10,7 @@ export function TodayPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const today = new Date().toISOString().split('T')[0]
+  const overdueTasks = tasks.filter((t) => t.due_date && t.due_date < today)
   const todayTasks = tasks.filter((t) => t.due_date === today)
 
   return (
@@ -19,6 +20,22 @@ export function TodayPage() {
         <p className="text-sm text-text-secondary">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
+      </div>
+      {overdueTasks.length > 0 && (
+        <>
+          <div className="px-5 pt-4 pb-1">
+            <h2 className="text-sm font-semibold text-danger">Overdue</h2>
+          </div>
+          <TaskList
+            tasks={overdueTasks}
+            loading={false}
+            emptyMessage=""
+            onTaskSelect={setSelectedId}
+          />
+        </>
+      )}
+      <div className="px-5 pt-4 pb-1">
+        <h2 className="text-sm font-semibold text-text-secondary">Today</h2>
       </div>
       <TaskList
         tasks={todayTasks}

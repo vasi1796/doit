@@ -99,8 +99,42 @@ export class SyncEngine {
 
       const result = await res.json()
 
-      const opIds = ops.map((op) => op.id!).filter(Boolean)
-      await db.syncQueue.bulkDelete(opIds)
+      const failedIndices = new Set<number>(result.failed_ops ?? [])
+      const MAX_RETRIES = 5
+
+      const successOpIds: number[] = []
+      const failedOps: { id: number; index: number }[] = []
+
+      for (let i = 0; i < ops.length; i++) {
+        const opId = ops[i].id
+        if (!opId) continue
+        if (failedIndices.has(i)) {
+          failedOps.push({ id: opId, index: i })
+        } else {
+          successOpIds.push(opId)
+        }
+      }
+
+      await db.syncQueue.bulkDelete(successOpIds)
+
+      if (failedOps.length > 0) {
+        console.warn(`sync: ${failedOps.length} operation(s) failed, will retry`)
+        const expiredIds: number[] = []
+        for (const { id } of failedOps) {
+          const op = await db.syncQueue.get(id)
+          if (!op) continue
+          const newRetryCount = (op.retryCount ?? 0) + 1
+          if (newRetryCount > MAX_RETRIES) {
+            console.error(`sync: operation ${id} (${op.operationType} on ${op.aggregateId}) exceeded ${MAX_RETRIES} retries, discarding`)
+            expiredIds.push(id)
+          } else {
+            await db.syncQueue.update(id, { retryCount: newRetryCount })
+          }
+        }
+        if (expiredIds.length > 0) {
+          await db.syncQueue.bulkDelete(expiredIds)
+        }
+      }
 
       if (result.cursor) {
         await db.syncState.put({

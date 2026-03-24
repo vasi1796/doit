@@ -45,7 +45,38 @@ sequenceDiagram
 
 **Key points:**
 - Writes are **instant** — IndexedDB updated before network call
-- Sync engine retries with exponential backoff (5s → 10s → ... → 5min)
-- Server returns new events from other devices — merged via LWW-Register
+- Sync engine retries with exponential backoff (30s → 60s → ... → 5min)
+- Server returns new events from other devices — merged via per-field LWW-Register
 - No rollback on sync failure — operations stay in queue and retry
 - Client HLC is updated from remote events to maintain causal ordering
+
+---
+
+## Sync Retry — Failed Operation Handling
+
+What happens when individual operations fail server-side (e.g., version conflict, invalid aggregate).
+
+```mermaid
+flowchart TD
+    Push["SyncEngine pushes N operations"] --> Server["Server processes each op"]
+    Server --> Resp["Response: {cursor, events, failed_ops: [1, 3]}"]
+
+    Resp --> Partition{"Partition by<br/>failed_ops indices"}
+
+    Partition -->|"Ops 0, 2, 4..."| Success["Successful ops"]
+    Partition -->|"Ops 1, 3"| Failed["Failed ops"]
+
+    Success --> Delete["Delete from syncQueue"]
+
+    Failed --> CheckRetry{"retryCount < 5?"}
+    CheckRetry -->|Yes| Increment["retryCount++<br/>Keep in queue"]
+    Increment --> NextSync["Retried on next<br/>sync cycle (30s)"]
+    CheckRetry -->|No| Discard["Discard with<br/>console.error"]
+```
+
+**Key points:**
+- Server returns `failed_ops` as an array of indices (0-based)
+- Only successful operations are deleted from the sync queue
+- Failed operations stay in queue with incrementing `retryCount`
+- After 5 retries, operations are permanently discarded (likely stale or invalid)
+- Version conflicts are the most common failure — e.g., concurrent edit on same aggregate

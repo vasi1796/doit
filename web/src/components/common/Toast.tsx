@@ -2,14 +2,20 @@ import { createContext, useCallback, useContext, useState } from 'react'
 
 type ToastType = 'success' | 'error' | 'info'
 
+interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
 interface Toast {
   id: number
   message: string
   type: ToastType
+  action?: ToastAction
 }
 
 interface ToastContextValue {
-  toast: (message: string, type?: ToastType) => void
+  toast: (message: string, type?: ToastType, action?: ToastAction) => void
 }
 
 const ToastContext = createContext<ToastContextValue>({ toast: () => {} })
@@ -23,12 +29,12 @@ let nextId = 0
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const toast = useCallback((message: string, type: ToastType = 'info') => {
+  const toast = useCallback((message: string, type: ToastType = 'info', action?: ToastAction) => {
     const id = nextId++
-    setToasts((prev) => [...prev, { id, message, type }])
+    setToasts((prev) => [...prev, { id, message, type, action }])
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 3000)
+    }, action ? 5000 : 3000)
   }, [])
 
   return (
@@ -38,7 +44,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg animate-[toast-in_0.2s_ease-out] pointer-events-auto ${
+            className={`px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg animate-[toast-in_0.2s_ease-out] pointer-events-auto flex items-center gap-3 ${
               t.type === 'error'
                 ? 'bg-danger text-white'
                 : t.type === 'info'
@@ -47,6 +53,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             }`}
           >
             {t.message}
+            {t.action && (
+              <button
+                onClick={() => {
+                  t.action!.onClick()
+                  setToasts((prev) => prev.filter((toast) => toast.id !== t.id))
+                }}
+                className="font-semibold underline underline-offset-2 whitespace-nowrap min-h-[44px] min-w-[44px] flex items-center justify-center"
+              >
+                {t.action.label}
+              </button>
+            )}
           </div>
         ))}
       </div>

@@ -1,4 +1,5 @@
 import { db } from './database'
+import type { FieldHLC } from './database'
 import { clock } from './clock'
 import { compare, type HLCTimestamp } from '../hlc/hlc'
 import { mergeLWW } from '../crdt/lww'
@@ -137,6 +138,19 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
     // ---- Task events ----
     case 'TaskCreated': {
       const p = data as unknown as TaskCreatedPayload
+      const hlcEntry = { time: eventHLC.time, counter: eventHLC.counter }
+      const field_hlcs: FieldHLC = {
+        title: hlcEntry,
+        description: hlcEntry,
+        priority: hlcEntry,
+        due_date: hlcEntry,
+        due_time: hlcEntry,
+        recurrence_rule: hlcEntry,
+        list_id: hlcEntry,
+        position: hlcEntry,
+        is_completed: hlcEntry,
+        is_deleted: hlcEntry,
+      }
       await db.tasks.put({
         id: aggId,
         title: p.title,
@@ -152,44 +166,45 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
         updated_at: updatedAt,
         hlc_time: eventHLC.time,
         hlc_counter: eventHLC.counter,
+        field_hlcs,
       })
       break
     }
 
     case 'TaskTitleUpdated': {
       const p = data as unknown as TaskTitleUpdatedPayload
-      await mergeTaskField(aggId, eventHLC, { title: p.title })
+      await mergeTaskField(aggId, eventHLC, { title: p.title }, ['title'])
       break
     }
 
     case 'TaskDescriptionUpdated': {
       const p = data as unknown as TaskDescriptionUpdatedPayload
-      await mergeTaskField(aggId, eventHLC, { description: p.description })
+      await mergeTaskField(aggId, eventHLC, { description: p.description }, ['description'])
       break
     }
 
     case 'TaskPriorityUpdated': {
       const p = data as unknown as TaskPriorityUpdatedPayload
-      await mergeTaskField(aggId, eventHLC, { priority: p.priority })
+      await mergeTaskField(aggId, eventHLC, { priority: p.priority }, ['priority'])
       break
     }
 
     case 'TaskDueDateUpdated': {
       const p = data as unknown as TaskDueDateUpdatedPayload
       const dueDate = p.due_date ? p.due_date.split('T')[0] : undefined
-      await mergeTaskField(aggId, eventHLC, { due_date: dueDate })
+      await mergeTaskField(aggId, eventHLC, { due_date: dueDate }, ['due_date'])
       break
     }
 
     case 'TaskDueTimeUpdated': {
       const p = data as unknown as TaskDueTimeUpdatedPayload
-      await mergeTaskField(aggId, eventHLC, { due_time: p.due_time })
+      await mergeTaskField(aggId, eventHLC, { due_time: p.due_time }, ['due_time'])
       break
     }
 
     case 'TaskRecurrenceUpdated': {
       const p = data as unknown as TaskRecurrenceUpdatedPayload
-      await mergeTaskField(aggId, eventHLC, { recurrence_rule: p.recurrence_rule })
+      await mergeTaskField(aggId, eventHLC, { recurrence_rule: p.recurrence_rule }, ['recurrence_rule'])
       break
     }
 
@@ -198,20 +213,20 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
       await mergeTaskField(aggId, eventHLC, {
         is_completed: true,
         completed_at: p.completed_at,
-      })
+      }, ['is_completed'])
       break
     }
 
     case 'TaskUncompleted':
-      await mergeTaskField(aggId, eventHLC, { is_completed: false, completed_at: undefined })
+      await mergeTaskField(aggId, eventHLC, { is_completed: false, completed_at: undefined }, ['is_completed'])
       break
 
     case 'TaskDeleted':
-      await mergeTaskField(aggId, eventHLC, { is_deleted: true })
+      await mergeTaskField(aggId, eventHLC, { is_deleted: true }, ['is_deleted'])
       break
 
     case 'TaskRestored':
-      await mergeTaskField(aggId, eventHLC, { is_deleted: false })
+      await mergeTaskField(aggId, eventHLC, { is_deleted: false }, ['is_deleted'])
       break
 
     case 'TaskMoved': {
@@ -219,7 +234,7 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
       await mergeTaskField(aggId, eventHLC, {
         list_id: p.list_id,
         position: p.position,
-      })
+      }, ['list_id', 'position'])
       break
     }
 
@@ -227,7 +242,7 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
       const p = data as unknown as TaskReorderedPayload
       await mergeTaskField(aggId, eventHLC, {
         position: p.position,
-      })
+      }, ['position'])
       break
     }
 
@@ -312,14 +327,18 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
 }
 
 /**
- * LWW merge for a task field. Only applies the update if the event's
- * HLC timestamp is newer than the local record's HLC timestamp.
- * Uses the CRDT mergeLWW helper which compares full HLC (time + counter).
+ * LWW merge for task fields using per-field HLC tracking.
+ * Each field has its own HLC timestamp, so concurrent updates to different
+ * fields never conflict. Only applies each field if the event's HLC is newer
+ * than that specific field's HLC.
+ *
+ * @param fieldNames - the field(s) whose HLC should be checked/updated
  */
 async function mergeTaskField(
   taskId: string,
   eventHLC: HLCTimestamp,
   fields: Record<string, unknown>,
+  fieldNames: string[],
 ): Promise<void> {
   const local = await db.tasks.get(taskId)
   if (!local) {
@@ -327,19 +346,67 @@ async function mergeTaskField(
     return
   }
 
-  const localHLC: HLCTimestamp = {
+  const fieldHlcs: FieldHLC = local.field_hlcs ? { ...local.field_hlcs } : {}
+
+  // Fallback HLC for tasks that predate per-field tracking
+  const fallbackHLC: HLCTimestamp = {
     time: local.hlc_time ?? new Date(local.updated_at).getTime(),
     counter: local.hlc_counter ?? 0,
   }
 
-  // mergeLWW returns [winningValue, winningHLC]; we only need to know if remote won
-  const [, winnerHLC] = mergeLWW(null, localHLC, null, eventHLC)
-  if (compare(winnerHLC, eventHLC) === 0) {
+  // Check if the remote event wins for ALL specified fields
+  // (fields from the same event share the same HLC, so they win or lose together)
+  let anyFieldWins = false
+  for (const fieldName of fieldNames) {
+    const localFieldHLC: HLCTimestamp = fieldHlcs[fieldName]
+      ? { time: fieldHlcs[fieldName].time, counter: fieldHlcs[fieldName].counter }
+      : fallbackHLC
+
+    const [, winnerHLC] = mergeLWW(null, localFieldHLC, null, eventHLC)
+    if (compare(winnerHLC, eventHLC) === 0) {
+      anyFieldWins = true
+      fieldHlcs[fieldName] = { time: eventHLC.time, counter: eventHLC.counter }
+    }
+  }
+
+  if (anyFieldWins) {
+    // Only apply fields that actually won their per-field comparison
+    const winningFields: Record<string, unknown> = {}
+    for (const fieldName of fieldNames) {
+      if (
+        fieldHlcs[fieldName] &&
+        fieldHlcs[fieldName].time === eventHLC.time &&
+        fieldHlcs[fieldName].counter === eventHLC.counter
+      ) {
+        // This field's HLC was updated to the event's HLC — it won
+        if (fieldName in fields) {
+          winningFields[fieldName] = fields[fieldName]
+        }
+      }
+    }
+
+    // Also include non-field-tracked companion values (e.g., completed_at alongside is_completed)
+    for (const key of Object.keys(fields)) {
+      if (!fieldNames.includes(key)) {
+        winningFields[key] = fields[key]
+      }
+    }
+
+    // Update task-level HLC if event is newer (backward compat)
+    const taskLevelHLC: HLCTimestamp = {
+      time: local.hlc_time ?? new Date(local.updated_at).getTime(),
+      counter: local.hlc_counter ?? 0,
+    }
+    const [, taskWinnerHLC] = mergeLWW(null, taskLevelHLC, null, eventHLC)
+    const taskHlcUpdate = compare(taskWinnerHLC, eventHLC) === 0
+      ? { hlc_time: eventHLC.time, hlc_counter: eventHLC.counter }
+      : {}
+
     await db.tasks.update(taskId, {
-      ...fields,
+      ...winningFields,
       updated_at: new Date(eventHLC.time).toISOString(),
-      hlc_time: eventHLC.time,
-      hlc_counter: eventHLC.counter,
+      field_hlcs: fieldHlcs,
+      ...taskHlcUpdate,
     })
   }
 }

@@ -86,7 +86,7 @@ export function TaskDetail({ taskId, lists, onClose }: TaskDetailProps) {
   const handleDelete = async () => {
     try {
       await operations.deleteTask(task.id)
-      toast('Task deleted', 'success')
+      toast('Task deleted', 'success', { label: 'Undo', onClick: () => operations.restoreTask(task.id) })
       onClose()
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to delete', 'error')

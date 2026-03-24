@@ -105,7 +105,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
       swiping.current = true
       try {
         await operations.deleteTask(task.id)
-        toast('Task deleted', 'success')
+        toast('Task deleted', 'success', { label: 'Undo', onClick: () => operations.restoreTask(task.id) })
       } catch (err) {
         toast(err instanceof Error ? err.message : 'Failed', 'error')
       }

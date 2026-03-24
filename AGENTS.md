@@ -27,7 +27,7 @@ HTTP Request → Handler → CommandHandler(HLC) → Aggregate (validates + prod
     → TX { EventStore.Append + Outbox.Insert } (single Postgres transaction)
     → HTTP Response (immediate — projections are async)
     ↓ (async, 200ms poll)
-Outbox Poller → RabbitMQ (topic exchange: doit.events)
+Outbox Poller → RabbitMQ (topic exchange: doit.events, broker auto-reconnects with backoff)
     → Projection Worker (doit.projections queue) → updates read model tables
     → Recurring Worker (doit.recurring queue) → creates next occurrence on task completion
 ```
@@ -36,11 +36,11 @@ Outbox Poller → RabbitMQ (topic exchange: doit.events)
 ```
 User action → db/operations.ts → IndexedDB write (instant)
     → SyncOp queued in syncQueue table
-    → SyncEngine flushes on foreground/30s poll
+    → SyncEngine flushes on foreground/30s poll (failed ops retry up to 5 times)
     → POST /api/v1/sync (batched operations)
     → Server: CommandHandler processes batch → events appended
     → Response: confirmation + remote events
-    → Client: merge-events.ts applies remote events to IndexedDB via LWW
+    → Client: merge-events.ts applies remote events to IndexedDB via per-field LWW
     → useLiveQuery auto-re-renders
 ```
 
@@ -58,8 +58,8 @@ All reads come from local IndexedDB. The API is never queried directly for reads
 - **Transactional Outbox**: Events and outbox rows written in a single Postgres transaction.
   Outbox poller publishes to RabbitMQ. Projections are async via workers.
 - **Offline-first**: Writes go to IndexedDB immediately, sync to server when online.
-- **HLC timestamps**: Hybrid Logical Clocks provide causal ordering for CRDT merge.
-- **CRDTs**: LWW-Register (scalars), OR-Set (labels), Fractional Indexing (ordering).
+- **HLC timestamps**: Hybrid Logical Clocks provide causal ordering for CRDT merge. Tracked per field so concurrent edits to different fields are both preserved.
+- **CRDTs**: LWW-Register (scalars, per-field HLC), OR-Set (labels), Fractional Indexing (ordering).
 - **Consumer-side interfaces**: Each package defines the interfaces it needs from its dependencies.
 
 ---
@@ -124,7 +124,7 @@ doit/
         tasks/                 # QuickAdd, TaskItem, TaskDetail, TaskList, TaskProperties,
                                # SubtaskSection, LabelsSection
       hooks/                   # useTasks, useLists, useLabels, useTaskDetail
-      pages/                   # Inbox, Today, Upcoming, Matrix, Calendar, List, Label, Completed, Trash, Login
+      pages/                   # Inbox, Today (with Overdue section), Upcoming, Matrix, Calendar, List, Label, Completed, Trash, Login
       constants.ts             # Shared color palette, PRIORITY_COLORS
     public/                    # PWA manifest, app icons
     Dockerfile
@@ -175,7 +175,7 @@ doit/
 
 | Data Type | CRDT Strategy | Notes |
 |-----------|--------------|-------|
-| Scalar fields (title, due date, status) | **LWW-Register** | Last-Writer-Wins using HLC timestamps |
+| Scalar fields (title, due date, status) | **LWW-Register** | Last-Writer-Wins using per-field HLC timestamps |
 | Labels on a task | **OR-Set** | Observed-Remove Set — concurrent add/remove resolved |
 | Task/subtask ordering | **Fractional Indexing** | String position keys between adjacent items |
 | Timestamps | **HLC** | Hybrid Logical Clock for causal ordering |

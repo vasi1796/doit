@@ -24,9 +24,9 @@ api/              Go backend
   cmd/worker-reminder/  Due date reminder worker (push notifications)
   internal/
     auth/          JWT tokens, Google OAuth, context helpers
-    broker/        RabbitMQ client (exchange, queues, publish, consume)
+    broker/        RabbitMQ client (exchange, queues, publish, consume, auto-reconnect)
     config/        Env var loading
-    crdt/          CRDT merge functions (LWW-Register, OR-Set, Fractional Indexing)
+    crdt/          CRDT merge functions (per-field LWW-Register, OR-Set, Fractional Indexing)
     domain/        Aggregates, commands, payloads, CommandHandler (outbox-aware),
                    generic loadAggregate[T] for aggregate loading
     eventstore/    Event store (append/load/query, HLC counter, outbox)
@@ -48,7 +48,7 @@ web/              React frontend
     db/            Dexie.js database, operations, sync engine, event merger
     hlc/           Hybrid Logical Clock (TypeScript, mirrors Go)
     hooks/         Dexie.js useLiveQuery hooks (useTasks, useLists, useLabels, useTaskDetail)
-    pages/         Route pages (Inbox, Today, Upcoming, Matrix, Calendar, List, Label, Completed, Trash, Login)
+    pages/         Route pages (Inbox, Today (includes Overdue section), Upcoming, Matrix, Calendar, List, Label, Completed, Trash, Login)
     push.ts        Web Push subscription management (PushManager API)
     constants.ts   Shared color palette + UI semantic colors
   e2e/            Playwright visual regression + accessibility tests
@@ -83,7 +83,8 @@ scripts/          Backup (backup.sh) and deploy (deploy.sh) scripts
 - All text inputs ≥16px font size to prevent iOS Safari auto-zoom.
 - Custom pickers (DatePicker, TimePicker, RecurrencePicker, ListSelect) — use
   fixed-position popovers, not native `<select>` or `<input type="date/time">`.
-- Toast notifications for all user-facing feedback.
+- Toast notifications for all user-facing feedback. Toasts support action
+  buttons (e.g., "Undo") for destructive operations like delete.
 - Shared color constants in `constants.ts`.
 - `aria-label` on all icon-only buttons and placeholder-only inputs.
 
@@ -146,6 +147,8 @@ Client: `web/src/db/clock.ts` exports the singleton clock.
 Never call `time.Now()` for event timestamps — always use the HLC clock.
 `time.Now()` is acceptable for display-only timestamps (CompletedAt, DeletedAt)
 that are not used for causal ordering or conflict resolution.
+HLC timestamps are tracked **per field**, not per task — each scalar field has its
+own HLC timestamp so that concurrent edits to different fields are both preserved.
 
 ### 9. Frontend reads from Dexie.js — never from the API
 All UI reads come from IndexedDB via `useLiveQuery`. The `api/client.ts` is used
@@ -156,6 +159,8 @@ never call `api.*` directly — use `db/operations.ts` for writes.
 `db/operations.ts` writes optimistically to IndexedDB and queues a `SyncOp`.
 The `SyncEngine` flushes the queue to `POST /api/v1/sync` periodically.
 No rollback on failure — the sync engine retries with exponential backoff.
+Failed sync operations are retained in the queue with a retry count (max 5
+retries) instead of being permanently deleted on first failure.
 
 ---
 

@@ -32,7 +32,10 @@ markdown string is stored as a single CRDT unit. When concurrent edits occur,
 the edit with the later HLC timestamp wins and the other is discarded.
 
 - The `TaskDescriptionUpdated` event carries the full markdown string.
-- On merge, the event with the later HLC timestamp overwrites the earlier one.
+- On merge, the per-field HLC timestamp for the description field is compared;
+  the edit with the later timestamp overwrites the earlier one. Because HLC
+  timestamps are tracked per field, a concurrent edit to a different field
+  (e.g., title) is not affected.
 - No character-level diffing, merging, or operational transforms.
 
 ## Consequences
