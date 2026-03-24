@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import * as operations from '../../db/operations'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
 import { useLabels } from '../../hooks/useLabels'
@@ -169,13 +170,19 @@ export function TaskDetail({ taskId, lists, onClose }: TaskDetailProps) {
 
         <TaskProperties task={task} lists={lists} onSave={save} />
 
-        <div className="border border-gray-200 rounded-lg p-3 mb-4 focus-within:border-accent transition-colors">
+        <motion.div
+          className="border border-gray-200 rounded-lg p-3 mb-4 focus-within:border-accent transition-colors"
+          whileFocus={{ scale: 1 }}
+          animate={{ height: 'auto' }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          layout
+        >
           <MarkdownEditor
             value={task.description || ''}
             onChange={saveDescription}
             placeholder="Add notes..."
           />
-        </div>
+        </motion.div>
 
         <SubtaskSection taskId={task.id} subtasks={task.subtasks || []} />
 

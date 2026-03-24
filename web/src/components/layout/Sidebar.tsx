@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router'
-import { motion, LayoutGroup } from 'framer-motion'
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { SyncStatus } from '../common/SyncStatus'
@@ -223,8 +223,16 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
             </svg>
           </button>
         </div>
+        <AnimatePresence initial={false}>
         {addingList && (
-          <form onSubmit={handleCreateList} className="mx-1 mb-2 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
+          <motion.form
+            onSubmit={handleCreateList}
+            className="mx-1 mb-2 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
             <div className="px-3 pt-3 pb-2">
               <input
                 type="text"
@@ -264,8 +272,9 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 Create
               </button>
             </div>
-          </form>
+          </motion.form>
         )}
+        </AnimatePresence>
         <div className="space-y-0.5">
           {lists.map((list) => (
             <div key={list.id} className="group flex items-center">

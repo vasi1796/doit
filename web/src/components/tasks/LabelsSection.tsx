@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { LabelPicker } from '../common/LabelPicker'
 import type { Label } from '../../api/types'
 
@@ -42,18 +43,24 @@ export function LabelsSection({ taskId, taskLabels, allLabels }: LabelsSectionPr
           {taskLabels.length === 0 && (
             <span className="text-xs text-text-secondary">Tap to add labels</span>
           )}
-          {taskLabels.map((label) => (
-            <span
-              key={label.id}
-              className="px-2.5 py-1 text-xs rounded-full font-medium"
-              style={{
-                backgroundColor: (label.colour || '#86868b') + '20',
-                color: label.colour || '#86868b',
-              }}
-            >
-              {label.name}
-            </span>
-          ))}
+          <AnimatePresence initial={false}>
+            {taskLabels.map((label) => (
+              <motion.span
+                key={label.id}
+                className="px-2.5 py-1 text-xs rounded-full font-medium"
+                style={{
+                  backgroundColor: (label.colour || '#86868b') + '20',
+                  color: label.colour || '#86868b',
+                }}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                {label.name}
+              </motion.span>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>
