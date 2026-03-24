@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -31,7 +32,7 @@ func NewICalHandler(pool *pgxpool.Pool, logger zerolog.Logger, baseURL string) *
 func (h *ICalHandler) ServeCalendar(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 	if token == "" {
-		http.Error(w, "missing token", http.StatusBadRequest)
+		writeError(w, h.logger, http.StatusBadRequest, "missing token")
 		return
 	}
 
@@ -41,12 +42,12 @@ func (h *ICalHandler) ServeCalendar(w http.ResponseWriter, r *http.Request) {
 		`SELECT user_id FROM ical_tokens WHERE token = $1`, token,
 	).Scan(&userID)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			http.Error(w, "invalid token", http.StatusNotFound)
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, h.logger, http.StatusNotFound, "invalid token")
 			return
 		}
 		h.logger.Error().Err(err).Msg("ical: failed to look up token")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 		return
 	}
 
@@ -59,7 +60,7 @@ func (h *ICalHandler) ServeCalendar(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("ical: failed to query tasks")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 		return
 	}
 	defer rows.Close()
@@ -79,14 +80,14 @@ func (h *ICalHandler) ServeCalendar(w http.ResponseWriter, r *http.Request) {
 		var t icalTask
 		if err := rows.Scan(&t.ID, &t.Title, &t.Description, &t.DueDate, &t.DueTime, &t.RecurrenceRule, &t.UpdatedAt); err != nil {
 			h.logger.Error().Err(err).Msg("ical: failed to scan task row")
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 			return
 		}
 		tasks = append(tasks, t)
 	}
 	if err := rows.Err(); err != nil {
 		h.logger.Error().Err(err).Msg("ical: error iterating task rows")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 		return
 	}
 
@@ -214,7 +215,7 @@ func (h *ICalHandler) GetTokenStatus(w http.ResponseWriter, r *http.Request) {
 		`SELECT token, created_at FROM ical_tokens WHERE user_id = $1`, userID,
 	).Scan(&token, &createdAt)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			writeJSON(w, h.logger, http.StatusOK, map[string]any{"enabled": false})
 			return
 		}

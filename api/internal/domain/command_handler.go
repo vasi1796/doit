@@ -58,8 +58,6 @@ func (h *CommandHandler) appendWithOutbox(ctx context.Context, events []eventsto
 	return tx.Commit(ctx)
 }
 
-// Task commands
-
 func (h *CommandHandler) CreateTask(ctx context.Context, cmd CreateTask) error {
 	agg := NewTaskAggregate()
 	events, err := agg.HandleCreate(cmd, h.clock.Now())
@@ -285,8 +283,6 @@ func (h *CommandHandler) UncompleteSubtask(ctx context.Context, aggregateID uuid
 	return h.appendWithOutbox(ctx, events)
 }
 
-// List commands
-
 func (h *CommandHandler) CreateList(ctx context.Context, cmd CreateList) error {
 	agg := NewListAggregate()
 	events, err := agg.HandleCreate(cmd, h.clock.Now())
@@ -307,8 +303,6 @@ func (h *CommandHandler) DeleteList(ctx context.Context, aggregateID uuid.UUID, 
 	}
 	return h.appendWithOutbox(ctx, events)
 }
-
-// Label commands
 
 func (h *CommandHandler) CreateLabel(ctx context.Context, cmd CreateLabel) error {
 	agg := NewLabelAggregate()

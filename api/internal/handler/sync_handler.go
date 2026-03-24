@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -59,6 +60,26 @@ type SyncSnapshotWriter interface {
 	SaveListSnapshot(ctx context.Context, listID, userID uuid.UUID) error
 	SaveLabelSnapshot(ctx context.Context, labelID, userID uuid.UUID) error
 }
+
+// Sync operation type constants.
+const (
+	OpCreateTask        = "CreateTask"
+	OpUpdateTask        = "UpdateTask"
+	OpCompleteTask      = "CompleteTask"
+	OpUncompleteTask    = "UncompleteTask"
+	OpDeleteTask        = "DeleteTask"
+	OpRestoreTask       = "RestoreTask"
+	OpAddLabel          = "AddLabel"
+	OpRemoveLabel       = "RemoveLabel"
+	OpCreateSubtask     = "CreateSubtask"
+	OpCompleteSubtask   = "CompleteSubtask"
+	OpUncompleteSubtask = "UncompleteSubtask"
+	OpUpdateSubtaskTitle = "UpdateSubtaskTitle"
+	OpCreateList        = "CreateList"
+	OpDeleteList        = "DeleteList"
+	OpCreateLabel       = "CreateLabel"
+	OpDeleteLabel       = "DeleteLabel"
+)
 
 // SyncHandler processes batched sync operations from clients.
 type SyncHandler struct {
@@ -170,7 +191,7 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 	data := op.Data
 
 	switch op.Type {
-	case "CreateTask":
+	case OpCreateTask:
 		cmd := domain.CreateTask{
 			TaskID:   aggID,
 			UserID:   userID,
@@ -198,36 +219,36 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 		}
 		return h.cmds.CreateTask(ctx, cmd)
 
-	case "UpdateTask":
+	case OpUpdateTask:
 		return h.dispatchUpdateTask(ctx, aggID, userID, data)
 
-	case "CompleteTask":
+	case OpCompleteTask:
 		return h.cmds.CompleteTask(ctx, aggID, userID, domain.CompleteTask{CompletedAt: time.Now().UTC()})
 
-	case "UncompleteTask":
+	case OpUncompleteTask:
 		return h.cmds.UncompleteTask(ctx, aggID, userID, domain.UncompleteTask{})
 
-	case "DeleteTask":
+	case OpDeleteTask:
 		return h.cmds.DeleteTask(ctx, aggID, userID, domain.DeleteTask{DeletedAt: time.Now().UTC()})
 
-	case "RestoreTask":
+	case OpRestoreTask:
 		return h.cmds.RestoreTask(ctx, aggID, userID, domain.RestoreTask{})
 
-	case "AddLabel":
+	case OpAddLabel:
 		labelID, err := uuid.Parse(strVal(data, "label_id"))
 		if err != nil {
 			return err
 		}
 		return h.cmds.AddLabel(ctx, aggID, userID, domain.AddLabel{LabelID: labelID})
 
-	case "RemoveLabel":
+	case OpRemoveLabel:
 		labelID, err := uuid.Parse(strVal(data, "label_id"))
 		if err != nil {
 			return err
 		}
 		return h.cmds.RemoveLabel(ctx, aggID, userID, domain.RemoveLabel{LabelID: labelID})
 
-	case "CreateSubtask":
+	case OpCreateSubtask:
 		subtaskID, err := uuid.Parse(strVal(data, "subtask_id"))
 		if err != nil {
 			return err
@@ -238,7 +259,7 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 			Position:  strVal(data, "position"),
 		})
 
-	case "CompleteSubtask":
+	case OpCompleteSubtask:
 		subtaskID, err := uuid.Parse(strVal(data, "subtask_id"))
 		if err != nil {
 			return err
@@ -248,14 +269,14 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 			CompletedAt: time.Now().UTC(),
 		})
 
-	case "UncompleteSubtask":
+	case OpUncompleteSubtask:
 		subtaskID, err := uuid.Parse(strVal(data, "subtask_id"))
 		if err != nil {
 			return err
 		}
 		return h.cmds.UncompleteSubtask(ctx, aggID, userID, domain.UncompleteSubtask{SubtaskID: subtaskID})
 
-	case "UpdateSubtaskTitle":
+	case OpUpdateSubtaskTitle:
 		subtaskID, err := uuid.Parse(strVal(data, "subtask_id"))
 		if err != nil {
 			return err
@@ -265,7 +286,7 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 			Title:     strVal(data, "title"),
 		})
 
-	case "CreateList":
+	case OpCreateList:
 		return h.cmds.CreateList(ctx, domain.CreateList{
 			ListID:   aggID,
 			UserID:   userID,
@@ -275,10 +296,10 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 			Position: strVal(data, "position"),
 		})
 
-	case "DeleteList":
+	case OpDeleteList:
 		return h.cmds.DeleteList(ctx, aggID, userID, domain.DeleteList{DeletedAt: time.Now().UTC()})
 
-	case "CreateLabel":
+	case OpCreateLabel:
 		return h.cmds.CreateLabel(ctx, domain.CreateLabel{
 			LabelID: aggID,
 			UserID:  userID,
@@ -286,7 +307,7 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 			Colour:  strVal(data, "colour"),
 		})
 
-	case "DeleteLabel":
+	case OpDeleteLabel:
 		return h.cmds.DeleteLabel(ctx, aggID, userID, domain.DeleteLabel{DeletedAt: time.Now().UTC()})
 
 	default:
@@ -349,7 +370,7 @@ func (h *SyncHandler) dispatchUpdateTask(ctx context.Context, aggID, userID uuid
 		}
 		pos := strVal(data, "position")
 		if pos == "" {
-			pos = time.Now().String() // fallback position
+			pos = strconv.FormatInt(time.Now().UnixMilli(), 10)
 		}
 		if err := h.cmds.MoveTask(ctx, aggID, userID, domain.MoveTask{ListID: lid, Position: pos}); err != nil {
 			return err
@@ -389,13 +410,13 @@ func intVal(data map[string]any, key string) int {
 func (h *SyncHandler) saveSnapshot(ctx context.Context, opType string, aggID, userID uuid.UUID) {
 	var err error
 	switch opType {
-	case "CreateList", "DeleteList":
+	case OpCreateList, OpDeleteList:
 		err = h.snapshots.SaveListSnapshot(ctx, aggID, userID)
-	case "CreateLabel", "DeleteLabel":
+	case OpCreateLabel, OpDeleteLabel:
 		err = h.snapshots.SaveLabelSnapshot(ctx, aggID, userID)
-	case "CreateTask", "UpdateTask", "CompleteTask", "UncompleteTask",
-		"DeleteTask", "RestoreTask", "AddLabel", "RemoveLabel",
-		"CreateSubtask", "CompleteSubtask", "UncompleteSubtask", "UpdateSubtaskTitle":
+	case OpCreateTask, OpUpdateTask, OpCompleteTask, OpUncompleteTask,
+		OpDeleteTask, OpRestoreTask, OpAddLabel, OpRemoveLabel,
+		OpCreateSubtask, OpCompleteSubtask, OpUncompleteSubtask, OpUpdateSubtaskTitle:
 		err = h.snapshots.SaveTaskSnapshot(ctx, aggID, userID)
 	default:
 		h.logger.Warn().Str("type", opType).Msg("sync: unknown operation type for snapshot")

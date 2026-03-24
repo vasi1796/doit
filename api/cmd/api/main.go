@@ -70,7 +70,7 @@ func main() {
 	}
 
 	// Start outbox poller if RabbitMQ is configured
-	rabbitURL := os.Getenv("RABBITMQ_URL")
+	rabbitURL := cfg.RabbitMQURL
 	if rabbitURL != "" {
 		b, err := broker.New(rabbitURL, logger)
 		if err != nil {
@@ -206,7 +206,6 @@ func newRouter(pool *pgxpool.Pool, store *eventstore.Store, logger zerolog.Logge
 	r.Get("/ical/{token}/calendar.ics", icalHandler.ServeCalendar)
 
 	// Domain stack
-	_ = projection.New(pool, logger) // Projector used by worker, not inline
 	clock := hlc.New()
 	cmdHandler := domain.NewCommandHandler(store, pool, clock)
 

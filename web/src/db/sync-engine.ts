@@ -91,6 +91,8 @@ export class SyncEngine {
       }
 
       if (!res.ok) {
+        const body = await res.text().catch(() => '(unreadable)')
+        console.warn(`sync: HTTP ${res.status} — ${body}`)
         this.increaseBackoff()
         return
       }

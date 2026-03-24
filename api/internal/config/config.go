@@ -33,6 +33,10 @@ type Config struct {
 	VAPIDPrivateKey    string
 	VAPIDSubject       string
 	ICalBaseURL        string
+	RabbitMQURL        string
+	ReminderInterval   time.Duration
+	ReminderHour       int
+	ReminderTZ         string
 }
 
 func Load() (*Config, error) {
@@ -65,6 +69,10 @@ func Load() (*Config, error) {
 		VAPIDPrivateKey:    os.Getenv("VAPID_PRIVATE_KEY"),
 		VAPIDSubject:       envString("VAPID_SUBJECT", "admin@localhost"),
 		ICalBaseURL:        envString("ICAL_BASE_URL", ""),
+		RabbitMQURL:        os.Getenv("RABBITMQ_URL"),
+		ReminderInterval:   envDuration("REMINDER_INTERVAL", 10*time.Minute),
+		ReminderHour:       envInt("REMINDER_HOUR", 8),
+		ReminderTZ:         envString("REMINDER_TZ", "UTC"),
 	}
 
 	if !cfg.DevMode && cfg.JWTSecret == "" {

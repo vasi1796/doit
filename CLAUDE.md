@@ -139,11 +139,13 @@ When changing the API surface:
 2. Run `make generate`
 3. Update handler code to match the new generated types
 
-### 8. All timestamps use HLC — never use time.Now() directly
+### 8. Event timestamps use HLC — never use time.Now() for causal ordering
 The `hlc.Clock` provides causal ordering for CRDT conflict resolution.
 Server: `CommandHandler` owns the clock, all Handle* methods accept `hlc.Timestamp`.
 Client: `web/src/db/clock.ts` exports the singleton clock.
 Never call `time.Now()` for event timestamps — always use the HLC clock.
+`time.Now()` is acceptable for display-only timestamps (CompletedAt, DeletedAt)
+that are not used for causal ordering or conflict resolution.
 
 ### 9. Frontend reads from Dexie.js — never from the API
 All UI reads come from IndexedDB via `useLiveQuery`. The `api/client.ts` is used

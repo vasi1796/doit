@@ -181,11 +181,11 @@ export function AppLayout() {
       .catch(() => engine.start()) // Start sync even if initial load fails (may be offline)
 
     // Expose for testing — allows Playwright to trigger sync on demand
-    ;(window as unknown as { __syncEngine?: SyncEngine }).__syncEngine = engine
+    window.__syncEngine = engine
 
     return () => {
       engine.stop()
-      delete (window as unknown as { __syncEngine?: SyncEngine }).__syncEngine
+      delete window.__syncEngine
     }
   }, [])
 
