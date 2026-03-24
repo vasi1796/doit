@@ -62,3 +62,72 @@ flowchart TB
 3. Server validates commands, writes events + outbox atomically
 4. Poller publishes outbox to RabbitMQ
 5. Workers consume and update read models / create recurring tasks
+
+---
+
+## Deployment Flow — Push to Production
+
+What happens when code is merged to main.
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant GH as GitHub
+    participant CI as GitHub Actions
+    participant WH as Deployer Sidecar<br/>(VPS)
+    participant DC as Docker Compose<br/>(VPS)
+    participant Caddy as Caddy
+
+    Dev->>GH: Merge PR to main
+
+    par CI Pipeline
+        GH->>CI: Trigger workflow
+        CI->>CI: Go vet + tests
+        CI->>CI: Integration tests<br/>(Postgres + RabbitMQ)
+        CI->>CI: Frontend lint +<br/>build + Vitest
+        CI->>CI: Playwright visual +<br/>a11y tests
+    and Webhook Deploy
+        GH->>WH: POST /deploy/webhook<br/>(HMAC-SHA256 signed)
+        WH->>WH: Verify signature
+        WH->>WH: Check ref = refs/heads/main
+        WH-->>GH: 200 {"status":"deploying"}
+    end
+
+    WH->>DC: git pull --ff-only
+    WH->>DC: docker compose rm -fsv web-build
+    WH->>DC: docker compose up -d --build
+
+    Note over DC: Rebuilds: API, workers,<br/>web-build, Caddy, deployer
+
+    DC->>DC: web-build: npm ci +<br/>npm run build
+    DC->>DC: cp dist → web_dist volume
+    DC->>Caddy: Restart with new<br/>static assets
+
+    Note over Caddy: Serves new frontend +<br/>proxies to new API
+
+    Note over Dev: Service worker fetches<br/>new index.html on next load<br/>(network-first strategy)
+```
+
+```mermaid
+flowchart LR
+    subgraph "Deployer Sidecar"
+        WH[Webhook Handler<br/>:9000] -->|HMAC verified| Deploy[runDeploy]
+        Deploy --> Pull[git pull --ff-only]
+        Pull --> RM[docker compose rm<br/>-fsv web-build]
+        RM --> Up[docker compose<br/>up -d --build]
+    end
+
+    subgraph "Safety"
+        Mutex[sync.Mutex<br/>prevents concurrent<br/>deploys]
+        FFOnly[--ff-only prevents<br/>divergent histories]
+        HMAC[HMAC-SHA256<br/>signature verification]
+    end
+```
+
+**Key points:**
+- CI and deploy run in parallel — deploy doesn't wait for CI
+- Deployer uses `TryLock` mutex to prevent concurrent deploys
+- `web-build` one-shot container must be removed before rebuild (Docker skips completed containers)
+- Service worker uses network-first for `index.html` so deploys take effect on next page load
+- Deployer rebuilds itself as part of `docker compose up` — chicken-and-egg on deployer code changes requires manual `docker compose up -d --build deployer`
+- `git pull --ff-only` prevents accidental force-pushes from corrupting the deploy
