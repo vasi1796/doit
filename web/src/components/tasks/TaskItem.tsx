@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import * as operations from '../../db/operations'
@@ -32,14 +33,22 @@ export function SortableTaskItem({ task, onSelect }: TaskItemProps) {
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
-      <TaskItem
-        task={task}
-        onSelect={onSelect}
-        isDragging={isDragging}
-        dragHandleProps={{ ...attributes, ...listeners }}
-      />
-    </div>
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      style={{ overflow: 'hidden' }}
+    >
+      <div ref={setNodeRef} style={style}>
+        <TaskItem
+          task={task}
+          onSelect={onSelect}
+          isDragging={isDragging}
+          dragHandleProps={{ ...attributes, ...listeners }}
+        />
+      </div>
+    </motion.div>
   )
 }
 
@@ -53,7 +62,6 @@ interface TaskItemInternalProps {
 function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInternalProps) {
   const { toast } = useToast()
   const [completing, setCompleting] = useState(false)
-  const [fading, setFading] = useState(false)
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -65,13 +73,9 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
         setCompleting(true)
         await operations.completeTask(task.id)
         if (task.recurrence_rule) toast('Done! Next occurrence created', 'success')
-        setTimeout(() => {
-          setFading(true)
-        }, 400)
       }
     } catch (err) {
       setCompleting(false)
-      setFading(false)
       toast(err instanceof Error ? err.message : 'Failed', 'error')
     }
   }
@@ -89,9 +93,9 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
       tabIndex={0}
       onClick={() => onSelect(task.id)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(task.id) }}
-      className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-[#f8f8fa] text-left transition-all duration-300 relative cursor-pointer ${
-        fading ? 'opacity-0 max-h-0 py-0 overflow-hidden' : 'opacity-100'
-      } ${isDragging ? 'bg-white shadow-lg rounded-lg' : ''}`}
+      className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-[#f8f8fa] text-left transition-colors relative cursor-pointer ${
+        isDragging ? 'bg-white shadow-lg rounded-lg' : ''
+      }`}
     >
       {/* Drag handle */}
       <button
