@@ -69,12 +69,21 @@ self.addEventListener('push', (event) => {
     badge: '/icon-192.png',
     data: { url: data.url || '/today' },
   }
-  event.waitUntil(self.registration.showNotification(title, options))
+  event.waitUntil(
+    self.registration.showNotification(title, options).then(() => {
+      if (navigator.setAppBadge) {
+        return navigator.setAppBadge()
+      }
+    })
+  )
 })
 
 // Notification clicked — focus or open app
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
+  if (navigator.clearAppBadge) {
+    navigator.clearAppBadge()
+  }
   const url = event.notification.data?.url || '/today'
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
