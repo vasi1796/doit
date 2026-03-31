@@ -115,19 +115,20 @@ func runDeploy() {
 	}
 	log.Printf("git pull: %s", pullOut)
 
-	// Force rebuild and re-run the web-build one-shot container so new
-	// assets are copied into the shared volume that Caddy serves from.
-	rmCmd := exec.Command("docker", "compose", "-f", composeFile, "rm", "-fsv", "web-build")
-	rmCmd.Dir = repoDir
-	rmOut, _ := rmCmd.CombinedOutput()
-	log.Printf("web-build rm: %s", rmOut)
+	// Remove stopped one-shot containers that block recreation
+	for _, svc := range []string{"web-build"} {
+		rmCmd := exec.Command("docker", "compose", "-f", composeFile, "rm", "-f", svc)
+		rmCmd.Dir = repoDir
+		rmOut, _ := rmCmd.CombinedOutput()
+		log.Printf("%s rm: %s", svc, rmOut)
+	}
 
-	// docker compose up -d --build — exclude deployer to avoid self-conflict
+	// docker compose up -d --build --force-recreate — exclude deployer to avoid self-conflict
 	services := []string{
 		"postgres", "rabbitmq", "doit-api", "web-build", "caddy",
 		"worker", "worker-recurring", "worker-reminder",
 	}
-	args := append([]string{"compose", "-f", composeFile, "up", "-d", "--build"}, services...)
+	args := append([]string{"compose", "-f", composeFile, "up", "-d", "--build", "--force-recreate"}, services...)
 	composeCmd := exec.Command("docker", args...)
 	composeCmd.Dir = repoDir
 	composeOut, err := composeCmd.CombinedOutput()
