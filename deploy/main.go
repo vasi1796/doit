@@ -115,27 +115,32 @@ func runDeploy() {
 	}
 	log.Printf("git pull: %s", pullOut)
 
-	// Remove all managed containers by name before recreating.
-	// docker compose --force-recreate doesn't work from inside the deployer
-	// container due to project name mismatch, so we use docker rm -f directly.
-	containers := []string{
-		"doit-web-build", "doit-postgres", "doit-rabbitmq",
-		"doit-api", "doit-caddy", "doit-worker",
-		"doit-worker-recurring", "doit-worker-reminder",
-	}
-	for _, ctr := range containers {
-		rmCmd := exec.Command("docker", "rm", "-f", ctr)
-		rmOut, _ := rmCmd.CombinedOutput()
-		log.Printf("%s rm: %s", ctr, rmOut)
-	}
-
-	// docker compose up -d --build — exclude deployer to avoid self-conflict
+	// Step 1: Build images without touching running containers.
 	services := []string{
-		"postgres", "rabbitmq", "doit-api", "web-build", "caddy",
-		"worker", "worker-recurring", "worker-reminder",
+		"doit-api", "web-build", "worker", "worker-recurring", "worker-reminder",
 	}
-	args := append([]string{"compose", "-f", composeFile, "up", "-d", "--build"}, services...)
-	composeCmd := exec.Command("docker", args...)
+	buildArgs := append([]string{"compose", "-f", composeFile, "build"}, services...)
+	buildCmd := exec.Command("docker", buildArgs...)
+	buildCmd.Dir = repoDir
+	buildOut, err := buildCmd.CombinedOutput()
+	if err != nil {
+		log.Printf("docker compose build failed: %s\n%s", err, buildOut)
+		return
+	}
+	log.Printf("build completed: %s", buildOut)
+
+	// Step 2: Remove the one-shot web-build container (it's always stopped
+	// and blocks recreation). Other containers are left running.
+	rmCmd := exec.Command("docker", "rm", "-f", "doit-web-build")
+	rmOut, _ := rmCmd.CombinedOutput()
+	log.Printf("doit-web-build rm: %s", rmOut)
+
+	// Step 3: Bring up services. Compose only recreates containers whose
+	// image changed — postgres, rabbitmq, caddy stay untouched.
+	upArgs := append([]string{"compose", "-f", composeFile, "up", "-d"}, services...)
+	// Also include infra services so compose ensures they're running
+	upArgs = append(upArgs, "postgres", "rabbitmq", "caddy")
+	composeCmd := exec.Command("docker", upArgs...)
 	composeCmd.Dir = repoDir
 	composeOut, err := composeCmd.CombinedOutput()
 	if err != nil {
