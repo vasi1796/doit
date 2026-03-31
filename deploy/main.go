@@ -115,20 +115,26 @@ func runDeploy() {
 	}
 	log.Printf("git pull: %s", pullOut)
 
-	// Remove stopped one-shot containers by name — docker compose rm may
-	// fail if the project name inside the deployer container differs from host.
-	for _, ctr := range []string{"doit-web-build"} {
+	// Remove all managed containers by name before recreating.
+	// docker compose --force-recreate doesn't work from inside the deployer
+	// container due to project name mismatch, so we use docker rm -f directly.
+	containers := []string{
+		"doit-web-build", "doit-postgres", "doit-rabbitmq",
+		"doit-api", "doit-caddy", "doit-worker",
+		"doit-worker-recurring", "doit-worker-reminder",
+	}
+	for _, ctr := range containers {
 		rmCmd := exec.Command("docker", "rm", "-f", ctr)
 		rmOut, _ := rmCmd.CombinedOutput()
 		log.Printf("%s rm: %s", ctr, rmOut)
 	}
 
-	// docker compose up -d --build --force-recreate — exclude deployer to avoid self-conflict
+	// docker compose up -d --build — exclude deployer to avoid self-conflict
 	services := []string{
 		"postgres", "rabbitmq", "doit-api", "web-build", "caddy",
 		"worker", "worker-recurring", "worker-reminder",
 	}
-	args := append([]string{"compose", "-f", composeFile, "up", "-d", "--build", "--force-recreate"}, services...)
+	args := append([]string{"compose", "-f", composeFile, "up", "-d", "--build"}, services...)
 	composeCmd := exec.Command("docker", args...)
 	composeCmd.Dir = repoDir
 	composeOut, err := composeCmd.CombinedOutput()
