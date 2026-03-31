@@ -122,8 +122,13 @@ func runDeploy() {
 	rmOut, _ := rmCmd.CombinedOutput()
 	log.Printf("web-build rm: %s", rmOut)
 
-	// docker compose up -d --build
-	composeCmd := exec.Command("docker", "compose", "-f", composeFile, "up", "-d", "--build")
+	// docker compose up -d --build — exclude deployer to avoid self-conflict
+	services := []string{
+		"postgres", "rabbitmq", "doit-api", "web-build", "caddy",
+		"worker", "worker-recurring", "worker-reminder",
+	}
+	args := append([]string{"compose", "-f", composeFile, "up", "-d", "--build"}, services...)
+	composeCmd := exec.Command("docker", args...)
 	composeCmd.Dir = repoDir
 	composeOut, err := composeCmd.CombinedOutput()
 	if err != nil {
