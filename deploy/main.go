@@ -138,10 +138,10 @@ func runDeploy() {
 	rmOut, _ := rmCmd.CombinedOutput()
 	log.Printf("doit-web-build rm: %s", rmOut)
 
-	// Step 3: Bring up services. Compose only recreates containers whose
-	// image changed — postgres, rabbitmq, caddy stay untouched.
-	upServices := append(services, "postgres", "rabbitmq", "caddy")
-	upArgs := append([]string{"compose", "-p", projectName, "-f", composeFile, "up", "-d"}, upServices...)
+	// Step 3: Bring up only the app services we built. Infra services
+	// (postgres, rabbitmq, caddy) are already running and use host bind
+	// mounts (e.g. Caddyfile) that aren't available inside the deployer.
+	upArgs := append([]string{"compose", "-p", projectName, "-f", composeFile, "up", "-d"}, services...)
 	composeCmd := exec.Command("docker", upArgs...)
 	composeCmd.Dir = repoDir
 	composeOut, err := composeCmd.CombinedOutput()
