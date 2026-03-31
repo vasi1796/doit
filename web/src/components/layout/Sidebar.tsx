@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { NavLink, useNavigate } from 'react-router'
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
+import { motion, AnimatePresence, LayoutGroup, useMotionValue, useTransform } from 'framer-motion'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
+import { ConfirmDialog } from '../common/ConfirmDialog'
 import { SyncStatus } from '../common/SyncStatus'
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '../../push'
 import { CalendarFeedLink } from '../common/CalendarFeedLink'
 import type { List, Label } from '../../api/types'
 import { PRESET_COLORS } from '../../constants'
+
+const SWIPE_THRESHOLD = 80
 
 const NAV_ITEMS = [
   { to: '/inbox', label: 'Inbox', icon: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z' },
@@ -145,12 +148,81 @@ function NavItem({ to, label, icon, count, layoutId = 'sidebar-active' }: { to: 
   )
 }
 
+function useIsTouchDevice() {
+  const [isTouch] = useState(() => typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0))
+  return isTouch
+}
+
+function SwipeableRow({ onDelete, desktopDeleteButton, children }: {
+  onDelete: () => void
+  desktopDeleteButton: React.ReactNode
+  children: React.ReactNode
+}) {
+  const isTouch = useIsTouchDevice()
+  const swipeX = useMotionValue(0)
+  const bgOpacity = useTransform(swipeX, [-SWIPE_THRESHOLD, -20, 0], [1, 0.5, 0])
+
+  const handleSwipeEnd = (_: unknown, info: { offset: { x: number } }) => {
+    if (info.offset.x <= -SWIPE_THRESHOLD) {
+      onDelete()
+    }
+  }
+
+  return (
+    <div className="group relative overflow-hidden rounded-lg flex items-center">
+      {/* Red delete background — revealed on left swipe */}
+      {isTouch && (
+        <motion.div
+          className="absolute inset-0 flex items-center justify-end px-4 bg-danger rounded-lg"
+          style={{ opacity: bgOpacity }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16" />
+          </svg>
+        </motion.div>
+      )}
+      <motion.div
+        drag={isTouch ? 'x' : false}
+        dragConstraints={{ left: -120, right: 0 }}
+        dragElastic={{ left: 0.2, right: 0 }}
+        dragDirectionLock
+        dragSnapToOrigin
+        style={{ x: swipeX }}
+        onDragEnd={handleSwipeEnd}
+        className="relative flex-1"
+      >
+        {children}
+      </motion.div>
+      {desktopDeleteButton}
+    </div>
+  )
+}
+
 export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProps) {
   const { toast } = useToast()
   const navigate = useNavigate()
   const [addingList, setAddingList] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [newListColour, setNewListColour] = useState(PRESET_COLORS[0])
+  const [pendingDelete, setPendingDelete] = useState<{ type: 'list' | 'label'; id: string; name: string } | null>(null)
+
+  const confirmDelete = useCallback(async () => {
+    if (!pendingDelete) return
+    const { type, id } = pendingDelete
+    setPendingDelete(null)
+    try {
+      if (type === 'list') {
+        await operations.deleteList(id)
+        toast('List deleted', 'success')
+      } else {
+        await operations.deleteLabel(id)
+        toast('Label deleted', 'success')
+      }
+      navigate('/inbox')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to delete', 'error')
+    }
+  }, [pendingDelete, toast, navigate])
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -276,74 +348,31 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
         )}
         </AnimatePresence>
         <div className="space-y-0.5">
-          {lists.map((list) => (
-            <div key={list.id} className="group flex items-center">
-              <NavLink
-                to={`/lists/${list.id}`}
-                className={({ isActive }) =>
-                  `relative flex-1 flex items-center gap-3 px-3 min-h-[36px] rounded-lg text-[14px] transition-colors ${
-                    isActive
-                      ? 'text-accent font-medium'
-                      : 'text-text-primary hover:bg-black/5'
-                  }`
+          {lists.map((list) => {
+            const deleteList = () => {
+              setPendingDelete({ type: 'list', id: list.id, name: list.name })
+            }
+            return (
+              <SwipeableRow
+                key={list.id}
+                onDelete={deleteList}
+                desktopDeleteButton={
+                  <button
+                    type="button"
+                    onClick={async (e) => { e.stopPropagation(); await deleteList() }}
+                    className="hidden md:flex opacity-0 group-hover:opacity-100 text-text-secondary hover:text-danger items-center justify-center w-[44px] h-[44px] mr-1 transition-opacity"
+                    aria-label="Delete list"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                  </button>
                 }
               >
-                {({ isActive }) => (
-                  <>
-                    {isActive && (
-                      <motion.div
-                        layoutId="sidebar-active"
-                        className="absolute inset-0 bg-accent/10 rounded-lg"
-                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                      />
-                    )}
-                    <span
-                      className="w-3 h-3 rounded-full shrink-0 relative z-[1]"
-                      style={{ backgroundColor: list.colour || '#86868b' }}
-                    />
-                    <span className="flex-1 relative z-[1]">{list.name}</span>
-                    {(taskCounts.byList[list.id] || 0) > 0 && (
-                      <span className="text-[11px] text-text-secondary font-medium relative z-[1]">{taskCounts.byList[list.id]}</span>
-                    )}
-                  </>
-                )}
-              </NavLink>
-              <button
-                type="button"
-                onClick={async (e) => {
-                  e.stopPropagation()
-                  try {
-                    await operations.deleteList(list.id)
-                    toast('List deleted', 'success')
-                    navigate('/inbox')
-                  } catch (err) {
-                    toast(err instanceof Error ? err.message : 'Failed to delete', 'error')
-                  }
-                }}
-                className="opacity-0 group-hover:opacity-100 text-text-secondary hover:text-danger p-1 mr-1 transition-opacity"
-                aria-label="Delete list"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Labels */}
-      {labels.length > 0 && (
-        <div className="px-2 mt-2">
-          <div className="mx-2 mb-2 border-t border-gray-300" />
-          <p className="px-3 text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Labels</p>
-          <div className="space-y-0.5">
-            {labels.map((label) => (
-              <div key={label.id} className="group flex items-center">
                 <NavLink
-                  to={`/labels/${label.id}`}
+                  to={`/lists/${list.id}`}
                   className={({ isActive }) =>
-                    `relative flex-1 flex items-center gap-3 px-3 min-h-[36px] rounded-lg text-[14px] transition-colors ${
+                    `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-lg text-[14px] transition-colors ${
                       isActive
                         ? 'text-accent font-medium'
                         : 'text-text-primary hover:bg-black/5'
@@ -360,34 +389,79 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                         />
                       )}
                       <span
-                        className="w-3 h-3 rounded-sm shrink-0 relative z-[1]"
-                        style={{ backgroundColor: label.colour || '#86868b' }}
+                        className="w-3 h-3 rounded-full shrink-0 relative z-[1]"
+                        style={{ backgroundColor: list.colour || '#86868b' }}
                       />
-                      <span className="relative z-[1]">{label.name}</span>
+                      <span className="flex-1 relative z-[1]">{list.name}</span>
+                      {(taskCounts.byList[list.id] || 0) > 0 && (
+                        <span className="text-[11px] text-text-secondary font-medium relative z-[1]">{taskCounts.byList[list.id]}</span>
+                      )}
                     </>
                   )}
                 </NavLink>
-                <button
-                  type="button"
-                  onClick={async (e) => {
-                    e.stopPropagation()
-                    try {
-                      await operations.deleteLabel(label.id)
-                      toast('Label deleted', 'success')
-                      navigate('/inbox')
-                    } catch (err) {
-                      toast(err instanceof Error ? err.message : 'Failed to delete', 'error')
-                    }
-                  }}
-                  className="opacity-0 group-hover:opacity-100 text-text-secondary hover:text-danger p-1 mr-1 transition-opacity"
-                  aria-label="Delete label"
+              </SwipeableRow>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Labels */}
+      {labels.length > 0 && (
+        <div className="px-2 mt-2">
+          <div className="mx-2 mb-2 border-t border-gray-300" />
+          <p className="px-3 text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Labels</p>
+          <div className="space-y-0.5">
+            {labels.map((label) => {
+              const deleteLabel = () => {
+                setPendingDelete({ type: 'label', id: label.id, name: label.name })
+              }
+              return (
+                <SwipeableRow
+                  key={label.id}
+                  onDelete={deleteLabel}
+                  desktopDeleteButton={
+                    <button
+                      type="button"
+                      onClick={async (e) => { e.stopPropagation(); await deleteLabel() }}
+                      className="hidden md:flex opacity-0 group-hover:opacity-100 text-text-secondary hover:text-danger items-center justify-center w-[44px] h-[44px] mr-1 transition-opacity"
+                      aria-label="Delete label"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  }
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <path d="M18 6 6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ))}
+                  <NavLink
+                    to={`/labels/${label.id}`}
+                    className={({ isActive }) =>
+                      `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-lg text-[14px] transition-colors ${
+                        isActive
+                          ? 'text-accent font-medium'
+                          : 'text-text-primary hover:bg-black/5'
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {isActive && (
+                          <motion.div
+                            layoutId="sidebar-active"
+                            className="absolute inset-0 bg-accent/10 rounded-lg"
+                            transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                          />
+                        )}
+                        <span
+                          className="w-3 h-3 rounded-sm shrink-0 relative z-[1]"
+                          style={{ backgroundColor: label.colour || '#86868b' }}
+                        />
+                        <span className="relative z-[1]">{label.name}</span>
+                      </>
+                    )}
+                  </NavLink>
+                </SwipeableRow>
+              )
+            })}
           </div>
         </div>
       )}
@@ -432,6 +506,17 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
           Sign out
         </button>
       </div>
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title={`Delete ${pendingDelete?.type === 'list' ? 'List' : 'Label'}`}
+        message={
+          pendingDelete?.type === 'list'
+            ? `"${pendingDelete.name}" will be deleted. Tasks in this list will be moved to Inbox.`
+            : `"${pendingDelete?.name}" will be removed from all tasks.`
+        }
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </aside>
   )
 }
