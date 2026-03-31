@@ -115,12 +115,12 @@ func runDeploy() {
 	}
 	log.Printf("git pull: %s", pullOut)
 
-	// Remove stopped one-shot containers that block recreation
-	for _, svc := range []string{"web-build"} {
-		rmCmd := exec.Command("docker", "compose", "-f", composeFile, "rm", "-f", svc)
-		rmCmd.Dir = repoDir
+	// Remove stopped one-shot containers by name — docker compose rm may
+	// fail if the project name inside the deployer container differs from host.
+	for _, ctr := range []string{"doit-web-build"} {
+		rmCmd := exec.Command("docker", "rm", "-f", ctr)
 		rmOut, _ := rmCmd.CombinedOutput()
-		log.Printf("%s rm: %s", svc, rmOut)
+		log.Printf("%s rm: %s", ctr, rmOut)
 	}
 
 	// docker compose up -d --build --force-recreate — exclude deployer to avoid self-conflict
