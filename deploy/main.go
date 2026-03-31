@@ -105,6 +105,9 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 func runDeploy() {
 	composeFile := repoDir + "/docker-compose.yml"
+	// The repo is mounted at /repo inside the deployer, so compose derives
+	// project name "repo". We must set it to "doit" to match the host.
+	projectName := "doit"
 
 	// git pull
 	pullCmd := exec.Command("git", "-C", repoDir, "pull", "--ff-only")
@@ -119,7 +122,7 @@ func runDeploy() {
 	services := []string{
 		"doit-api", "web-build", "worker", "worker-recurring", "worker-reminder",
 	}
-	buildArgs := append([]string{"compose", "-f", composeFile, "build"}, services...)
+	buildArgs := append([]string{"compose", "-p", projectName, "-f", composeFile, "build"}, services...)
 	buildCmd := exec.Command("docker", buildArgs...)
 	buildCmd.Dir = repoDir
 	buildOut, err := buildCmd.CombinedOutput()
@@ -137,9 +140,8 @@ func runDeploy() {
 
 	// Step 3: Bring up services. Compose only recreates containers whose
 	// image changed — postgres, rabbitmq, caddy stay untouched.
-	upArgs := append([]string{"compose", "-f", composeFile, "up", "-d"}, services...)
-	// Also include infra services so compose ensures they're running
-	upArgs = append(upArgs, "postgres", "rabbitmq", "caddy")
+	upServices := append(services, "postgres", "rabbitmq", "caddy")
+	upArgs := append([]string{"compose", "-p", projectName, "-f", composeFile, "up", "-d"}, upServices...)
 	composeCmd := exec.Command("docker", upArgs...)
 	composeCmd.Dir = repoDir
 	composeOut, err := composeCmd.CombinedOutput()
