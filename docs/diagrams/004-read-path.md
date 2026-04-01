@@ -19,10 +19,12 @@ flowchart LR
         UL[useLists]
         ULB[useLabels]
         UTD[useTaskDetail]
+        USS[useSyncStatus]
+        UP[usePopover]
     end
 
     subgraph Pages["React Pages"]
-        P[Inbox · Today · Upcoming · Matrix · Calendar<br/>List · Label · Completed · Trash]
+        P[Inbox · Today · Upcoming · Eisenhower · Calendar<br/>List · Label · Completed · Trash]
     end
 
     IS --> DB
@@ -35,6 +37,8 @@ flowchart LR
     UL --> P
     ULB --> P
     UTD --> P
+    USS --> P
+    UP --> P
 ```
 
 ## What each hook queries
@@ -45,6 +49,8 @@ flowchart LR
 | `useLists` | lists | All user lists, sorted by position |
 | `useLabels` | labels | All user labels |
 | `useTaskDetail` | tasks + subtasks + taskLabels + labels | Single task with full subtask and label data |
+| `useSyncStatus` | syncQueue + syncState | Sync engine connection state and pending op count |
+| `usePopover` | — | Popover positioning (viewport-aware, not a data query) |
 
 **Key points:**
 - `useLiveQuery` auto-re-renders components when IndexedDB data changes

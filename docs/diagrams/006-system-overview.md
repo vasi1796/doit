@@ -17,10 +17,13 @@ flowchart TB
         direction LR
         Router[Chi Router + JWT] --> Handlers[HTTP Handlers]
         Handlers --> CMD[CommandHandler + HLC]
-        CMD --> Agg[Aggregates]
+        CMD -->|command| Agg[Aggregates]
+        Agg -->|new events| CMD
     end
 
-    CMD -->|"atomic TX"| PG
+    Events -->|"load history"| CMD
+    CMD -->|"atomic TX"| Events
+    CMD -->|"atomic TX"| Outbox
 
     subgraph PG["PostgreSQL"]
         direction LR
@@ -40,7 +43,11 @@ flowchart TB
     RecQ --> RecW[Recurring Worker]
 
     ProjW -->|upsert| RM
-    RecW -->|new events| Events
+    RecW -->|"atomic TX"| Events
+    RecW -->|"atomic TX"| Outbox
+
+    ReminderW[Reminder Worker<br/>timer-based] -->|query due tasks| RM
+    ReminderW -->|Web Push| Client
 ```
 
 **Component responsibilities:**
@@ -54,6 +61,7 @@ flowchart TB
 | **Outbox Poller** | Polls every 200ms, publishes to RabbitMQ, marks as published |
 | **Projection Worker** | Consumes all events, upserts into read model tables (idempotent) |
 | **Recurring Worker** | Consumes `TaskCompleted`, creates next occurrence if recurring |
+| **Reminder Worker** | Timer-based (not RabbitMQ) — queries read models for due tasks, sends Web Push notifications |
 | **Rebuild CLI** | Disaster recovery — replays full event log to reconstruct read models |
 
 **Data flow summary:**
@@ -94,7 +102,7 @@ sequenceDiagram
     end
 
     WH->>DC: git pull --ff-only
-    WH->>DC: docker compose rm -fsv web-build
+    WH->>DC: docker rm -f doit-web-build
     WH->>DC: docker compose up -d --build
 
     Note over DC: Rebuilds: API, workers,<br/>web-build, Caddy, deployer
@@ -113,7 +121,7 @@ flowchart LR
     subgraph "Deployer Sidecar"
         WH[Webhook Handler<br/>:9000] -->|HMAC verified| Deploy[runDeploy]
         Deploy --> Pull[git pull --ff-only]
-        Pull --> RM[docker compose rm<br/>-fsv web-build]
+        Pull --> RM[docker rm -f<br/>doit-web-build]
         RM --> Up[docker compose<br/>up -d --build]
     end
 
@@ -127,7 +135,7 @@ flowchart LR
 **Key points:**
 - CI and deploy run in parallel — deploy doesn't wait for CI
 - Deployer uses `TryLock` mutex to prevent concurrent deploys
-- `web-build` one-shot container must be removed before rebuild (Docker skips completed containers)
+- `doit-web-build` one-shot container removed via `docker rm -f` before rebuild (Docker skips completed containers)
 - Service worker uses network-first for `index.html` so deploys take effect on next page load
 - Deployer rebuilds itself as part of `docker compose up` — chicken-and-egg on deployer code changes requires manual `docker compose up -d --build deployer`
 - `git pull --ff-only` prevents accidental force-pushes from corrupting the deploy

@@ -23,6 +23,7 @@ stateDiagram-v2
         Ready --> Ready: TaskDueTimeUpdated
         Ready --> Ready: TaskRecurrenceUpdated
         Ready --> Ready: TaskMoved (list + position)
+        Ready --> Ready: TaskReordered (position only)
         Ready --> Ready: LabelAdded / LabelRemoved
         Ready --> Ready: SubtaskCreated / Updated / Completed
     }
