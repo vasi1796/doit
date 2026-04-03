@@ -54,7 +54,7 @@ func main() {
 	logger.Info().Msg("projection worker started")
 
 	for {
-		deliveries, err := b.Consume(broker.QueueProjections)
+		deliveries, err := b.Consume(broker.QueueProjections, 1)
 		if err != nil {
 			logger.Error().Err(err).Msg("failed to start consuming, waiting for reconnect")
 			select {
