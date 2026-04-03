@@ -153,10 +153,14 @@ func (b *Broker) reconnect() {
 		// Close old connection to release file descriptors and TCP sockets.
 		// Done outside the lock to avoid blocking readers.
 		if oldCh != nil {
-			oldCh.Close()
+			if err := oldCh.Close(); err != nil {
+				b.logger.Debug().Err(err).Msg("closing old AMQP channel")
+			}
 		}
 		if oldConn != nil {
-			oldConn.Close()
+			if err := oldConn.Close(); err != nil {
+				b.logger.Debug().Err(err).Msg("closing old AMQP connection")
+			}
 		}
 
 		b.logger.Info().Msg("reconnected to RabbitMQ successfully")

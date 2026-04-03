@@ -29,7 +29,7 @@ func TestLoad(t *testing.T) {
 			name: "missing Google creds without dev mode returns error",
 			env: map[string]string{
 				"DATABASE_URL": "postgres://localhost/test",
-				"JWT_SECRET":   "test-secret",
+				"JWT_SECRET":   "test-secret-that-is-at-least-32chars!",
 			},
 			wantErr: true,
 		},
