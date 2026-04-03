@@ -9,6 +9,7 @@
 package hlc
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -18,6 +19,11 @@ import (
 type Timestamp struct {
 	Time    time.Time `json:"time"`
 	Counter int       `json:"counter"`
+}
+
+// String returns a human-readable representation of the timestamp.
+func (t Timestamp) String() string {
+	return fmt.Sprintf("%s#%d", t.Time.Format(time.RFC3339Nano), t.Counter)
 }
 
 // Zero returns the zero-value HLC timestamp.
@@ -94,7 +100,9 @@ func (c *Clock) Update(remote Timestamp) Timestamp {
 		// Remote is ahead of local — adopt remote, increment counter
 		c.latest = Timestamp{Time: remote.Time, Counter: remote.Counter + 1}
 	default:
-		// Same physical time on all three — take max counter + 1
+		// Local and remote share the same physical time — take max counter + 1.
+		// Wall clock may be at, before, or equal to this time (the earlier
+		// cases already handled wall clock being strictly ahead of both).
 		maxC := prev.Counter
 		if remote.Counter > maxC {
 			maxC = remote.Counter

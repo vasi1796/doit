@@ -130,20 +130,37 @@ func (b *Broker) reconnect() {
 			continue
 		}
 
+		// Declare exchanges, queues, and bindings on the new channel
+		// BEFORE swapping into the struct, so callers never see an
+		// unconfigured channel.
+		if err := setupChannel(ch); err != nil {
+			b.logger.Error().Err(err).Msg("reconnect setup failed, retrying")
+			ch.Close()
+			conn.Close()
+			attempt++
+			continue
+		}
+
 		b.mu.Lock()
+		oldConn := b.conn
+		oldCh := b.channel
 		b.conn = conn
 		b.channel = ch
-		// Signal consumers that reconnection happened. Close the old channel
-		// and create a fresh one for the next reconnection cycle.
 		oldReconnected := b.reconnected
 		b.reconnected = make(chan struct{})
 		b.mu.Unlock()
 
-		// Re-declare exchanges, queues, and bindings on the new channel.
-		if err := b.Setup(); err != nil {
-			b.logger.Error().Err(err).Msg("reconnect setup failed, retrying")
-			attempt++
-			continue
+		// Close old connection to release file descriptors and TCP sockets.
+		// Done outside the lock to avoid blocking readers.
+		if oldCh != nil {
+			if err := oldCh.Close(); err != nil {
+				b.logger.Debug().Err(err).Msg("closing old AMQP channel")
+			}
+		}
+		if oldConn != nil {
+			if err := oldConn.Close(); err != nil {
+				b.logger.Debug().Err(err).Msg("closing old AMQP connection")
+			}
 		}
 
 		b.logger.Info().Msg("reconnected to RabbitMQ successfully")
@@ -178,6 +195,11 @@ func (b *Broker) Setup() error {
 	ch := b.channel
 	b.mu.RUnlock()
 
+	return setupChannel(ch)
+}
+
+// setupChannel declares exchanges, queues, and bindings on the given channel.
+func setupChannel(ch *amqp.Channel) error {
 	// Dead-letter exchange + queue
 	if err := ch.ExchangeDeclare(DLXName, "fanout", true, false, false, false, nil); err != nil {
 		return fmt.Errorf("broker: declare DLX: %w", err)
@@ -237,13 +259,19 @@ func (b *Broker) Publish(routingKey string, body []byte) error {
 
 // Consume returns a delivery channel for the given queue.
 // It acquires a read lock to safely access the channel during reconnection.
-func (b *Broker) Consume(queue string) (<-chan amqp.Delivery, error) {
+// prefetch controls how many unacknowledged messages RabbitMQ will push to
+// this consumer at a time (QoS). Use 1 for at-most-one-at-a-time processing.
+func (b *Broker) Consume(queue string, prefetch int) (<-chan amqp.Delivery, error) {
 	b.mu.RLock()
 	ch := b.channel
 	b.mu.RUnlock()
 
 	if ch == nil {
 		return nil, fmt.Errorf("broker: channel not available (reconnecting)")
+	}
+
+	if err := ch.Qos(prefetch, 0, false); err != nil {
+		return nil, fmt.Errorf("broker: set qos: %w", err)
 	}
 
 	return ch.Consume(queue, "", false, false, false, false, nil)

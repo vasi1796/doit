@@ -57,7 +57,7 @@ func main() {
 	logger.Info().Msg("recurring tasks worker started")
 
 	for {
-		deliveries, err := b.Consume(broker.QueueRecurring)
+		deliveries, err := b.Consume(broker.QueueRecurring, 1)
 		if err != nil {
 			logger.Error().Err(err).Msg("failed to start consuming, waiting for reconnect")
 			select {
