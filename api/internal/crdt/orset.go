@@ -26,7 +26,7 @@ func MergeORSet(local, remote []ORSetOp) []ORSetOp {
 		op  OpType
 	}
 	seen := make(map[opKey]bool, len(local)+len(remote))
-	var merged []ORSetOp
+	merged := make([]ORSetOp, 0, len(local)+len(remote))
 
 	for _, op := range local {
 		k := opKey{op.Tag, op.Op}
@@ -71,7 +71,7 @@ func Materialize(ops []ORSetOp) []string {
 	}
 
 	// A value is in the set if any add tag is not removed
-	var result []string
+	result := make([]string, 0)
 	for value, ts := range byValue {
 		for addTag := range ts.addTags {
 			if !ts.removeTags[addTag] {
