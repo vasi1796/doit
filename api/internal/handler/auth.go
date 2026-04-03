@@ -5,12 +5,14 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 
@@ -248,13 +250,20 @@ func (h *AuthHandler) upsertUser(ctx context.Context, user *auth.GoogleUser) (uu
 		return userID, nil
 	}
 
-	// If the email already exists under a different google_id (e.g., from dev login),
+	// Only fall through on unique constraint violation (e.g., email exists
+	// under a different google_id from dev login). All other errors are real failures.
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != "23505" {
+		return uuid.Nil, fmt.Errorf("upserting user by google_id: %w", err)
+	}
+
+	// Email already exists under a different google_id (e.g., from dev login) —
 	// update the existing row to use the real google_id.
 	err = h.pool.QueryRow(ctx, upsertUserByEmailSQL,
 		user.ID, user.Name, user.AvatarURL, user.Email,
 	).Scan(&userID)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("upserting user: %w", err)
+		return uuid.Nil, fmt.Errorf("upserting user by email: %w", err)
 	}
 	return userID, nil
 }

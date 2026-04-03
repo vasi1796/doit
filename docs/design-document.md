@@ -105,7 +105,7 @@ Running exclusively within the Apple ecosystem, all PWA capabilities are governe
 | --------------- | ------------------------------------------------------------------------------------------------------------------------- | -------- |
 | Google SSO      | Login via Google OAuth 2.0. No password management. Uses `golang.org/x/oauth2`.                                           | P0       |
 | User Allowlist  | Hardcoded list of permitted Google email addresses. Unauthenticated/unlisted users rejected.                               | P0       |
-| JWT Sessions    | Server issues JWT on successful OAuth. PWA stores token in memory (not localStorage). Refresh token rotation.              | P0       |
+| JWT Sessions    | Server issues JWT on successful OAuth. Stored in HttpOnly cookie. Single token with fixed expiry — no refresh token rotation. | P0       |
 | Per-User Data   | All tasks, lists, and labels are scoped to the authenticated user. No shared lists in MVP.                                 | P0       |
 
 ### 2.7 UX & PWA

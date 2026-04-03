@@ -36,12 +36,13 @@ func NewTokenService(secret string, expiryHours int) *TokenService {
 
 // Issue creates a signed JWT for the given user.
 func (ts *TokenService) Issue(userID uuid.UUID, email string) (string, time.Time, error) {
-	expiry := time.Now().UTC().Add(time.Duration(ts.expiryHours) * time.Hour)
+	now := time.Now().UTC()
+	expiry := now.Add(time.Duration(ts.expiryHours) * time.Hour)
 
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
-			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(expiry),
 		},
 		UserID: userID,
