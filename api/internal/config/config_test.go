@@ -34,6 +34,32 @@ func TestLoad(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "JWT_SECRET too short without dev mode returns error",
+			env: map[string]string{
+				"DATABASE_URL": "postgres://localhost/test",
+				"JWT_SECRET":   "short",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid REMINDER_HOUR returns error",
+			env: map[string]string{
+				"DATABASE_URL":  "postgres://localhost/test",
+				"DEV_MODE":      "true",
+				"REMINDER_HOUR": "25",
+			},
+			wantErr: true,
+		},
+		{
+			name: "negative REMINDER_HOUR returns error",
+			env: map[string]string{
+				"DATABASE_URL":  "postgres://localhost/test",
+				"DEV_MODE":      "true",
+				"REMINDER_HOUR": "-1",
+			},
+			wantErr: true,
+		},
+		{
 			name: "defaults applied when only DATABASE_URL set with dev mode",
 			env: map[string]string{
 				"DATABASE_URL": "postgres://localhost/test",
@@ -79,7 +105,7 @@ func TestLoad(t *testing.T) {
 				"DB_MAX_OPEN_CONNS":   "20",
 				"DB_MAX_IDLE_CONNS":   "10",
 				"DB_CONN_MAX_LIFETIME": "10m",
-				"JWT_SECRET":          "test-secret",
+				"JWT_SECRET":          "test-secret-that-is-at-least-32chars!",
 				"JWT_EXPIRY_HOURS":    "24",
 				"SHUTDOWN_TIMEOUT":    "30s",
 				"GOOGLE_CLIENT_ID":    "client-id",
@@ -106,8 +132,8 @@ func TestLoad(t *testing.T) {
 				if cfg.DBConnMaxLifetime != 10*time.Minute {
 					t.Errorf("DBConnMaxLifetime = %v, want 10m", cfg.DBConnMaxLifetime)
 				}
-				if cfg.JWTSecret != "test-secret" {
-					t.Errorf("JWTSecret = %q, want %q", cfg.JWTSecret, "test-secret")
+				if cfg.JWTSecret != "test-secret-that-is-at-least-32chars!" {
+					t.Errorf("JWTSecret = %q, want %q", cfg.JWTSecret, "test-secret-that-is-at-least-32chars!")
 				}
 				if cfg.JWTExpiryHours != 24 {
 					t.Errorf("JWTExpiryHours = %d, want 24", cfg.JWTExpiryHours)
@@ -163,14 +189,12 @@ func TestLoad(t *testing.T) {
 		"DB_MAX_OPEN_CONNS", "DB_MAX_IDLE_CONNS", "DB_CONN_MAX_LIFETIME",
 		"JWT_SECRET", "JWT_EXPIRY_HOURS", "SHUTDOWN_TIMEOUT",
 		"GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URL",
-		"METRICS_ENABLED", "DEV_MODE",
+		"METRICS_ENABLED", "DEV_MODE", "REMINDER_HOUR",
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// t.Setenv restores original value when the test completes
 			for _, k := range envKeys {
-				t.Setenv(k, "")
 				os.Unsetenv(k)
 			}
 

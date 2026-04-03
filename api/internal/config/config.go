@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -49,6 +49,10 @@ func Load() (*Config, error) {
 
 	if !cfg.DevMode && cfg.JWTSecret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required when DEV_MODE is not enabled")
+	}
+
+	if !cfg.DevMode && len(cfg.JWTSecret) < 32 {
+		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters for HS256 security")
 	}
 
 	if !cfg.DevMode && (cfg.GoogleClientID == "" || cfg.GoogleClientSecret == "" || cfg.GoogleRedirectURL == "") {
@@ -99,6 +103,10 @@ func loadBase() (*Config, error) {
 		ReminderTZ:         envString("REMINDER_TZ", "UTC"),
 	}
 
+	if cfg.ReminderHour < 0 || cfg.ReminderHour > 23 {
+		return nil, fmt.Errorf("REMINDER_HOUR must be between 0 and 23, got %d", cfg.ReminderHour)
+	}
+
 	return cfg, nil
 }
 
@@ -116,7 +124,7 @@ func envInt(key string, fallback int) int {
 	}
 	n, err := strconv.Atoi(v)
 	if err != nil {
-		log.Printf("WARNING: env %s=%q is not a valid int, using fallback %d: %v", key, v, fallback, err)
+		slog.Warn("invalid env var, using fallback", "key", key, "value", v, "fallback", fallback, "error", err)
 		return fallback
 	}
 	return n
@@ -129,7 +137,7 @@ func envBool(key string, fallback bool) bool {
 	}
 	b, err := strconv.ParseBool(v)
 	if err != nil {
-		log.Printf("WARNING: env %s=%q is not a valid bool, using fallback %v: %v", key, v, fallback, err)
+		slog.Warn("invalid env var, using fallback", "key", key, "value", v, "fallback", fallback, "error", err)
 		return fallback
 	}
 	return b
@@ -158,7 +166,7 @@ func envDuration(key string, fallback time.Duration) time.Duration {
 	}
 	d, err := time.ParseDuration(v)
 	if err != nil {
-		log.Printf("WARNING: env %s=%q is not a valid duration, using fallback %v: %v", key, v, fallback, err)
+		slog.Warn("invalid env var, using fallback", "key", key, "value", v, "fallback", fallback, "error", err)
 		return fallback
 	}
 	return d
