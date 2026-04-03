@@ -363,3 +363,133 @@ func TestProjectUnknownEventType(t *testing.T) {
 		t.Fatalf("unexpected error for unknown event: %v", err)
 	}
 }
+
+func TestProjectListDeletedMovesTasksToInbox(t *testing.T) {
+	proj, pool := setupTest(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	listID := uuid.New()
+	task1ID := uuid.New()
+	task2ID := uuid.New()
+
+	// Setup: create list with two tasks
+	setup := []eventstore.Event{
+		makeEvent(t, listID, eventstore.EventListCreated, eventstore.AggregateTypeList, 1,
+			domain.ListCreatedPayload{Name: "Work", Colour: "#ff0000", Position: "a"}, now),
+		makeEvent(t, task1ID, eventstore.EventTaskCreated, eventstore.AggregateTypeTask, 1,
+			domain.TaskCreatedPayload{Title: "Task 1", ListID: &listID, Position: "a"}, now),
+		makeEvent(t, task2ID, eventstore.EventTaskCreated, eventstore.AggregateTypeTask, 1,
+			domain.TaskCreatedPayload{Title: "Task 2", ListID: &listID, Position: "b"}, now),
+	}
+	if err := proj.Project(ctx, setup); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	// Verify tasks are in the list
+	var listIDResult *uuid.UUID
+	err := pool.QueryRow(ctx, "SELECT list_id FROM tasks WHERE id = $1", task1ID).Scan(&listIDResult)
+	if err != nil {
+		t.Fatalf("querying task1 list_id: %v", err)
+	}
+	if listIDResult == nil || *listIDResult != listID {
+		t.Fatalf("task1 list_id = %v, want %v", listIDResult, listID)
+	}
+
+	// Delete the list
+	deleteEvt := makeEvent(t, listID, eventstore.EventListDeleted, eventstore.AggregateTypeList, 2,
+		domain.ListDeletedPayload{DeletedAt: now.Add(time.Hour)}, now.Add(time.Hour))
+	if err := proj.Project(ctx, []eventstore.Event{deleteEvt}); err != nil {
+		t.Fatalf("projecting list delete: %v", err)
+	}
+
+	// Tasks should have NULL list_id (moved to inbox)
+	for _, taskID := range []uuid.UUID{task1ID, task2ID} {
+		err := pool.QueryRow(ctx, "SELECT list_id FROM tasks WHERE id = $1", taskID).Scan(&listIDResult)
+		if err != nil {
+			t.Fatalf("querying task list_id after delete: %v", err)
+		}
+		if listIDResult != nil {
+			t.Errorf("task %s list_id = %v, want nil (inbox)", taskID, listIDResult)
+		}
+	}
+
+	// List should be deleted
+	var listCount int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM lists WHERE id = $1", listID).Scan(&listCount); err != nil {
+		t.Fatalf("querying list count: %v", err)
+	}
+	if listCount != 0 {
+		t.Errorf("list count = %d, want 0", listCount)
+	}
+}
+
+func TestProjectLabelDeletedCleansUpAssociations(t *testing.T) {
+	proj, pool := setupTest(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	listID := uuid.New()
+	labelID := uuid.New()
+	task1ID := uuid.New()
+	task2ID := uuid.New()
+
+	// Setup: create list, label, two tasks, attach label to both
+	setup := []eventstore.Event{
+		makeEvent(t, listID, eventstore.EventListCreated, eventstore.AggregateTypeList, 1,
+			domain.ListCreatedPayload{Name: "Work", Colour: "#ff0000", Position: "a"}, now),
+		makeEvent(t, labelID, eventstore.EventLabelCreated, eventstore.AggregateTypeLabel, 1,
+			domain.LabelCreatedPayload{Name: "urgent", Colour: "#ff0000"}, now),
+		makeEvent(t, task1ID, eventstore.EventTaskCreated, eventstore.AggregateTypeTask, 1,
+			domain.TaskCreatedPayload{Title: "Task 1", ListID: &listID, Position: "a"}, now),
+		makeEvent(t, task2ID, eventstore.EventTaskCreated, eventstore.AggregateTypeTask, 1,
+			domain.TaskCreatedPayload{Title: "Task 2", ListID: &listID, Position: "b"}, now),
+		makeEvent(t, task1ID, eventstore.EventLabelAdded, eventstore.AggregateTypeTask, 2,
+			domain.LabelAddedPayload{LabelID: labelID}, now),
+		makeEvent(t, task2ID, eventstore.EventLabelAdded, eventstore.AggregateTypeTask, 2,
+			domain.LabelAddedPayload{LabelID: labelID}, now),
+	}
+	if err := proj.Project(ctx, setup); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	// Verify label associations exist
+	var assocCount int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM task_labels WHERE label_id = $1", labelID).Scan(&assocCount); err != nil {
+		t.Fatalf("querying task_labels: %v", err)
+	}
+	if assocCount != 2 {
+		t.Fatalf("task_labels count = %d, want 2", assocCount)
+	}
+
+	// Delete the label
+	deleteEvt := makeEvent(t, labelID, eventstore.EventLabelDeleted, eventstore.AggregateTypeLabel, 2,
+		domain.LabelDeletedPayload{DeletedAt: now.Add(time.Hour)}, now.Add(time.Hour))
+	if err := proj.Project(ctx, []eventstore.Event{deleteEvt}); err != nil {
+		t.Fatalf("projecting label delete: %v", err)
+	}
+
+	// task_labels associations should be removed
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM task_labels WHERE label_id = $1", labelID).Scan(&assocCount); err != nil {
+		t.Fatalf("querying task_labels after delete: %v", err)
+	}
+	if assocCount != 0 {
+		t.Errorf("task_labels count after delete = %d, want 0", assocCount)
+	}
+
+	// Label should be deleted
+	var labelCount int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM labels WHERE id = $1", labelID).Scan(&labelCount); err != nil {
+		t.Fatalf("querying label count: %v", err)
+	}
+	if labelCount != 0 {
+		t.Errorf("label count = %d, want 0", labelCount)
+	}
+
+	// Tasks should still exist
+	var taskCount int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM tasks WHERE id IN ($1, $2)", task1ID, task2ID).Scan(&taskCount); err != nil {
+		t.Fatalf("querying task count: %v", err)
+	}
+	if taskCount != 2 {
+		t.Errorf("task count = %d, want 2", taskCount)
+	}
+}
