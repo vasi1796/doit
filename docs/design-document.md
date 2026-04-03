@@ -47,7 +47,7 @@ Features are prioritised as P0 (MVP -- must ship in Phase 1), P1 (core -- Phase 
 | Subtasks / Checklist       | Nested checklist items within a task. Each subtask has its own completion state. Progress shown as fraction (e.g. 2/5).                                                                                                                                                                                                                                                                                                  | P1       |
 | Inline Markdown (Titles)   | Lightweight inline markdown rendering in task titles within list views. Supports bold, italic, strikethrough, and inline code. Rendered live -- no raw asterisks visible in the task list. Title remains single-line and compact.                                                                                                                                                                                         | P1       |
 | Global Quick-Add           | Floating action button visible on all screens (not just Inbox). Pre-fills context from current view: List page → that list, Today → today's due date, Label page → that label. Modelled after TickTick's global add button.                                                                                                                                                                                              | P1       |
-| Task Attachments           | Attach images or small files to tasks. Stored in object storage (S3-compatible). Size limit per attachment: 10MB.                                                                                                                                                                                                                                                                                                        | P2       |
+| ~~Task Attachments~~       | ~~Attach images or small files to tasks. Stored in object storage (S3-compatible). Size limit per attachment: 10MB.~~                                                                                                                                                                                                                                                                                                    | Dropped  |
 
 ### 2.2 Organisation & Structure
 
@@ -56,7 +56,7 @@ Features are prioritised as P0 (MVP -- must ship in Phase 1), P1 (core -- Phase 
 | Lists          | Group tasks into named lists (e.g. Work, Personal, Shopping). Each list has a colour and icon. Tasks belong to exactly one list.      | P0       |
 | Labels / Tags  | Cross-cutting tags applied to tasks across any list. Many-to-many relationship. Filterable in all views.                              | P0       |
 | Smart Lists    | System-generated views: Inbox (no list assigned), Today, Upcoming (next 7 days), Someday (no date).                                  | P0       |
-| List Folders   | Group related lists into collapsible folders for sidebar organisation.                                                                | P2       |
+| ~~List Folders~~   | ~~Group related lists into collapsible folders for sidebar organisation.~~                                                            | Dropped  |
 | Task Ordering  | Manual drag-and-drop reordering within lists. Position tracked via fractional indexing CRDT.                                          | P1       |
 
 ### 2.3 Scheduling & Time
@@ -69,7 +69,7 @@ Features are prioritised as P0 (MVP -- must ship in Phase 1), P1 (core -- Phase 
 | Reminders       | Push notifications via Web Push API. Supported on iOS 16.4+ for home-screen-installed PWAs and on macOS Sonoma+ Safari web apps. Requires explicit user permission grant via a user-initiated gesture. Reliability on iOS is lower than native -- treat as best-effort, not guaranteed delivery.                                                                                                                                                                                            | P2       |
 | Calendar View   | Monthly calendar view showing tasks by due date. Click a day to see/add tasks. Drag tasks between days to reschedule.                                                                                                                                                                                                                                                                                                                                                                     | P1       |
 | iCal Feed       | Read-only iCalendar (.ics) feed served at `/cal/feed.ics`. Generates VEVENT entries for tasks with due dates, subscribable in Apple Calendar and Google Calendar so tasks appear alongside regular events. Authenticated via per-user token in the URL (calendar apps do not support OAuth for feed subscriptions). Rebuilt on task changes by a background worker. Uses go-ical (`github.com/emersion/go-ical`).                                                                            | P1       |
-| Start Date      | Optional start date -- task hidden from Today/Upcoming views until start date arrives.                                                                                                                                                                                                                                                                                                                                                                                                     | P2       |
+| ~~Start Date~~  | ~~Optional start date -- task hidden from Today/Upcoming views until start date arrives.~~                                                                                                                                                                                                                                                                                                                                                                                                 | Dropped  |
 
 ### 2.4 Views & Navigation
 
@@ -84,6 +84,7 @@ Features are prioritised as P0 (MVP -- must ship in Phase 1), P1 (core -- Phase 
 | Label Filter View | View all tasks matching one or more selected labels, across all lists.                         | P1       |
 | Search            | Full-text search across task titles, descriptions, and labels.                                 | P1       |
 | Eisenhower Matrix | Four-quadrant view using priority (importance) and due date (urgency). Tasks with due date today/overdue are urgent. Accessible from bottom nav. Frontend-only — no new fields needed. | P2       |
+| Filtering & Sorting | Filter tasks by priority, due date, labels, and completion status. Sort by due date, priority, title, or creation date. Sort preference is persistent per view (stored in IndexedDB and synced via user config). Available on List, Inbox, Label, and Today views. | P1       |
 
 ### 2.5 Sync & Offline
 
@@ -120,7 +121,7 @@ The PWA targets Safari exclusively across all Apple platforms. Installation path
 | PWA Install         | Installable via Safari on macOS (Add to Dock), iOS and iPadOS (Add to Home Screen). In-app guidance banner to walk users through the installation process since Safari has no automatic install prompt.                         | P0       |
 | Responsive Layout   | Sidebar navigation on Mac/iPad landscape. Bottom tab bar on iPhone and iPad portrait. Fluid transitions. Designed for Safari WebKit rendering.                                                                                 | P0       |
 | Dark Mode           | System-preference detection via `prefers-color-scheme` media query. Matches macOS/iOS system-wide dark mode setting. Manual toggle persisted per device.                                                                       | P1       |
-| Keyboard Shortcuts  | Quick-add (Cmd+N), search (Cmd+K), navigate views. Primarily for Mac desktop productivity.                                                                                                                                    | P2       |
+| ~~Keyboard Shortcuts~~  | ~~Quick-add (Cmd+N), search (Cmd+K), navigate views. Primarily for Mac desktop productivity.~~ Cmd+N and Cmd+K are implemented; extended shortcuts dropped.                                                                   | Dropped  |
 | Drag & Drop         | Reorder tasks within lists, move tasks between lists, reschedule on calendar by dragging. Touch-friendly long-press drag on iOS/iPadOS.                                                                                        | P1       |
 | iPad Multitasking   | Support for Split View and Slide Over on iPadOS. PWA adapts layout to reduced window sizes.                                                                                                                                    | P2       |
 
@@ -192,7 +193,7 @@ Projected from the event stream. These are disposable and can be rebuilt from ev
 
 - **users** -- `id`, `google_id`, `email`, `name`, `avatar_url`, `allowed` (boolean), `created_at`
 - **lists** -- `id`, `user_id`, `name`, `colour`, `icon`, `position` (fractional index), `created_at`, `updated_at`
-- **tasks** -- `id`, `user_id`, `list_id`, `title` (inline markdown string), `description` (full markdown string via TipTap), `priority` (0--3), `due_date`, `due_time`, `start_date`, `recurrence_rule`, `position` (fractional index), `is_completed`, `completed_at`, `is_deleted`, `deleted_at`, `created_at`, `updated_at`
+- **tasks** -- `id`, `user_id`, `list_id`, `title` (inline markdown string), `description` (full markdown string via TipTap), `priority` (0--3), `due_date`, `due_time`, `recurrence_rule`, `position` (fractional index), `is_completed`, `completed_at`, `is_deleted`, `deleted_at`, `created_at`, `updated_at`
 - **labels** -- `id`, `user_id`, `name`, `colour`, `created_at`
 - **task_labels** -- `task_id`, `label_id` (join table, OR-Set CRDT)
 - **subtasks** -- `id`, `task_id`, `title`, `is_completed`, `position`, `created_at`

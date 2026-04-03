@@ -317,7 +317,11 @@ cd web && npm run build                          # frontend build
 | **Phase 1** | Online-only MVP — event store, projections, CRUD API+UI, Google SSO, Docker Compose | Backend + frontend done |
 | **Phase 2** | Offline-first + CRDT sync — Dexie.js, service worker, LWW/OR-Set merge, sync engine, WebSocket push, HLC timestamps, aggregate snapshots | Done |
 | **Phase 3** | RabbitMQ + async projections — transactional outbox, topic exchanges, DLQ, projection worker, recurring tasks worker | Done |
-| **Phase 4** | Polish — projection rebuilder CLI, calendar view, dark mode, search, drag-and-drop, keyboard shortcuts | Not started |
+| **Phase 4** | Polish — integration tests, projection rebuilder CLI, drag-and-drop, install banner, iPad multitasking | Done |
+| **Phase 5** | Advanced features — Eisenhower matrix, global quick-add, markdown editor, search, calendar view, iCal feed, deploy webhook, push reminders | Done |
+| **Next**    | Filtering & sorting (persistent per-view sort preference) | Planned |
+
+Dropped features (not needed): task attachments, list folders, start date, extended keyboard shortcuts.
 
 See `docs/design-document.md` for full phase details.
 See `docs/adr/008-phase1-migration-risks.md` for known refactor points between phases.
