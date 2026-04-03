@@ -24,6 +24,7 @@ type Publisher interface {
 type OutboxStore interface {
 	ClaimOutbox(ctx context.Context, tx pgx.Tx, batchSize int) ([]eventstore.OutboxEntry, error)
 	MarkPublished(ctx context.Context, tx pgx.Tx, ids []int64) error
+	CleanupOutbox(ctx context.Context) (int64, error)
 }
 
 // Poller reads unpublished outbox entries and publishes them to RabbitMQ.
@@ -46,19 +47,29 @@ func NewPoller(pool *pgxpool.Pool, store OutboxStore, publisher Publisher, logge
 }
 
 // Run polls the outbox at the given interval until the context is cancelled.
+// It also runs periodic cleanup of published entries (once per hour).
 func (p *Poller) Run(ctx context.Context, interval time.Duration) {
 	p.logger.Info().Dur("interval", interval).Msg("outbox poller started")
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+	pollTicker := time.NewTicker(interval)
+	defer pollTicker.Stop()
+
+	cleanupTicker := time.NewTicker(1 * time.Hour)
+	defer cleanupTicker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			p.logger.Info().Msg("outbox poller stopped")
 			return
-		case <-ticker.C:
+		case <-pollTicker.C:
 			if err := p.Poll(ctx); err != nil {
 				p.logger.Error().Err(err).Msg("outbox poll failed")
+			}
+		case <-cleanupTicker.C:
+			if deleted, err := p.store.CleanupOutbox(ctx); err != nil {
+				p.logger.Error().Err(err).Msg("outbox cleanup failed")
+			} else if deleted > 0 {
+				p.logger.Info().Int64("deleted", deleted).Msg("outbox cleanup completed")
 			}
 		}
 	}

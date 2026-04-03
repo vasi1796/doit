@@ -26,6 +26,8 @@ FROM outbox WHERE published = false ORDER BY created_at ASC LIMIT $1 FOR UPDATE 
 
 const markPublishedSQL = `UPDATE outbox SET published = true WHERE id = ANY($1)`
 
+const deletePublishedOutboxSQL = `DELETE FROM outbox WHERE published = true AND created_at < NOW() - INTERVAL '7 days'`
+
 const loadByAggregateSQL = `SELECT id, aggregate_id, aggregate_type, event_type, user_id, data, timestamp, counter, version
 FROM events WHERE aggregate_id = $1 ORDER BY version ASC`
 
@@ -99,7 +101,9 @@ func (s *Store) InsertOutbox(ctx context.Context, tx pgx.Tx, events []Event) err
 }
 
 // Append writes events atomically in a self-managed transaction.
-// Backward-compatible wrapper around AppendTx.
+// WARNING: This does NOT write outbox rows — events appended here will never
+// be published to RabbitMQ. Use AppendTx + InsertOutbox (via CommandHandler)
+// for production writes. This method exists only for test setup.
 func (s *Store) Append(ctx context.Context, events []Event) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -142,6 +146,15 @@ func (s *Store) ClaimOutbox(ctx context.Context, tx pgx.Tx, batchSize int) ([]Ou
 func (s *Store) MarkPublished(ctx context.Context, tx pgx.Tx, ids []int64) error {
 	_, err := tx.Exec(ctx, markPublishedSQL, ids)
 	return err
+}
+
+// CleanupOutbox deletes published outbox entries older than 7 days.
+func (s *Store) CleanupOutbox(ctx context.Context) (int64, error) {
+	tag, err := s.pool.Exec(ctx, deletePublishedOutboxSQL)
+	if err != nil {
+		return 0, fmt.Errorf("cleaning up outbox: %w", err)
+	}
+	return tag.RowsAffected(), nil
 }
 
 // LoadByAggregate returns all events for the given aggregate, ordered by version.
@@ -214,7 +227,7 @@ func (s *Store) CountEvents(ctx context.Context) (int, error) {
 }
 
 func scanEvents(rows pgx.Rows) ([]Event, error) {
-	var events []Event
+	events := make([]Event, 0)
 	for rows.Next() {
 		var e Event
 		err := rows.Scan(
