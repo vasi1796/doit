@@ -17,7 +17,6 @@ type EventStore interface {
 	LoadByAggregate(ctx context.Context, aggregateID uuid.UUID) ([]eventstore.Event, error)
 	AppendTx(ctx context.Context, tx pgx.Tx, events []eventstore.Event) error
 	InsertOutbox(ctx context.Context, tx pgx.Tx, events []eventstore.Event) error
-	Append(ctx context.Context, events []eventstore.Event) error
 }
 
 // TxBeginner starts database transactions.
