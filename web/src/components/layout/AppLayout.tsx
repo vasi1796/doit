@@ -125,6 +125,9 @@ function useMediaQuery(query: string): boolean {
 
   useEffect(() => {
     const mql = window.matchMedia(query)
+    // Sync initial state whenever `query` changes — the useState initializer
+    // only runs on first mount.
+    setMatches(mql.matches) // eslint-disable-line react-hooks/set-state-in-effect
     const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
     mql.addEventListener('change', handler)
     return () => mql.removeEventListener('change', handler)
@@ -158,9 +161,9 @@ function QuickAddModal({ lists, labels, pathname, onClose }: { lists: List[]; la
   }, [onClose])
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <div
-      className="fixed inset-0 bg-black/20 z-[60] flex items-start justify-center pt-[15vh] animate-[fade-in_0.15s_ease-out]"
+      className="fixed inset-0 bg-[rgba(0,0,0,0.35)] z-[60] flex items-start justify-center pt-[15vh] animate-[fade-in_0.15s_ease-out]"
       role="dialog"
       aria-modal="true"
       aria-label="New task"
@@ -219,14 +222,9 @@ export function AppLayout() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const selectTask = useCallback((id: string | null) => setSelectedTaskId(id), [])
 
-  // Close task detail when navigating to a different route
-  const prevPath = useRef(location.pathname)
-  useEffect(() => {
-    if (prevPath.current !== location.pathname) {
-      prevPath.current = location.pathname
-      setSelectedTaskId(null) // eslint-disable-line react-hooks/set-state-in-effect
-    }
-  }, [location.pathname])
+  // Close task detail when navigating to a different route.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setSelectedTaskId(null), [location.pathname])
 
   useKeyboardShortcuts({ setQuickAddOpen, setSearchOpen })
 
@@ -290,8 +288,7 @@ export function AppLayout() {
         {/* Desktop task detail panel — third column (>=1024px) */}
         {isDesktopPanel && selectedTaskId && (
           <div
-            className="hidden lg:block w-[380px] xl:w-[440px] shrink-0 h-screen"
-            style={{ animation: 'fade-in 0.2s ease-out' }}
+            className="w-[380px] xl:w-[440px] shrink-0 h-screen animate-[fade-in_0.2s_ease-out]"
           >
             <TaskDetail
               taskId={selectedTaskId}

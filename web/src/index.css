@@ -58,6 +58,9 @@
   --shadow-popover: 0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
   --shadow-modal: 0 12px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
   --shadow-fab: 0 4px 14px rgba(52,120,246,0.30), 0 2px 6px rgba(0,0,0,0.08);
+
+  /* ---- Animations (Tailwind v4 picks these up as animate-* utilities) ---- */
+  --animate-nav-active-in: nav-active-in 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
 
 /* ============================================================

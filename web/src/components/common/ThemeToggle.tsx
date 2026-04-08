@@ -28,7 +28,7 @@ export function ThemeToggle() {
 
   return (
     <div className="px-3">
-      <div className="flex items-center bg-bg-secondary rounded-[10px] p-0.5 gap-0.5" role="radiogroup" aria-label="Theme">
+      <div className="flex items-center bg-bg-secondary rounded-[12px] p-1 gap-1" role="radiogroup" aria-label="Theme">
         {OPTIONS.map((opt) => {
           const isActive = theme === opt.value
           return (
@@ -39,7 +39,7 @@ export function ThemeToggle() {
               role="radio"
               aria-checked={isActive}
               aria-label={`${opt.label} theme`}
-              className={`flex-1 flex items-center justify-center gap-1.5 min-h-[32px] rounded-[8px] text-[12px] font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1.5 min-h-[44px] rounded-[8px] text-[12px] font-medium transition-all ${
                 isActive
                   ? 'bg-bg-elevated text-text-primary shadow-card'
                   : 'text-text-tertiary hover:text-text-secondary'

@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../common/ConfirmDialog'
 import { SyncStatus } from '../common/SyncStatus'
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '../../push'
 import { CalendarFeedLink } from '../common/CalendarFeedLink'
+import { ColorSwatchRow } from '../common/ColorSwatchRow'
 import { ThemeToggle } from '../common/ThemeToggle'
 import type { List, Label } from '../../api/types'
 import { PRESET_COLORS } from '../../constants'
@@ -138,8 +139,7 @@ function NavItem({ to, label, icon, count, badgeTone = 'default' }: {
           {isActive && (
             <span
               aria-hidden="true"
-              className="absolute inset-0 rounded-[10px] bg-accent-light"
-              style={{ animation: 'nav-active-in 0.25s var(--ease-nav-bounce)' }}
+              className="absolute inset-0 rounded-[10px] bg-accent-light animate-nav-active-in"
             />
           )}
           <svg
@@ -226,7 +226,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
   const navigate = useNavigate()
   const [addingList, setAddingList] = useState(false)
   const [newListName, setNewListName] = useState('')
-  const [newListColour, setNewListColour] = useState(PRESET_COLORS[0])
+  const [newListColour, setNewListColour] = useState<string>(PRESET_COLORS[0])
   const [pendingDelete, setPendingDelete] = useState<{ type: 'list' | 'label'; id: string; name: string } | null>(null)
   const [labelsCollapsed, setLabelsCollapsed] = useState(false)
 
@@ -356,17 +356,8 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 autoFocus
               />
             </div>
-            <div className="px-3 pb-2 flex items-center gap-1">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setNewListColour(c)}
-                  className={`w-5 h-5 rounded-full ${newListColour === c ? 'ring-2 ring-offset-1 ring-accent/40' : ''}`}
-                  style={{ backgroundColor: c }}
-                  aria-label={`Color ${c}`}
-                />
-              ))}
+            <div className="px-3 pb-2">
+              <ColorSwatchRow value={newListColour} onChange={setNewListColour} />
             </div>
             <div className="flex border-t border-separator">
               <button
@@ -424,8 +415,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                       {isActive && (
                         <span
                           aria-hidden="true"
-                          className="absolute inset-0 rounded-[10px] bg-accent-light"
-                          style={{ animation: 'nav-active-in 0.25s var(--ease-nav-bounce)' }}
+                          className="absolute inset-0 rounded-[10px] bg-accent-light animate-nav-active-in"
                         />
                       )}
                       <span
@@ -518,8 +508,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                             {isActive && (
                               <span
                                 aria-hidden="true"
-                                className="absolute inset-0 rounded-[10px] bg-accent-light"
-                                style={{ animation: 'nav-active-in 0.25s var(--ease-nav-bounce)' }}
+                                className="absolute inset-0 rounded-[10px] bg-accent-light animate-nav-active-in"
                               />
                             )}
                             <span

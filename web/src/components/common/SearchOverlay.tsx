@@ -66,7 +66,6 @@ export function SearchOverlay({ onClose, onSelectTask }: SearchOverlayProps) {
   }, [onClose, onSelectTask, results, activeIndex])
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <div
       className="fixed inset-0 bg-[rgba(0,0,0,0.35)] z-[70] flex items-start justify-center pt-[12vh] animate-[fade-in_0.1s_ease-out]"
       role="presentation"

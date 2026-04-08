@@ -70,7 +70,6 @@ export function TaskDetail({ taskId, lists, onClose, variant = 'modal' }: TaskDe
       )
     }
     return (
-      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
       <div className="fixed inset-0 bg-[rgba(0,0,0,0.35)] flex items-center justify-center z-50" onClick={onClose} aria-hidden="true">
         <div className="bg-bg-elevated rounded-[14px] p-6 w-full max-w-lg mx-4 shadow-modal border border-separator">
           <div className="animate-pulse space-y-4">

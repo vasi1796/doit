@@ -242,3 +242,15 @@ export async function deleteLabel(id: string): Promise<void> {
   await db.labels.delete(id)
   await queueOp(SyncOpType.DELETE_LABEL, id, hlc)
 }
+
+// ---------------------------------------------------------------------------
+// User preferences (device-local, never synced)
+// ---------------------------------------------------------------------------
+
+/**
+ * Write a local-only user preference. These are intentionally not queued
+ * for sync — each device has its own UI state (theme, etc.).
+ */
+export async function setUserPreference(key: string, value: string): Promise<void> {
+  await db.userPreferences.put({ key, value })
+}

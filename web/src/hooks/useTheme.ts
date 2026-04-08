@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/database'
+import { setUserPreference } from '../db/operations'
 
 export type Theme = 'light' | 'dark' | 'system'
 
@@ -20,9 +21,7 @@ export function useTheme() {
   const pref = useLiveQuery(() => db.userPreferences.get(THEME_KEY), [])
   const theme = parseTheme(pref?.value)
 
-  const setTheme = async (next: Theme) => {
-    await db.userPreferences.put({ key: THEME_KEY, value: next })
-  }
+  const setTheme = (next: Theme) => setUserPreference(THEME_KEY, next)
 
   return { theme, setTheme }
 }

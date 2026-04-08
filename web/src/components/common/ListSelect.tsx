@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { usePopover } from '../../hooks/usePopover'
 import * as operations from '../../db/operations'
 import { useToast } from './Toast'
+import { ColorSwatchRow } from './ColorSwatchRow'
 import type { List } from '../../api/types'
 import { PRESET_COLORS } from '../../constants'
 
@@ -16,7 +17,7 @@ export function ListSelect({ value, lists, onChange }: ListSelectProps) {
   const { open, pos, triggerRef, toggle, close } = usePopover({ contentWidth: 200 })
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newColour, setNewColour] = useState(PRESET_COLORS[0])
+  const [newColour, setNewColour] = useState<string>(PRESET_COLORS[0])
 
   const currentList = lists.find((l) => l.id === value)
   const displayName = currentList?.name || 'Inbox'
@@ -96,16 +97,11 @@ export function ListSelect({ value, lists, onChange }: ListSelectProps) {
                     autoFocus
                   />
                   <div className="flex items-center gap-1">
-                    {PRESET_COLORS.slice(0, 5).map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setNewColour(c)}
-                        className={`w-5 h-5 rounded-full ${newColour === c ? 'ring-2 ring-offset-1 ring-accent/40' : ''}`}
-                        style={{ backgroundColor: c }}
-                        aria-label={`Color ${c}`}
-                      />
-                    ))}
+                    <ColorSwatchRow
+                      value={newColour}
+                      onChange={setNewColour}
+                      colors={PRESET_COLORS.slice(0, 5)}
+                    />
                     <button type="submit" className="ml-auto text-[13px] text-accent font-semibold">Create</button>
                   </div>
                 </form>

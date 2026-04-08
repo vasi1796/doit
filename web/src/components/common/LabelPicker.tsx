@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as operations from '../../db/operations'
 import { useToast } from './Toast'
+import { ColorSwatchRow } from './ColorSwatchRow'
 import type { Label } from '../../api/types'
 import { PRESET_COLORS, COLORS } from '../../constants'
 
@@ -14,7 +15,7 @@ export function LabelPicker({ allLabels, attachedIds, taskId }: LabelPickerProps
   const { toast } = useToast()
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newColour, setNewColour] = useState(PRESET_COLORS[0])
+  const [newColour, setNewColour] = useState<string>(PRESET_COLORS[0])
 
   const handleToggle = async (label: Label) => {
     try {
@@ -64,18 +65,7 @@ export function LabelPicker({ allLabels, attachedIds, taskId }: LabelPickerProps
 
       {creating ? (
         <form onSubmit={handleCreate} className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex gap-1">
-            {PRESET_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setNewColour(c)}
-                className={`w-4 h-4 rounded-full ${newColour === c ? 'ring-2 ring-offset-1 ring-accent/30' : ''}`}
-                style={{ backgroundColor: c }}
-                aria-label={`Color ${c}`}
-              />
-            ))}
-          </div>
+          <ColorSwatchRow value={newColour} onChange={setNewColour} size={16} />
           <input
             type="text"
             value={newName}

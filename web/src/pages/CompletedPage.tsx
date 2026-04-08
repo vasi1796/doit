@@ -2,52 +2,20 @@ import { useMemo } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
-import type { Task } from '../api/types'
+import { groupByCompletion, type CompletedTimeGroup } from '../utils/date'
 
-type TimeGroup = 'today' | 'yesterday' | 'week' | 'earlier'
-
-function groupTasksByTime(tasks: Task[]): Record<TimeGroup, Task[]> {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const weekAgo = new Date(today)
-  weekAgo.setDate(weekAgo.getDate() - 7)
-
-  const result: Record<TimeGroup, Task[]> = { today: [], yesterday: [], week: [], earlier: [] }
-
-  for (const task of tasks) {
-    if (!task.completed_at) {
-      result.earlier.push(task)
-      continue
-    }
-    const completed = new Date(task.completed_at)
-    if (completed >= today) result.today.push(task)
-    else if (completed >= yesterday) result.yesterday.push(task)
-    else if (completed >= weekAgo) result.week.push(task)
-    else result.earlier.push(task)
-  }
-
-  return result
-}
+const SECTIONS: { key: CompletedTimeGroup; label: string }[] = [
+  { key: 'today', label: 'Today' },
+  { key: 'yesterday', label: 'Yesterday' },
+  { key: 'week', label: 'This week' },
+  { key: 'earlier', label: 'Earlier' },
+]
 
 export function CompletedPage() {
   const { tasks, loading } = useTasks({ is_completed: 'true' })
   const { selectTask } = useLayoutContext()
 
-  const grouped = useMemo(() => groupTasksByTime(tasks), [tasks])
-  const monthCount = useMemo(() => {
-    const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    return tasks.filter((t) => t.completed_at && new Date(t.completed_at) >= monthStart).length
-  }, [tasks])
-
-  const sections: { key: TimeGroup; label: string }[] = [
-    { key: 'today', label: 'Today' },
-    { key: 'yesterday', label: 'Yesterday' },
-    { key: 'week', label: 'This week' },
-    { key: 'earlier', label: 'Earlier' },
-  ]
+  const { grouped, monthCount } = useMemo(() => groupByCompletion(tasks), [tasks])
 
   return (
     <div>
@@ -71,7 +39,7 @@ export function CompletedPage() {
       {!loading && tasks.length === 0 && (
         <div className="px-4 py-16 text-center text-text-tertiary text-sm">No completed tasks yet</div>
       )}
-      {sections.map((s) => {
+      {SECTIONS.map((s) => {
         if (grouped[s.key].length === 0) return null
         return (
           <div key={s.key}>

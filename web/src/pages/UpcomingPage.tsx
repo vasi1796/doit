@@ -1,52 +1,27 @@
+import { useMemo } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
-
-function getUpcomingDays(): string[] {
-  const days: string[] = []
-  const today = new Date()
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(today)
-    d.setDate(d.getDate() + i)
-    days.push(d.toISOString().split('T')[0])
-  }
-  return days
-}
-
-function formatDayHeader(dateStr: string): { primary: string; secondary: string; isTomorrow: boolean } {
-  const date = new Date(dateStr + 'T00:00:00')
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-
-  const isTomorrow = date.getTime() === tomorrow.getTime()
-  if (isTomorrow) {
-    return {
-      primary: 'Tomorrow',
-      secondary: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      isTomorrow: true,
-    }
-  }
-  return {
-    primary: date.toLocaleDateString('en-US', { weekday: 'long' }),
-    secondary: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    isTomorrow: false,
-  }
-}
+import { nextNDays, formatDayGroupHeader } from '../utils/date'
 
 export function UpcomingPage() {
   const { tasks, loading } = useTasks({ is_completed: 'false' })
   const { selectTask } = useLayoutContext()
 
-  const days = getUpcomingDays()
-  const grouped = days
-    .map((day) => ({
-      date: day,
-      header: formatDayHeader(day),
-      tasks: tasks.filter((t) => t.due_date === day),
-    }))
-    .filter((g) => g.tasks.length > 0)
+  // `days` is stable for the lifetime of the page mount; `grouped` re-derives
+  // only when the task list changes.
+  const days = useMemo(() => nextNDays(7), [])
+  const grouped = useMemo(
+    () =>
+      days
+        .map((day) => ({
+          date: day,
+          header: formatDayGroupHeader(day),
+          tasks: tasks.filter((t) => t.due_date === day),
+        }))
+        .filter((g) => g.tasks.length > 0),
+    [days, tasks],
+  )
 
   return (
     <div>

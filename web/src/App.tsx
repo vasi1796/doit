@@ -13,9 +13,7 @@ import { CalendarPage } from './pages/CalendarPage'
 import { useTheme, useApplyTheme } from './hooks/useTheme'
 
 function App() {
-  // Apply persisted theme at the root so both /login and the main
-  // app routes respect the user's preference. AppLayout also calls
-  // useApplyTheme — that's a no-op when the value matches.
+  // Apply persisted theme at the root so /login and app routes share it.
   const { theme } = useTheme()
   useApplyTheme(theme)
 

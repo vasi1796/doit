@@ -10,8 +10,7 @@ export function TodayPage() {
   const overdueTasks = tasks.filter((t) => t.due_date && t.due_date < today)
   const todayTasks = tasks.filter((t) => t.due_date === today)
 
-  const totalToday = todayTasks.length + overdueTasks.length
-  const completedToday = 0 // Completed tasks are filtered out; progress ring future-work
+  const totalDue = todayTasks.length + overdueTasks.length
 
   return (
     <div>
@@ -19,8 +18,8 @@ export function TodayPage() {
         <h1 className="text-[28px] font-semibold text-text-primary tracking-tight">Today</h1>
         <p className="text-[14px] text-text-secondary mt-0.5">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          {totalToday > 0 && (
-            <span className="text-text-tertiary"> · {totalToday - completedToday} {totalToday - completedToday === 1 ? 'task' : 'tasks'}</span>
+          {totalDue > 0 && (
+            <span className="text-text-tertiary"> · {totalDue} {totalDue === 1 ? 'task' : 'tasks'}</span>
           )}
         </p>
       </div>

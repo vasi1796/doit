@@ -3,23 +3,17 @@ import { useTasks } from '../hooks/useTasks'
 import { useToast } from '../components/common/Toast'
 import { EmptyState } from '../components/common/EmptyState'
 import { PriorityFlag } from '../components/common/PriorityDot'
+import { daysUntilTTL } from '../utils/date'
 import type { Task } from '../api/types'
 
-function daysRemaining(deletedAt?: string): number | null {
-  if (!deletedAt) return null
-  const deleted = new Date(deletedAt)
-  const expires = new Date(deleted)
-  expires.setDate(expires.getDate() + 30)
-  const now = new Date()
-  const days = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  return Math.max(0, days)
-}
+const TRASH_TTL_DAYS = 30
 
 function TrashItem({ task }: { task: Task }) {
   const { toast } = useToast()
-  // Trash uses updated_at as a proxy for deletion time — tasks in trash are
-  // only modified via the delete action, so updated_at ~= deleted_at.
-  const days = daysRemaining(task.updated_at)
+  // Use `updated_at` as a proxy for the deletion timestamp: tasks in trash
+  // are only modified via the delete action, so the two are equivalent until
+  // the API ships a dedicated `deleted_at` field.
+  const days = daysUntilTTL(task.updated_at, TRASH_TTL_DAYS)
   const isUrgent = days !== null && days < 7
 
   const handleRestore = async () => {

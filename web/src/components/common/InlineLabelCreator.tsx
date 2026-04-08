@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as operations from '../../db/operations'
 import { useToast } from './Toast'
+import { ColorSwatchRow } from './ColorSwatchRow'
 import { PRESET_COLORS } from '../../constants'
 
 interface InlineLabelCreatorProps {
@@ -11,7 +12,7 @@ interface InlineLabelCreatorProps {
 export function InlineLabelCreator({ onCreated, onCancel }: InlineLabelCreatorProps) {
   const { toast } = useToast()
   const [name, setName] = useState('')
-  const [colour, setColour] = useState(PRESET_COLORS[0])
+  const [colour, setColour] = useState<string>(PRESET_COLORS[0])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,18 +28,13 @@ export function InlineLabelCreator({ onCreated, onCancel }: InlineLabelCreatorPr
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-1.5">
-      <div className="flex gap-0.5">
-        {PRESET_COLORS.slice(0, 4).map(c => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => setColour(c)}
-            className={`w-4 h-4 rounded-full ${colour === c ? 'ring-2 ring-offset-1 ring-accent/40' : ''}`}
-            style={{ backgroundColor: c }}
-            aria-label={`Color ${c}`}
-          />
-        ))}
-      </div>
+      <ColorSwatchRow
+        value={colour}
+        onChange={setColour}
+        colors={PRESET_COLORS.slice(0, 4)}
+        size={16}
+        gap="tight"
+      />
       <input
         type="text"
         value={name}
