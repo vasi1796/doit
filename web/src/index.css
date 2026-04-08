@@ -98,6 +98,15 @@
      [data-theme="light"] override. */
   --frosted-sidebar-bg: rgba(242, 242, 247, 0.85);
   --frosted-bottom-nav-bg: rgba(255, 255, 255, 0.92);
+
+  /* Tell the browser to render its own chrome (Safari URL bar tint,
+     iOS status-bar area behind the notch, scrollbars, form controls)
+     in light mode. The dark-mode blocks below flip this to 'dark' so
+     that Safari's native UI follows the in-app theme even when the
+     user's OS preference disagrees — this is what actually fixes the
+     "top of the app stays dark when I picked Light on a dark OS" case,
+     since theme-color alone only tints a small region. */
+  color-scheme: light;
 }
 
 /* ============================================================
@@ -159,6 +168,8 @@
 
     --frosted-sidebar-bg: rgba(44, 44, 46, 0.85);
     --frosted-bottom-nav-bg: rgba(28, 28, 30, 0.92);
+
+    color-scheme: dark;
   }
 }
 
@@ -208,6 +219,8 @@
 
   --frosted-sidebar-bg: rgba(44, 44, 46, 0.85);
   --frosted-bottom-nav-bg: rgba(28, 28, 30, 0.92);
+
+  color-scheme: dark;
 }
 
 body {
