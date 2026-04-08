@@ -20,12 +20,16 @@ export default defineConfig({
       use: {
         ...devices['Desktop Safari'],
         viewport: { width: 1280, height: 800 },
+        // Pin to light so visual baselines are deterministic across
+        // dev machines and CI regardless of the host OS dark-mode setting.
+        colorScheme: 'light',
       },
     },
     {
       name: 'webkit-mobile',
       use: {
         ...devices['iPhone 14'],
+        colorScheme: 'light',
       },
     },
   ],
