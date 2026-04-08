@@ -23,9 +23,9 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
         ref={triggerRef}
         type="button"
         onClick={toggle}
-        className="flex items-center gap-2 min-h-[40px] px-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+        className={`flex items-center gap-2 min-h-[40px] px-3 rounded-[10px] hover:bg-bg-secondary transition-colors text-sm ${value ? 'text-accent' : 'text-text-secondary'}`}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={value ? '#007aff' : '#86868b'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 1l4 4-4 4" />
           <path d="M3 11V9a4 4 0 0 1 4-4h14" />
           <path d="M7 23l-4-4 4-4" />
@@ -38,7 +38,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
         <>
           <div className="fixed inset-0 z-[60]" onClick={() => close()} aria-hidden="true" />
           <div
-            className="fixed bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-[61] min-w-[160px]"
+            className="fixed bg-bg-elevated rounded-[14px] shadow-popover border border-separator py-1 z-[61] min-w-[160px]"
             style={{ top: pos.top, left: pos.left }}
           >
             {RULES.map((r) => (
@@ -46,7 +46,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
                 key={r.value}
                 type="button"
                 onClick={() => { onChange(r.value); close() }}
-                className={`w-full text-left px-4 py-2.5 text-[15px] hover:bg-gray-50 transition-colors ${
+                className={`w-full text-left px-4 py-2.5 text-[15px] hover:bg-bg-secondary transition-colors ${
                   value === r.value ? 'text-accent font-medium' : 'text-text-primary'
                 }`}
               >
