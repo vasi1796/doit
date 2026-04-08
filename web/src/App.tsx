@@ -10,8 +10,15 @@ import { CompletedPage } from './pages/CompletedPage'
 import { TrashPage } from './pages/TrashPage'
 import { EisenhowerPage } from './pages/EisenhowerPage'
 import { CalendarPage } from './pages/CalendarPage'
+import { useTheme, useApplyTheme } from './hooks/useTheme'
 
 function App() {
+  // Apply persisted theme at the root so both /login and the main
+  // app routes respect the user's preference. AppLayout also calls
+  // useApplyTheme — that's a no-op when the value matches.
+  const { theme } = useTheme()
+  useApplyTheme(theme)
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

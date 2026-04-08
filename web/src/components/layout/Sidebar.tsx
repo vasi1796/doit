@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../common/ConfirmDialog'
 import { SyncStatus } from '../common/SyncStatus'
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '../../push'
 import { CalendarFeedLink } from '../common/CalendarFeedLink'
+import { ThemeToggle } from '../common/ThemeToggle'
 import type { List, Label } from '../../api/types'
 import { PRESET_COLORS } from '../../constants'
 
@@ -554,6 +555,9 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
 
       {/* Calendar feed */}
       <CalendarFeedLink />
+
+      {/* Theme toggle */}
+      <ThemeToggle />
 
       {/* Logout */}
       <div className="px-2 pb-4">

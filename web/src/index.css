@@ -89,10 +89,64 @@
 }
 
 /* ============================================================
-   Dark mode — opt-in via [data-theme="dark"] attribute.
-   The @media (prefers-color-scheme: dark) hook lands in Phase 5
-   together with the user-facing theme toggle.
+   Dark mode — two activation paths:
+   1. Explicit opt-in via [data-theme="dark"] (user chose "Dark"
+      in the theme toggle — always wins).
+   2. System preference when no explicit [data-theme] is set
+      (user chose "System" or hasn't chosen yet). If the user
+      explicitly chose "Light" we leave data-theme="light" on
+      the root so this media query is *not* applied.
+   Values are duplicated across the two rules on purpose: CSS
+   doesn't let you share a declaration block between a selector
+   and an @media-scoped selector.
    ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --color-accent: #4A9EFF;
+    --color-accent-hover: #6BB3FF;
+    --color-accent-light: rgba(74, 158, 255, 0.12);
+    --color-accent-medium: rgba(74, 158, 255, 0.20);
+
+    --color-red: #FF6961;
+    --color-orange: #FFB340;
+    --color-yellow: #FFD426;
+    --color-green: #4ADE80;
+    --color-teal: #5BC0EB;
+    --color-purple: #C084FC;
+    --color-pink: #FF6B8A;
+    --color-indigo: #818CF8;
+    --color-brown: #C4A882;
+    --color-gray: #98989D;
+
+    --color-bg: #1C1C1E;
+    --color-bg-secondary: #2C2C2E;
+    --color-bg-tertiary: #3A3A3C;
+    --color-bg-elevated: #2C2C2E;
+
+    --color-text-primary: #F5F5F7;
+    --color-text-secondary: #98989D;
+    --color-text-tertiary: #636366;
+    --color-text-quaternary: #48484A;
+    --color-text-note: #EBEBF0;
+
+    --color-separator: rgba(84, 84, 88, 0.65);
+    --color-separator-opaque: #48484A;
+
+    --color-danger: #FF6961;
+    --color-success: #4ADE80;
+    --color-warning: #FFB340;
+
+    --color-priority-high: #FF6961;
+    --color-priority-medium: #FFB340;
+    --color-priority-low: #4ADE80;
+
+    --shadow-card: 0 1px 4px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+    --shadow-popover: 0 4px 20px rgba(0,0,0,0.40), 0 1px 6px rgba(0,0,0,0.25);
+    --shadow-modal: 0 12px 48px rgba(0,0,0,0.50), 0 4px 16px rgba(0,0,0,0.30);
+    --shadow-fab: 0 4px 16px rgba(74,158,255,0.25), 0 2px 6px rgba(0,0,0,0.20);
+  }
+}
+
 [data-theme="dark"] {
   --color-accent: #4A9EFF;
   --color-accent-hover: #6BB3FF;
