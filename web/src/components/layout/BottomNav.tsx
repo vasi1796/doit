@@ -17,20 +17,24 @@ export function BottomNav({ taskCounts, onMenuToggle }: BottomNavProps) {
   const { state } = useSyncStatus()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <nav
+      className="frosted-bottom-nav fixed bottom-0 left-0 right-0 border-t border-separator flex md:hidden"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
       {state !== 'synced' && (
         <div className="absolute top-0 left-0 right-0 flex justify-center -translate-y-full pb-1">
-          <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-            state === 'offline' ? 'bg-gray-100 text-text-secondary' :
-            state === 'syncing' ? 'bg-accent/10 text-accent' :
+          <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full ${
+            state === 'offline' ? 'bg-bg-tertiary text-text-secondary' :
+            state === 'syncing' ? 'bg-accent-light text-accent' :
             'bg-warning/10 text-warning'
           }`}>
-            {state === 'offline' ? 'Offline' : state === 'syncing' ? 'Syncing...' : 'Pending changes'}
+            {state === 'offline' ? 'Offline' : state === 'syncing' ? 'Syncing…' : 'Pending changes'}
           </span>
         </div>
       )}
       {TABS.map((tab) => {
         const count = tab.countKey ? taskCounts[tab.countKey as keyof typeof taskCounts] : 0
+        const isTodayTab = tab.to === '/today'
         return (
           <NavLink
             key={tab.to}
@@ -46,12 +50,16 @@ export function BottomNav({ taskCounts, onMenuToggle }: BottomNavProps) {
                 <path d={tab.icon} />
               </svg>
               {count > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-accent text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1">
+                <span
+                  className={`absolute -top-1.5 -right-2 text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1 ${
+                    isTodayTab ? 'bg-danger' : 'bg-accent'
+                  }`}
+                >
                   {count}
                 </span>
               )}
             </div>
-            <span className="text-[10px] mt-0.5">{tab.label}</span>
+            <span className="text-[10px] mt-0.5 leading-tight">{tab.label}</span>
           </NavLink>
         )
       })}

@@ -7,7 +7,7 @@ import { useToast } from '../common/Toast'
 import { InlineMarkdown } from '../common/InlineMarkdown'
 import { PriorityFlag } from '../common/PriorityDot'
 import { formatDueDate } from '../../utils/date'
-import { PRIORITY_COLORS, UI } from '../../constants'
+import { PRIORITY_COLORS, UI, COLORS } from '../../constants'
 import type { Task } from '../../api/types'
 
 const SWIPE_THRESHOLD = 80
@@ -69,7 +69,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
 
   // Background colors revealed behind the swiped row
   const bgColor = useTransform(swipeX, [-SWIPE_THRESHOLD, 0, SWIPE_THRESHOLD], [
-    UI.danger + 'DD', 'transparent', '#4cd964DD',
+    UI.danger + 'DD', 'transparent', UI.success + 'DD',
   ])
 
   const handleToggle = async (e: React.MouseEvent) => {
@@ -142,15 +142,15 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
         dragDirectionLock
         style={{ x: swipeX }}
         onDragEnd={handleSwipeEnd}
-        className="relative bg-white"
+        className="relative bg-bg"
       >
         <div
           role="button"
           tabIndex={0}
           onClick={() => { if (!swiping.current) onSelect(task.id) }}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(task.id) }}
-          className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-[#f8f8fa] text-left transition-colors relative cursor-pointer ${
-            isDragging ? 'bg-white shadow-lg rounded-lg' : ''
+          className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-bg-secondary text-left transition-colors relative cursor-pointer ${
+            isDragging ? 'bg-bg-elevated shadow-card rounded-[10px]' : ''
           }`}
         >
           {/* Drag handle */}
@@ -173,7 +173,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
           </button>
 
           {priorityColor && (
-            <span className="absolute left-0 top-3 bottom-3 w-[4px] rounded-r-full" style={{ backgroundColor: priorityColor }} />
+            <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full" style={{ backgroundColor: priorityColor }} aria-hidden="true" />
           )}
 
           <button
@@ -181,7 +181,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
             onClick={handleToggle}
             aria-label={checked ? 'Mark incomplete' : 'Mark complete'}
             className={`w-[22px] h-[22px] mt-0.5 rounded-full border-2 shrink-0 flex items-center justify-center cursor-pointer transition-all duration-200 ${
-              checked ? 'bg-accent border-accent scale-110' : 'border-[#c7c7cc] hover:border-accent'
+              checked ? 'bg-accent border-accent scale-110' : 'border-text-quaternary hover:border-accent'
             }`}
           >
             {checked && (
@@ -195,7 +195,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
             <div className="flex items-center gap-2">
               <InlineMarkdown
                 text={task.title}
-                className={`flex-1 text-[15px] leading-snug truncate ${checked ? 'line-through text-text-secondary' : 'text-text-primary'}`}
+                className={`flex-1 text-[15px] leading-snug truncate ${checked ? 'line-through text-text-tertiary' : 'text-text-primary'}`}
               />
               <div className="flex items-center gap-1.5 shrink-0">
                 <PriorityFlag priority={task.priority} size={13} />
@@ -208,13 +208,13 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
             </div>
 
             {task.description && (
-              <InlineMarkdown text={task.description} className="text-[12px] text-text-secondary block truncate mt-0.5" />
+              <InlineMarkdown text={task.description} className="text-[12px] text-text-tertiary block truncate mt-0.5" />
             )}
 
             {(labels.length > 0 || task.recurrence_rule || subtasks.length > 0) && (
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 {task.recurrence_rule && (
-                  <span className="text-[11px] text-text-secondary flex items-center gap-0.5">
+                  <span className="text-[11px] text-text-tertiary flex items-center gap-0.5">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
                       <path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
@@ -223,7 +223,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
                   </span>
                 )}
                 {subtasks.length > 0 && (
-                  <span className="text-[11px] text-text-secondary flex items-center gap-1">
+                  <span className="text-[11px] text-text-tertiary flex items-center gap-1">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                     </svg>
@@ -235,8 +235,8 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
                     key={label.id}
                     className="text-[11px] px-2 py-0.5 rounded-full font-medium"
                     style={{
-                      backgroundColor: (label.colour || '#86868b') + '18',
-                      color: label.colour || '#86868b',
+                      backgroundColor: (label.colour || COLORS.gray) + '1F',
+                      color: label.colour || COLORS.gray,
                     }}
                   >
                     {label.name}

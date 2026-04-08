@@ -1,14 +1,198 @@
 @import "tailwindcss";
 
+/* ============================================================
+   DESIGN TOKENS — Tailwind v4 theme layer
+   Token values are the single source of truth for all component
+   styling. Components should reference these via Tailwind
+   utilities (bg-accent, text-text-primary, shadow-card, …) or via
+   var(--…) inline. Never hard-code hex values in components.
+   ============================================================ */
 @theme {
-  --color-accent: #007aff;
-  --color-danger: #ff3b30;
-  --color-warning: #ff9500;
-  --color-success: #4cd964;
-  --color-text-primary: #1d1d1f;
-  --color-text-secondary: #86868b;
-  --color-text-tertiary: #c7c7cc;
-  --color-text-note: #3c3c43;
+  /* ---- Brand accent ---- */
+  --color-accent: #3478F6;
+  --color-accent-hover: #2563EB;
+  --color-accent-light: rgba(52, 120, 246, 0.10);
+  --color-accent-medium: rgba(52, 120, 246, 0.18);
+
+  /* ---- Extended palette (list/label colours) ---- */
+  --color-red: #FF453A;
+  --color-orange: #FF9F0A;
+  --color-yellow: #FFD60A;
+  --color-green: #30D158;
+  --color-teal: #64D2FF;
+  --color-purple: #BF5AF2;
+  --color-pink: #FF375F;
+  --color-indigo: #5E5CE6;
+  --color-brown: #AC8E68;
+  --color-gray: #8E8E93;
+
+  /* ---- Semantic status ---- */
+  --color-danger: #FF453A;
+  --color-success: #30D158;
+  --color-warning: #FF9F0A;
+
+  /* ---- Surfaces ---- */
+  --color-bg: #FFFFFF;
+  --color-bg-secondary: #F2F2F7;
+  --color-bg-tertiary: #E5E5EA;
+  --color-bg-elevated: #FFFFFF;
+
+  /* ---- Text ---- */
+  --color-text-primary: #1C1C1E;
+  --color-text-secondary: #636366;
+  --color-text-tertiary: #AEAEB2;
+  --color-text-quaternary: #C7C7CC;
+  --color-text-note: #3C3C43; /* legacy — MarkdownEditor only */
+
+  /* ---- Borders & separators ---- */
+  --color-separator: rgba(60, 60, 67, 0.12);
+  --color-separator-opaque: #D1D1D6;
+
+  /* ---- Priority (task items) ---- */
+  --color-priority-high: #FF453A;
+  --color-priority-medium: #FF9F0A;
+  --color-priority-low: #30D158;
+
+  /* ---- Shadows (dual-layer for depth) ---- */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-popover: 0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-modal: 0 12px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-fab: 0 4px 14px rgba(52,120,246,0.30), 0 2px 6px rgba(0,0,0,0.08);
+
+  /* ---- Animations (Tailwind v4 picks these up as animate-* utilities) ---- */
+  --animate-nav-active-in: nav-active-in 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+/* ============================================================
+   Plain CSS variables (not compiled to Tailwind utilities).
+   Used directly via var() in components — e.g. layout widths,
+   semantic radii, spring easing.
+   ============================================================ */
+:root {
+  /* Layout */
+  --sidebar-width: 272px;
+  --bottom-nav-height: 50px;
+  --detail-panel-width: 380px;
+  --detail-panel-width-wide: 440px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Semantic radii (distinct from Tailwind defaults to avoid
+     overriding existing rounded-sm/md/lg usage across the app) */
+  --radius-card-sm: 6px;
+  --radius-card-md: 10px;
+  --radius-card-lg: 14px;
+  --radius-card-xl: 20px;
+
+  /* Motion */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+  --ease-ios-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-nav-bounce: cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+/* ============================================================
+   Dark mode — two activation paths:
+   1. Explicit opt-in via [data-theme="dark"] (user chose "Dark"
+      in the theme toggle — always wins).
+   2. System preference when no explicit [data-theme] is set
+      (user chose "System" or hasn't chosen yet). If the user
+      explicitly chose "Light" we leave data-theme="light" on
+      the root so this media query is *not* applied.
+   Values are duplicated across the two rules on purpose: CSS
+   doesn't let you share a declaration block between a selector
+   and an @media-scoped selector.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --color-accent: #4A9EFF;
+    --color-accent-hover: #6BB3FF;
+    --color-accent-light: rgba(74, 158, 255, 0.12);
+    --color-accent-medium: rgba(74, 158, 255, 0.20);
+
+    --color-red: #FF6961;
+    --color-orange: #FFB340;
+    --color-yellow: #FFD426;
+    --color-green: #4ADE80;
+    --color-teal: #5BC0EB;
+    --color-purple: #C084FC;
+    --color-pink: #FF6B8A;
+    --color-indigo: #818CF8;
+    --color-brown: #C4A882;
+    --color-gray: #98989D;
+
+    --color-bg: #1C1C1E;
+    --color-bg-secondary: #2C2C2E;
+    --color-bg-tertiary: #3A3A3C;
+    --color-bg-elevated: #2C2C2E;
+
+    --color-text-primary: #F5F5F7;
+    --color-text-secondary: #98989D;
+    --color-text-tertiary: #636366;
+    --color-text-quaternary: #48484A;
+    --color-text-note: #EBEBF0;
+
+    --color-separator: rgba(84, 84, 88, 0.65);
+    --color-separator-opaque: #48484A;
+
+    --color-danger: #FF6961;
+    --color-success: #4ADE80;
+    --color-warning: #FFB340;
+
+    --color-priority-high: #FF6961;
+    --color-priority-medium: #FFB340;
+    --color-priority-low: #4ADE80;
+
+    --shadow-card: 0 1px 4px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+    --shadow-popover: 0 4px 20px rgba(0,0,0,0.40), 0 1px 6px rgba(0,0,0,0.25);
+    --shadow-modal: 0 12px 48px rgba(0,0,0,0.50), 0 4px 16px rgba(0,0,0,0.30);
+    --shadow-fab: 0 4px 16px rgba(74,158,255,0.25), 0 2px 6px rgba(0,0,0,0.20);
+  }
+}
+
+[data-theme="dark"] {
+  --color-accent: #4A9EFF;
+  --color-accent-hover: #6BB3FF;
+  --color-accent-light: rgba(74, 158, 255, 0.12);
+  --color-accent-medium: rgba(74, 158, 255, 0.20);
+
+  --color-red: #FF6961;
+  --color-orange: #FFB340;
+  --color-yellow: #FFD426;
+  --color-green: #4ADE80;
+  --color-teal: #5BC0EB;
+  --color-purple: #C084FC;
+  --color-pink: #FF6B8A;
+  --color-indigo: #818CF8;
+  --color-brown: #C4A882;
+  --color-gray: #98989D;
+
+  --color-bg: #1C1C1E;
+  --color-bg-secondary: #2C2C2E;
+  --color-bg-tertiary: #3A3A3C;
+  --color-bg-elevated: #2C2C2E;
+
+  --color-text-primary: #F5F5F7;
+  --color-text-secondary: #98989D;
+  --color-text-tertiary: #636366;
+  --color-text-quaternary: #48484A;
+  --color-text-note: #EBEBF0;
+
+  --color-separator: rgba(84, 84, 88, 0.65);
+  --color-separator-opaque: #48484A;
+
+  --color-danger: #FF6961;
+  --color-success: #4ADE80;
+  --color-warning: #FFB340;
+
+  --color-priority-high: #FF6961;
+  --color-priority-medium: #FFB340;
+  --color-priority-low: #4ADE80;
+
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-popover: 0 4px 20px rgba(0,0,0,0.40), 0 1px 6px rgba(0,0,0,0.25);
+  --shadow-modal: 0 12px 48px rgba(0,0,0,0.50), 0 4px 16px rgba(0,0,0,0.30);
+  --shadow-fab: 0 4px 16px rgba(74,158,255,0.25), 0 2px 6px rgba(0,0,0,0.20);
 }
 
 body {
@@ -16,14 +200,40 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #1d1d1f;
-  background: #ffffff;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
 }
 
 #root {
   min-height: 100svh;
 }
 
+/* ============================================================
+   Frosted glass surfaces — compound backdrop-filter with WebKit
+   prefix. Encoded as utility classes (not inline styles) so dark
+   mode can override and Safari prefix stays co-located.
+   ============================================================ */
+.frosted-sidebar {
+  background: rgba(242, 242, 247, 0.85);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+[data-theme="dark"] .frosted-sidebar {
+  background: rgba(44, 44, 46, 0.85);
+}
+
+.frosted-bottom-nav {
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+[data-theme="dark"] .frosted-bottom-nav {
+  background: rgba(28, 28, 30, 0.92);
+}
+
+/* ============================================================
+   Keyframes
+   ============================================================ */
 @keyframes check {
   0% { transform: scale(0); opacity: 0; }
   50% { transform: scale(1.2); }
@@ -38,4 +248,10 @@ body {
 @keyframes fade-in {
   0% { opacity: 0; }
   100% { opacity: 1; }
+}
+
+/* Scale+fade-in used for sidebar nav active pill */
+@keyframes nav-active-in {
+  0% { transform: scaleX(0.92) scaleY(0.85); opacity: 0; }
+  100% { transform: scaleX(1) scaleY(1); opacity: 1; }
 }

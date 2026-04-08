@@ -42,9 +42,9 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
         ref={triggerRef}
         type="button"
         onClick={toggle}
-        className="flex items-center gap-2 min-h-[40px] px-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+        className={`flex items-center gap-2 min-h-[40px] px-3 rounded-[10px] hover:bg-bg-secondary transition-colors text-sm ${value ? 'text-accent' : 'text-text-secondary'}`}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={value ? '#007aff' : '#86868b'} strokeWidth="1.5" strokeLinecap="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
         </svg>
@@ -67,20 +67,20 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
         <>
           <div className="fixed inset-0 z-[60]" onClick={() => close()} aria-hidden="true" />
           <div
-            className="fixed bg-white rounded-xl shadow-xl border border-gray-200 p-3 z-[61] w-[210px]"
+            className="fixed bg-bg-elevated rounded-[14px] shadow-popover border border-separator p-3 z-[61] w-[210px]"
             style={{ top: pos.top, left: pos.left }}
           >
             <div className="flex gap-2 mb-3">
               <div className="flex-1">
-                <p className="text-[10px] text-text-secondary font-medium uppercase mb-1">Hour</p>
+                <p className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider mb-1">Hour</p>
                 <div className="grid grid-cols-4 gap-1">
                   {HOURS.map(h => (
                     <button
                       key={h}
                       type="button"
                       onClick={() => { setSelHour(h); applyTime(h, selMin, selAmPm) }}
-                      className={`py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
-                        selHour === h ? 'bg-accent text-white' : 'hover:bg-gray-100 text-text-primary'
+                      className={`py-1.5 rounded-[8px] text-[13px] font-medium transition-colors ${
+                        selHour === h ? 'bg-accent text-white' : 'hover:bg-bg-secondary text-text-primary'
                       }`}
                     >
                       {h}
@@ -91,15 +91,15 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
             </div>
 
             <div className="mb-3">
-              <p className="text-[10px] text-text-secondary font-medium uppercase mb-1">Minute</p>
+              <p className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider mb-1">Minute</p>
               <div className="grid grid-cols-6 gap-1">
                 {MINUTES.map(m => (
                   <button
                     key={m}
                     type="button"
                     onClick={() => { setSelMin(m); applyTime(selHour, m, selAmPm) }}
-                    className={`py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
-                      selMin === m ? 'bg-accent text-white' : 'hover:bg-gray-100 text-text-primary'
+                    className={`py-1.5 rounded-[8px] text-[13px] font-medium transition-colors ${
+                      selMin === m ? 'bg-accent text-white' : 'hover:bg-bg-secondary text-text-primary'
                     }`}
                   >
                     {m.toString().padStart(2, '0')}
@@ -114,8 +114,8 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
                   key={p}
                   type="button"
                   onClick={() => { setSelAmPm(p); applyTime(selHour, selMin, p) }}
-                  className={`flex-1 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
-                    selAmPm === p ? 'bg-accent text-white' : 'hover:bg-gray-100 text-text-primary'
+                  className={`flex-1 py-2 rounded-[8px] text-[13px] font-semibold transition-colors ${
+                    selAmPm === p ? 'bg-accent text-white' : 'hover:bg-bg-secondary text-text-primary'
                   }`}
                 >
                   {p}
@@ -126,7 +126,7 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
             <button
               type="button"
               onClick={() => close()}
-              className="w-full mt-2 py-2 text-[13px] font-semibold text-accent hover:bg-gray-50 rounded-lg"
+              className="w-full mt-2 py-2 text-[13px] font-semibold text-accent hover:bg-accent-light rounded-[8px] transition-colors"
             >
               Done
             </button>

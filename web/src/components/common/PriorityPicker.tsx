@@ -24,10 +24,10 @@ export function PriorityPicker({ value, onChange, compact = false }: PriorityPic
             type="button"
             onClick={() => onChange(p.value)}
             aria-label={`Priority: ${p.label}`}
-            className={`min-h-[36px] flex items-center justify-center rounded-lg transition-all text-[13px] font-medium gap-1 px-2 ${
+            className={`min-h-[36px] flex items-center justify-center rounded-[10px] transition-all text-[13px] font-medium gap-1 px-2 ${
               value === p.value
-                ? 'bg-gray-100 ring-1 ring-gray-200'
-                : 'hover:bg-gray-50 opacity-40 hover:opacity-70'
+                ? 'bg-bg-secondary ring-1 ring-separator'
+                : 'hover:bg-bg-secondary opacity-40 hover:opacity-70'
             }`}
           >
             {p.value === 0 ? (
@@ -53,10 +53,10 @@ export function PriorityPicker({ value, onChange, compact = false }: PriorityPic
           type="button"
           onClick={() => onChange(p.value)}
           aria-label={`Priority: ${p.label}`}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all min-h-[36px] ${
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-[10px] text-[13px] font-medium transition-all min-h-[36px] ${
             value === p.value
-              ? 'bg-gray-100 ring-1 ring-gray-200'
-              : 'opacity-40 hover:opacity-80 hover:bg-gray-50'
+              ? 'bg-bg-secondary ring-1 ring-separator'
+              : 'opacity-40 hover:opacity-80 hover:bg-bg-secondary'
           }`}
         >
           {p.value === 0 ? (

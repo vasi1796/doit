@@ -52,3 +52,78 @@ export function formatDisplayTime(timeStr: string): string {
   const hour = h % 12 || 12
   return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`
 }
+
+/** Whole days between an ISO timestamp and now, floored at 0. Used by the trash
+ *  auto-delete countdown — pass an `updated_at` (or a future `deleted_at`)
+ *  and the 30-day TTL window. Returns null when the input is missing. */
+export function daysUntilTTL(fromTimestamp: string | undefined, ttlDays: number): number | null {
+  if (!fromTimestamp) return null
+  const deleted = new Date(fromTimestamp)
+  const expires = new Date(deleted)
+  expires.setDate(expires.getDate() + ttlDays)
+  const days = Math.ceil((expires.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  return Math.max(0, days)
+}
+
+/** Returns YYYY-MM-DD strings for the next N days starting from tomorrow
+ *  (excludes today). Used by the Upcoming page. */
+export function nextNDays(n: number): string[] {
+  const days: string[] = []
+  const base = new Date()
+  for (let i = 1; i <= n; i++) {
+    const d = new Date(base)
+    d.setDate(d.getDate() + i)
+    days.push(toDateStr(d))
+  }
+  return days
+}
+
+/** Format a YYYY-MM-DD into {primary, secondary, isTomorrow} for day-group
+ *  headers on the Upcoming page. Tomorrow gets the accent treatment in the UI. */
+export function formatDayGroupHeader(dateStr: string): { primary: string; secondary: string; isTomorrow: boolean } {
+  const date = new Date(dateStr + 'T00:00:00')
+  const secondary = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const isTomorrow = dayDiff(dateStr) === 1
+  return {
+    primary: isTomorrow ? 'Tomorrow' : date.toLocaleDateString('en-US', { weekday: 'long' }),
+    secondary,
+    isTomorrow,
+  }
+}
+
+/** Buckets for grouping completed tasks by when they were completed. */
+export type CompletedTimeGroup = 'today' | 'yesterday' | 'week' | 'earlier'
+
+/** Group items by completion timestamp into today/yesterday/this-week/earlier.
+ *  The grouping boundaries are computed once per call.
+ *  Also returns the count completed in the current calendar month, so the
+ *  caller doesn't need a second pass over the list. */
+export function groupByCompletion<T extends { completed_at?: string }>(
+  items: readonly T[],
+): { grouped: Record<CompletedTimeGroup, T[]>; monthCount: number } {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const weekAgo = new Date(today)
+  weekAgo.setDate(weekAgo.getDate() - 7)
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const grouped: Record<CompletedTimeGroup, T[]> = { today: [], yesterday: [], week: [], earlier: [] }
+  let monthCount = 0
+
+  for (const item of items) {
+    if (!item.completed_at) {
+      grouped.earlier.push(item)
+      continue
+    }
+    const completed = new Date(item.completed_at)
+    if (completed >= monthStart) monthCount++
+    if (completed >= today) grouped.today.push(item)
+    else if (completed >= yesterday) grouped.yesterday.push(item)
+    else if (completed >= weekAgo) grouped.week.push(item)
+    else grouped.earlier.push(item)
+  }
+
+  return { grouped, monthCount }
+}

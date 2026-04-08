@@ -31,6 +31,13 @@ export interface SyncCursor {
   hlcCounter: number
 }
 
+/** Key-value store for local-only user preferences (theme, future UI state).
+ * These never sync to the server — they're device-local by design. */
+export interface UserPreference {
+  key: string
+  value: string
+}
+
 /** Per-field HLC timestamps for fine-grained LWW merge. */
 export interface FieldHLC {
   [field: string]: { time: number; counter: number }
@@ -51,6 +58,7 @@ class DoItDB extends Dexie {
   subtasks!: Table<StoredSubtask>
   syncQueue!: Table<SyncOp>
   syncState!: Table<SyncCursor>
+  userPreferences!: Table<UserPreference>
 
   constructor() {
     super('doit')
@@ -70,6 +78,11 @@ class DoItDB extends Dexie {
 
     this.version(3).stores({
       syncQueue: '++id, createdAt',
+    })
+
+    // v4: local-only user preferences (theme, etc.) — device-local, never synced
+    this.version(4).stores({
+      userPreferences: '&key',
     })
   }
 }

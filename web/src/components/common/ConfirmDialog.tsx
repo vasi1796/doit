@@ -46,18 +46,18 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Delete', o
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" className="fixed inset-0 z-[200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onCancel} role="presentation" />
-      <div className="relative bg-white rounded-2xl shadow-xl w-[280px] overflow-hidden text-center">
+      <div className="absolute inset-0 bg-[rgba(0,0,0,0.35)]" onClick={onCancel} role="presentation" />
+      <div className="relative bg-bg-elevated rounded-[20px] shadow-modal border border-separator w-[280px] overflow-hidden text-center">
         <div className="px-5 pt-5 pb-4">
           <h3 id="confirm-dialog-title" className="text-[17px] font-semibold text-text-primary">{title}</h3>
           <p className="text-[13px] text-text-secondary mt-1 leading-snug">{message}</p>
         </div>
-        <div className="flex border-t border-gray-200">
+        <div className="flex border-t border-separator">
           <button
             ref={cancelRef}
             type="button"
             onClick={onCancel}
-            className="flex-1 py-3 text-[17px] text-accent font-normal border-r border-gray-200 active:bg-black/5 min-h-[44px]"
+            className="flex-1 py-3 text-[17px] text-accent font-normal border-r border-separator active:bg-bg-secondary min-h-[44px] transition-colors"
           >
             Cancel
           </button>
@@ -65,7 +65,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Delete', o
             ref={confirmRef}
             type="button"
             onClick={onConfirm}
-            className="flex-1 py-3 text-[17px] text-danger font-semibold active:bg-black/5 min-h-[44px]"
+            className="flex-1 py-3 text-[17px] text-danger font-semibold active:bg-bg-secondary min-h-[44px] transition-colors"
           >
             {confirmLabel}
           </button>

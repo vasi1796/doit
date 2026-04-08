@@ -10,7 +10,7 @@ import { RecurrencePicker } from '../common/RecurrencePicker'
 import { ListSelect } from '../common/ListSelect'
 import { InlineLabelCreator } from '../common/InlineLabelCreator'
 import type { List, Label, Priority } from '../../api/types'
-import { COLORS, UI } from '../../constants'
+import { COLORS } from '../../constants'
 
 interface QuickAddProps {
   listId?: string
@@ -117,13 +117,13 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
           key="collapsed"
           type="button"
           onClick={() => { setExpanded(true); setTimeout(() => inputRef.current?.focus(), 50) }}
-          className="mx-4 my-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#f8f8fa] hover:bg-[#f0f0f2] transition-colors text-[15px] text-text-secondary w-[calc(100%-32px)]"
+          className="mx-4 my-3 flex items-center gap-3 px-4 py-3 rounded-[14px] bg-bg-secondary hover:bg-bg-tertiary transition-colors text-[15px] text-text-secondary w-[calc(100%-32px)]"
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.97 }}
           transition={{ duration: 0.15 }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={UI.accent} strokeWidth="2" strokeLinecap="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-accent">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           New task...
@@ -132,17 +132,17 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
         <motion.div
           key="expanded"
           ref={formRef}
-          className="mx-4 my-3 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.1)] border border-gray-200 overflow-hidden"
+          className="mx-4 my-3 bg-bg-elevated rounded-[14px] shadow-popover border border-separator overflow-hidden"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
         >
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-separator">
             <button
               type="button"
               onClick={() => { resetForm(); setExpanded(false); if (initialExpanded) onCreated?.() }}
-              className="text-sm text-text-secondary hover:text-text-primary min-h-[36px] px-1"
+              className="text-sm text-text-secondary hover:text-text-primary min-h-[36px] px-1 transition-colors"
             >
               Cancel
             </button>
@@ -153,7 +153,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
               disabled={!title.trim() || submitting}
               className="text-sm font-semibold text-accent min-h-[36px] px-1 disabled:opacity-30"
             >
-              {submitting ? 'Adding...' : 'Add'}
+              {submitting ? 'Adding…' : 'Add'}
             </button>
           </div>
 
@@ -166,7 +166,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
               placeholder="Task name"
               aria-label="Task name"
-              className="w-full text-[17px] font-medium outline-none placeholder:text-text-tertiary"
+              className="w-full text-[17px] font-medium outline-none bg-transparent text-text-primary placeholder:text-text-tertiary"
             />
           </div>
 
@@ -179,13 +179,13 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
             />
           </div>
 
-          <div className="border-t border-gray-100">
-            <div className="flex items-center px-1 border-b border-gray-50">
+          <div className="border-t border-separator">
+            <div className="flex items-center px-1 border-b border-separator">
               <DatePicker value={dueDate} onChange={setDueDate} onClear={() => setDueDate('')} />
               <TimePicker value={dueTime} onChange={setDueTime} onClear={() => setDueTime('')} />
             </div>
 
-            <div className="flex items-center px-1 border-b border-gray-50">
+            <div className="flex items-center px-1 border-b border-separator">
               <RecurrencePicker value={recurrence} onChange={setRecurrence} />
               {lists && !listId && (
                 <ListSelect
@@ -196,8 +196,8 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
               )}
             </div>
 
-            <div className="px-4 py-2.5 border-b border-gray-50">
-              <p className="text-[11px] text-text-secondary font-medium uppercase tracking-wider mb-1.5">Priority</p>
+            <div className="px-4 py-2.5 border-b border-separator">
+              <p className="text-[11px] text-text-tertiary font-semibold uppercase tracking-wider mb-1.5">Priority</p>
               <PriorityPicker value={priority} onChange={setPriority} compact />
             </div>
 
@@ -214,7 +214,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
                         selected ? 'ring-1 ring-offset-1' : 'opacity-40 hover:opacity-70'
                       }`}
                       style={{
-                        backgroundColor: (label.colour || COLORS.gray) + (selected ? '25' : '12'),
+                        backgroundColor: (label.colour || COLORS.gray) + (selected ? '2B' : '14'),
                         color: label.colour || COLORS.gray,
                       }}
                     >
@@ -234,7 +234,7 @@ export const QuickAdd = forwardRef<{ focus: () => void }, QuickAddProps>(functio
                   <button
                     type="button"
                     onClick={() => setCreatingLabel(true)}
-                    className="text-[12px] px-2.5 py-1 rounded-full font-medium text-accent bg-accent/8 hover:bg-accent/15 transition-all"
+                    className="text-[12px] px-2.5 py-1 rounded-full font-medium text-accent bg-accent-light hover:bg-accent-medium transition-all"
                   >
                     + New
                   </button>

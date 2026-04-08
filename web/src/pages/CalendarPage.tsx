@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
-import { TaskDetail } from '../components/tasks/TaskDetail'
 import { InlineMarkdown } from '../components/common/InlineMarkdown'
 import { PRIORITY_COLORS } from '../constants'
 import type { Task } from '../api/types'
@@ -94,7 +93,7 @@ function CalendarTask({ entry, onSelect }: { entry: CalendarEntry; onSelect: (id
       type="button"
       onClick={(e) => { e.stopPropagation(); onSelect(entry.task.id) }}
       aria-label={entry.task.title}
-      className={`w-full text-left text-[11px] leading-tight px-1 py-0.5 rounded hover:bg-black/5 truncate flex items-center gap-1 min-h-[28px] md:min-h-[44px] ${
+      className={`w-full text-left text-[11px] leading-tight px-1 py-0.5 rounded-[4px] hover:bg-bg-secondary truncate flex items-center gap-1 min-h-[28px] md:min-h-[24px] text-text-primary ${
         entry.isPhantom ? 'opacity-50' : ''
       }`}
     >
@@ -102,7 +101,7 @@ function CalendarTask({ entry, onSelect }: { entry: CalendarEntry; onSelect: (id
         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
       )}
       {entry.isPhantom && (
-        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-secondary">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-tertiary">
           <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
           <path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
         </svg>
@@ -114,8 +113,7 @@ function CalendarTask({ entry, onSelect }: { entry: CalendarEntry; onSelect: (id
 
 export function CalendarPage() {
   const { tasks, loading } = useTasks({ is_completed: 'false' })
-  const { lists } = useLayoutContext()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const { selectTask } = useLayoutContext()
 
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
@@ -148,13 +146,13 @@ export function CalendarPage() {
 
   return (
     <div className="flex flex-col h-full overflow-x-hidden">
-      <div className="px-4 pt-6 pb-2">
+      <div className="px-6 pt-6 pb-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-text-primary">Calendar</h1>
+          <h1 className="text-[28px] font-semibold text-text-primary tracking-tight">Calendar</h1>
           <button
             type="button"
             onClick={goToToday}
-            className="text-xs text-accent font-medium px-3 min-h-[44px] min-w-[44px]"
+            className="text-[13px] text-accent font-semibold px-3 min-h-[44px] min-w-[44px] rounded-[10px] hover:bg-accent-light transition-colors"
           >
             Today
           </button>
@@ -164,18 +162,18 @@ export function CalendarPage() {
             type="button"
             onClick={goToPrev}
             aria-label="Previous month"
-            className="w-[44px] h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary"
+            className="w-[44px] h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary rounded-[10px] hover:bg-bg-secondary transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <span className="text-sm font-medium text-text-primary min-w-[120px] text-center">{monthLabel}</span>
+          <span className="text-[15px] font-semibold text-text-primary min-w-[140px] text-center">{monthLabel}</span>
           <button
             type="button"
             onClick={goToNext}
             aria-label="Next month"
-            className="w-[44px] h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary"
+            className="w-[44px] h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary rounded-[10px] hover:bg-bg-secondary transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 18l6-6-6-6" />
@@ -185,18 +183,18 @@ export function CalendarPage() {
       </div>
 
       {loading ? (
-        <div className="px-4 py-8 text-center text-text-secondary text-sm">Loading...</div>
+        <div className="px-4 py-8 text-center text-text-tertiary text-sm">Loading…</div>
       ) : (
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 md:px-4 pb-4">
           {/* Weekday headers */}
           <div className="grid grid-cols-7 mb-1">
             {WEEKDAYS.map((d) => (
-              <div key={d} className="text-center text-[11px] font-medium text-text-secondary py-1">{d}</div>
+              <div key={d} className="text-center text-[11px] font-semibold text-text-tertiary uppercase tracking-wider py-1">{d}</div>
             ))}
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 border-t border-l border-gray-200">
+          <div className="grid grid-cols-7 border-t border-l border-separator rounded-[10px] overflow-hidden">
             {days.map((day) => {
               const dayTasks = entriesByDate[day.date] || []
               const isToday = day.date === todayStr
@@ -205,27 +203,27 @@ export function CalendarPage() {
               return (
                 <div
                   key={day.date}
-                  className={`border-r border-b border-gray-200 min-h-[80px] md:min-h-[100px] p-1 ${
-                    day.inMonth ? 'bg-white' : 'bg-gray-50'
+                  className={`border-r border-b border-separator min-h-[80px] md:min-h-[100px] p-1 ${
+                    day.inMonth ? 'bg-bg-elevated' : 'bg-bg-secondary'
                   }`}
                 >
                   <div className="flex justify-end mb-0.5">
-                    <span className={`text-[12px] w-6 h-6 flex items-center justify-center rounded-full ${
+                    <span className={`text-[12px] w-6 h-6 flex items-center justify-center rounded-full font-medium ${
                       isToday
                         ? 'bg-accent text-white font-semibold'
                         : day.inMonth
                           ? 'text-text-primary'
-                          : 'text-text-tertiary'
+                          : 'text-text-quaternary'
                     }`}>
                       {dayNum}
                     </span>
                   </div>
                   <div className="space-y-0.5">
                     {dayTasks.slice(0, 3).map((entry, i) => (
-                      <CalendarTask key={`${entry.task.id}-${entry.isPhantom ? 'p' : 'r'}-${i}`} entry={entry} onSelect={setSelectedId} />
+                      <CalendarTask key={`${entry.task.id}-${entry.isPhantom ? 'p' : 'r'}-${i}`} entry={entry} onSelect={selectTask} />
                     ))}
                     {dayTasks.length > 3 && (
-                      <span className="text-[10px] text-text-secondary pl-1">+{dayTasks.length - 3} more</span>
+                      <span className="text-[10px] text-text-tertiary pl-1 font-medium">+{dayTasks.length - 3} more</span>
                     )}
                   </div>
                 </div>
@@ -233,10 +231,6 @@ export function CalendarPage() {
             })}
           </div>
         </div>
-      )}
-
-      {selectedId && (
-        <TaskDetail taskId={selectedId} lists={lists} onClose={() => setSelectedId(null)} />
       )}
     </div>
   )

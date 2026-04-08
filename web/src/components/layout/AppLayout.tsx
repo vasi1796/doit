@@ -26,6 +26,9 @@ interface LayoutContext {
   labels: Label[]
   quickAddRef: React.RefObject<{ focus: () => void } | null>
   taskCounts: TaskCounts
+  /** Currently open task (three-column panel on desktop, modal on smaller). null = closed. */
+  selectedTaskId: string | null
+  selectTask: (id: string | null) => void
 }
 
 const LayoutCtx = createContext<LayoutContext>({
@@ -33,6 +36,8 @@ const LayoutCtx = createContext<LayoutContext>({
   labels: [],
   quickAddRef: { current: null },
   taskCounts: { inbox: 0, today: 0, upcoming: 0, byList: {} },
+  selectedTaskId: null,
+  selectTask: () => {},
 })
 
 export function useLayoutContext() {
@@ -112,6 +117,25 @@ function useMobileDrawer(pathname: string) {
   return { drawerOpen, toggleDrawer, closeDrawer }
 }
 
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia(query).matches
+  })
+
+  useEffect(() => {
+    const mql = window.matchMedia(query)
+    // Sync initial state whenever `query` changes — the useState initializer
+    // only runs on first mount.
+    setMatches(mql.matches) // eslint-disable-line react-hooks/set-state-in-effect
+    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [query])
+
+  return matches
+}
+
 // ---------------------------------------------------------------------------
 // QuickAddModal (extracted component)
 // ---------------------------------------------------------------------------
@@ -137,9 +161,9 @@ function QuickAddModal({ lists, labels, pathname, onClose }: { lists: List[]; la
   }, [onClose])
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <div
-      className="fixed inset-0 bg-black/20 z-[60] flex items-start justify-center pt-[15vh] animate-[fade-in_0.15s_ease-out]"
+      className="fixed inset-0 bg-[rgba(0,0,0,0.35)] z-[60] flex items-start justify-center pt-[15vh] animate-[fade-in_0.15s_ease-out]"
       role="dialog"
       aria-modal="true"
       aria-label="New task"
@@ -191,41 +215,65 @@ export function AppLayout() {
 
   const taskCounts = useTaskCounts(tasks)
   const { drawerOpen, toggleDrawer, closeDrawer } = useMobileDrawer(location.pathname)
+  const isDesktopPanel = useMediaQuery('(min-width: 1024px)')
 
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [searchSelectedId, setSearchSelectedId] = useState<string | null>(null)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const selectTask = useCallback((id: string | null) => setSelectedTaskId(id), [])
+
+  // Close task detail when navigating to a different route.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setSelectedTaskId(null), [location.pathname])
 
   useKeyboardShortcuts({ setQuickAddOpen, setSearchOpen })
 
+  const ctxValue = useMemo(() => ({
+    lists,
+    labels,
+    quickAddRef,
+    taskCounts,
+    selectedTaskId,
+    selectTask,
+  }), [lists, labels, quickAddRef, taskCounts, selectedTaskId, selectTask])
+
   return (
-    <LayoutCtx.Provider value={useMemo(() => ({ lists, labels, quickAddRef, taskCounts }), [lists, labels, quickAddRef, taskCounts])}>
+    <LayoutCtx.Provider value={ctxValue}>
       <div className="flex h-screen">
         {/* Desktop sidebar */}
         <div className="hidden md:block">
           <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} onSearchOpen={() => setSearchOpen(true)} />
         </div>
 
-        {/* Mobile drawer */}
+        {/* Mobile drawer — iOS-style spring easing.
+            `inert` when closed: removes drawer children from tab order and
+            the a11y tree without tripping axe's aria-hidden-focus rule. */}
         <div
-          className={`fixed inset-0 z-50 md:hidden transition-opacity duration-200 ${
-            drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          className={`fixed inset-0 z-50 md:hidden ${
+            drawerOpen ? 'pointer-events-auto' : 'pointer-events-none'
           }`}
+          inert={!drawerOpen}
         >
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-          <div className="absolute inset-0 bg-black/30" onClick={closeDrawer} />
+          <div
+            className={`absolute inset-0 bg-[rgba(0,0,0,0.35)] transition-opacity duration-[350ms] ease-out ${
+              drawerOpen ? 'opacity-100' : 'opacity-0'
+            }`}
+            onClick={closeDrawer}
+          />
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
-            className={`absolute left-0 top-0 h-full transition-transform duration-200 ${
+            className={`absolute left-0 top-0 h-full will-change-transform ${
               drawerOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
+            style={{ transition: 'transform 0.35s var(--ease-ios-spring)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} onSearchOpen={() => setSearchOpen(true)} />
           </div>
         </div>
 
-        <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0">
+        <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0 min-w-0">
           <InstallBanner />
           <motion.div
             key={location.pathname}
@@ -237,14 +285,28 @@ export function AppLayout() {
           </motion.div>
         </main>
 
+        {/* Desktop task detail panel — third column (>=1024px) */}
+        {isDesktopPanel && selectedTaskId && (
+          <div
+            className="w-[380px] xl:w-[440px] shrink-0 h-screen animate-[fade-in_0.2s_ease-out]"
+          >
+            <TaskDetail
+              taskId={selectedTaskId}
+              lists={lists}
+              onClose={() => setSelectedTaskId(null)}
+              variant="panel"
+            />
+          </div>
+        )}
+
         <BottomNav taskCounts={taskCounts} onMenuToggle={toggleDrawer} />
 
-        {/* Global quick-add FAB */}
+        {/* Global quick-add FAB — accent-tinted shadow */}
         <button
           type="button"
           onClick={() => setQuickAddOpen(true)}
           aria-label="New task"
-          className="fixed right-5 bottom-[calc(70px+env(safe-area-inset-bottom,0px))] md:bottom-6 w-[56px] h-[56px] rounded-full bg-accent text-white shadow-lg flex items-center justify-center z-40 hover:bg-accent/90 active:scale-95 transition-transform"
+          className="fixed right-5 bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px)+16px)] md:bottom-6 w-[56px] h-[56px] rounded-full bg-accent text-white shadow-fab flex items-center justify-center z-50 hover:bg-accent-hover hover:scale-105 active:scale-95 transition-all"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -265,13 +327,19 @@ export function AppLayout() {
         {searchOpen && (
           <SearchOverlay
             onClose={() => setSearchOpen(false)}
-            onSelectTask={(id) => { setSearchOpen(false); setSearchSelectedId(id) }}
+            onSelectTask={(id) => { setSearchOpen(false); selectTask(id) }}
           />
         )}
 
-        {/* Task detail from search */}
-        {searchSelectedId && (
-          <TaskDetail taskId={searchSelectedId} lists={lists} onClose={() => setSearchSelectedId(null)} />
+        {/* Task detail modal (shown on <1024px — mobile + tablet).
+            On desktop >=1024px the panel above renders instead. */}
+        {!isDesktopPanel && selectedTaskId && (
+          <TaskDetail
+            taskId={selectedTaskId}
+            lists={lists}
+            onClose={() => setSelectedTaskId(null)}
+            variant="modal"
+          />
         )}
       </div>
     </LayoutCtx.Provider>

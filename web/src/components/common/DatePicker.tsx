@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { usePopover } from '../../hooks/usePopover'
 import { toDateStr, formatDisplayDate } from '../../utils/date'
-import { UI } from '../../constants'
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -70,9 +69,9 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
         ref={triggerRef}
         type="button"
         onClick={toggle}
-        className="flex items-center gap-2 min-h-[40px] px-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+        className={`flex items-center gap-2 min-h-[40px] px-3 rounded-[10px] hover:bg-bg-secondary transition-colors text-sm ${value ? 'text-accent' : 'text-text-secondary'}`}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={value ? UI.accent : UI.textSecondary} strokeWidth="1.5" strokeLinecap="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
           <rect x="3" y="4" width="18" height="18" rx="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
@@ -97,7 +96,7 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
         <>
           <div className="fixed inset-0 z-[60]" onClick={close} aria-hidden="true" />
           <div
-            className="fixed bg-white rounded-xl shadow-xl border border-gray-200 p-3 z-[61] w-[270px]"
+            className="fixed bg-bg-elevated rounded-[14px] shadow-popover border border-separator p-3 z-[61] w-[270px]"
             style={{ top: pos.top, left: pos.left }}
           >
             {/* Quick shortcuts */}
@@ -105,21 +104,21 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
               <button
                 type="button"
                 onClick={() => { onChange(todayStr); close() }}
-                className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-accent/8 text-accent hover:bg-accent/15"
+                className="flex-1 py-1.5 text-[12px] font-medium rounded-[8px] bg-accent-light text-accent hover:bg-accent-medium transition-colors"
               >
                 Today
               </button>
               <button
                 type="button"
                 onClick={() => { onChange(toDateStr(tomorrow)); close() }}
-                className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-gray-100 text-text-primary hover:bg-gray-200"
+                className="flex-1 py-1.5 text-[12px] font-medium rounded-[8px] bg-bg-secondary text-text-primary hover:bg-bg-tertiary transition-colors"
               >
                 Tomorrow
               </button>
               <button
                 type="button"
                 onClick={() => { onChange(toDateStr(nextWeek)); close() }}
-                className="flex-1 py-1.5 text-[12px] font-medium rounded-lg bg-gray-100 text-text-primary hover:bg-gray-200"
+                className="flex-1 py-1.5 text-[12px] font-medium rounded-[8px] bg-bg-secondary text-text-primary hover:bg-bg-tertiary transition-colors"
               >
                 Next week
               </button>
@@ -127,16 +126,16 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
 
             {/* Month navigation */}
             <div className="flex items-center justify-between mb-2">
-              <button type="button" onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded-lg">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={UI.textPrimary} strokeWidth="2" strokeLinecap="round">
+              <button type="button" onClick={prevMonth} className="p-1 hover:bg-bg-secondary rounded-[8px] text-text-primary" aria-label="Previous month">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="m15 18-6-6 6-6" />
                 </svg>
               </button>
               <span className="text-[13px] font-semibold text-text-primary">
                 {MONTHS[viewMonth]} {viewYear}
               </span>
-              <button type="button" onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded-lg">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={UI.textPrimary} strokeWidth="2" strokeLinecap="round">
+              <button type="button" onClick={nextMonth} className="p-1 hover:bg-bg-secondary rounded-[8px] text-text-primary" aria-label="Next month">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="m9 18 6-6-6-6" />
                 </svg>
               </button>
@@ -145,7 +144,7 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
             {/* Day headers */}
             <div className="grid grid-cols-7 mb-1">
               {DAYS.map(d => (
-                <span key={d} className="text-center text-[10px] font-medium text-text-secondary py-1">{d}</span>
+                <span key={d} className="text-center text-[10px] font-medium text-text-tertiary py-1">{d}</span>
               ))}
             </div>
 
@@ -168,14 +167,14 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
                     key={day}
                     type="button"
                     onClick={() => selectDate(day)}
-                    className={`py-1.5 text-[13px] rounded-lg transition-colors ${
+                    className={`py-1.5 text-[13px] rounded-[8px] transition-colors ${
                       isSelected
                         ? 'bg-accent text-white font-semibold'
                         : isToday
-                          ? 'bg-accent/10 text-accent font-semibold'
+                          ? 'bg-accent-light text-accent font-semibold'
                           : isPast
-                            ? 'text-text-tertiary hover:bg-gray-100'
-                            : 'text-text-primary hover:bg-gray-100'
+                            ? 'text-text-tertiary hover:bg-bg-secondary'
+                            : 'text-text-primary hover:bg-bg-secondary'
                     }`}
                   >
                     {day}

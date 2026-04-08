@@ -10,8 +10,13 @@ import { CompletedPage } from './pages/CompletedPage'
 import { TrashPage } from './pages/TrashPage'
 import { EisenhowerPage } from './pages/EisenhowerPage'
 import { CalendarPage } from './pages/CalendarPage'
+import { useTheme, useApplyTheme } from './hooks/useTheme'
 
 function App() {
+  // Apply persisted theme at the root so /login and app routes share it.
+  const { theme } = useTheme()
+  useApplyTheme(theme)
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as operations from '../../db/operations'
 import { useToast } from './Toast'
+import { ColorSwatchRow } from './ColorSwatchRow'
 import { PRESET_COLORS } from '../../constants'
 
 interface InlineLabelCreatorProps {
@@ -11,7 +12,7 @@ interface InlineLabelCreatorProps {
 export function InlineLabelCreator({ onCreated, onCancel }: InlineLabelCreatorProps) {
   const { toast } = useToast()
   const [name, setName] = useState('')
-  const [colour, setColour] = useState(PRESET_COLORS[0])
+  const [colour, setColour] = useState<string>(PRESET_COLORS[0])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,28 +28,25 @@ export function InlineLabelCreator({ onCreated, onCancel }: InlineLabelCreatorPr
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-1.5">
-      <div className="flex gap-0.5">
-        {PRESET_COLORS.slice(0, 4).map(c => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => setColour(c)}
-            className={`w-4 h-4 rounded-full ${colour === c ? 'ring-2 ring-offset-1 ring-accent/40' : ''}`}
-            style={{ backgroundColor: c }}
-          />
-        ))}
-      </div>
+      <ColorSwatchRow
+        value={colour}
+        onChange={setColour}
+        colors={PRESET_COLORS.slice(0, 4)}
+        size={16}
+        gap="tight"
+      />
       <input
         type="text"
         value={name}
         onChange={e => setName(e.target.value)}
         placeholder="Name"
-        className="text-[16px] outline-none border-b border-gray-200 py-0.5 w-20"
+        aria-label="Label name"
+        className="text-[16px] outline-none border-b border-separator py-0.5 w-20 bg-transparent text-text-primary placeholder:text-text-tertiary"
         // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus
       />
-      <button type="submit" className="text-[11px] text-accent font-medium">Add</button>
-      <button type="button" onClick={onCancel} className="text-[11px] text-text-secondary">&#x2715;</button>
+      <button type="submit" className="text-[11px] text-accent font-semibold">Add</button>
+      <button type="button" onClick={onCancel} className="text-[11px] text-text-tertiary hover:text-text-secondary transition-colors">&#x2715;</button>
     </form>
   )
 }
