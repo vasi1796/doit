@@ -43,12 +43,13 @@ function SubtaskItem({ subtask, taskId }: { subtask: Subtask; taskId: string }) 
   const checked = subtask.is_completed || completing
 
   return (
-    <div className="flex items-center gap-2 min-h-[36px] px-1 rounded hover:bg-gray-50 group">
+    <div className="flex items-center gap-2 min-h-[36px] px-1 rounded-[8px] hover:bg-bg-secondary group transition-colors">
       <button
         type="button"
         onClick={handleToggle}
-        className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-all duration-200 ${
-          checked ? 'bg-accent border-accent scale-110' : 'border-gray-300 hover:border-accent'
+        aria-label={checked ? 'Mark subtask incomplete' : 'Mark subtask complete'}
+        className={`w-4 h-4 rounded-[4px] border shrink-0 flex items-center justify-center transition-all duration-200 ${
+          checked ? 'bg-accent border-accent scale-110' : 'border-text-quaternary hover:border-accent'
         }`}
       >
         {checked && (
@@ -74,7 +75,7 @@ function SubtaskItem({ subtask, taskId }: { subtask: Subtask; taskId: string }) 
           onKeyDown={(e) => { if (e.key === 'Enter' && !subtask.is_completed) setEditing(true) }}
           role="button"
           tabIndex={subtask.is_completed ? -1 : 0}
-          className={`flex-1 text-sm cursor-text transition-colors duration-200 ${checked ? 'line-through text-text-secondary' : ''}`}
+          className={`flex-1 text-[14px] cursor-text transition-colors duration-200 ${checked ? 'line-through text-text-tertiary' : 'text-text-primary'}`}
         >
           {subtask.title}
         </span>
@@ -112,8 +113,8 @@ export function SubtaskSection({ taskId, subtasks }: SubtaskSectionProps) {
 
   return (
     <div className="mb-4">
-      <h3 className="text-xs font-medium text-text-secondary uppercase tracking-wide mb-2">
-        Subtasks{subtasks.length > 0 && ` (${completed}/${subtasks.length})`}
+      <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-2">
+        Subtasks{subtasks.length > 0 && ` · ${completed}/${subtasks.length}`}
       </h3>
       <div className="space-y-0.5">
         <AnimatePresence initial={false}>
@@ -131,17 +132,18 @@ export function SubtaskSection({ taskId, subtasks }: SubtaskSectionProps) {
           ))}
         </AnimatePresence>
         <form onSubmit={handleAdd} className="flex items-center gap-2 min-h-[36px] px-1">
-          <span className="w-4 h-4 rounded border border-gray-200 shrink-0" />
+          <span className="w-4 h-4 rounded-[4px] border border-separator shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="Add subtask..."
-            className="flex-1 text-base outline-none placeholder:text-text-secondary"
+            placeholder="Add subtask…"
+            aria-label="Add subtask"
+            className="flex-1 text-[16px] outline-none bg-transparent text-text-primary placeholder:text-text-tertiary"
           />
           {newTitle.trim() && (
-            <button type="submit" className="text-accent text-xs font-medium">Add</button>
+            <button type="submit" className="text-accent text-[13px] font-semibold">Add</button>
           )}
         </form>
       </div>

@@ -65,7 +65,7 @@ export function TaskList({ tasks, loading, emptyMessage, emptyHint, emptyAction,
     return (
       <div className="space-y-1 px-4 py-2">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-[44px] bg-gray-100 rounded animate-pulse" />
+          <div key={i} className="h-[44px] bg-bg-secondary rounded-[8px] animate-pulse" />
         ))}
       </div>
     )
@@ -78,7 +78,7 @@ export function TaskList({ tasks, loading, emptyMessage, emptyHint, emptyAction,
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-separator">
           <AnimatePresence initial={false}>
             {tasks.map((task) => (
               <SortableTaskItem

@@ -26,6 +26,9 @@ interface LayoutContext {
   labels: Label[]
   quickAddRef: React.RefObject<{ focus: () => void } | null>
   taskCounts: TaskCounts
+  /** Currently open task (three-column panel on desktop, modal on smaller). null = closed. */
+  selectedTaskId: string | null
+  selectTask: (id: string | null) => void
 }
 
 const LayoutCtx = createContext<LayoutContext>({
@@ -33,6 +36,8 @@ const LayoutCtx = createContext<LayoutContext>({
   labels: [],
   quickAddRef: { current: null },
   taskCounts: { inbox: 0, today: 0, upcoming: 0, byList: {} },
+  selectedTaskId: null,
+  selectTask: () => {},
 })
 
 export function useLayoutContext() {
@@ -110,6 +115,22 @@ function useMobileDrawer(pathname: string) {
   }, [pathname])
 
   return { drawerOpen, toggleDrawer, closeDrawer }
+}
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia(query).matches
+  })
+
+  useEffect(() => {
+    const mql = window.matchMedia(query)
+    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [query])
+
+  return matches
 }
 
 // ---------------------------------------------------------------------------
@@ -191,15 +212,35 @@ export function AppLayout() {
 
   const taskCounts = useTaskCounts(tasks)
   const { drawerOpen, toggleDrawer, closeDrawer } = useMobileDrawer(location.pathname)
+  const isDesktopPanel = useMediaQuery('(min-width: 1024px)')
 
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [searchSelectedId, setSearchSelectedId] = useState<string | null>(null)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const selectTask = useCallback((id: string | null) => setSelectedTaskId(id), [])
+
+  // Close task detail when navigating to a different route
+  const prevPath = useRef(location.pathname)
+  useEffect(() => {
+    if (prevPath.current !== location.pathname) {
+      prevPath.current = location.pathname
+      setSelectedTaskId(null) // eslint-disable-line react-hooks/set-state-in-effect
+    }
+  }, [location.pathname])
 
   useKeyboardShortcuts({ setQuickAddOpen, setSearchOpen })
 
+  const ctxValue = useMemo(() => ({
+    lists,
+    labels,
+    quickAddRef,
+    taskCounts,
+    selectedTaskId,
+    selectTask,
+  }), [lists, labels, quickAddRef, taskCounts, selectedTaskId, selectTask])
+
   return (
-    <LayoutCtx.Provider value={useMemo(() => ({ lists, labels, quickAddRef, taskCounts }), [lists, labels, quickAddRef, taskCounts])}>
+    <LayoutCtx.Provider value={ctxValue}>
       <div className="flex h-screen">
         {/* Desktop sidebar */}
         <div className="hidden md:block">
@@ -234,7 +275,7 @@ export function AppLayout() {
           </div>
         </div>
 
-        <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0">
+        <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0 min-w-0">
           <InstallBanner />
           <motion.div
             key={location.pathname}
@@ -245,6 +286,21 @@ export function AppLayout() {
             <Outlet />
           </motion.div>
         </main>
+
+        {/* Desktop task detail panel — third column (>=1024px) */}
+        {isDesktopPanel && selectedTaskId && (
+          <div
+            className="hidden lg:block w-[380px] xl:w-[440px] shrink-0 h-screen"
+            style={{ animation: 'fade-in 0.2s ease-out' }}
+          >
+            <TaskDetail
+              taskId={selectedTaskId}
+              lists={lists}
+              onClose={() => setSelectedTaskId(null)}
+              variant="panel"
+            />
+          </div>
+        )}
 
         <BottomNav taskCounts={taskCounts} onMenuToggle={toggleDrawer} />
 
@@ -274,13 +330,19 @@ export function AppLayout() {
         {searchOpen && (
           <SearchOverlay
             onClose={() => setSearchOpen(false)}
-            onSelectTask={(id) => { setSearchOpen(false); setSearchSelectedId(id) }}
+            onSelectTask={(id) => { setSearchOpen(false); selectTask(id) }}
           />
         )}
 
-        {/* Task detail from search */}
-        {searchSelectedId && (
-          <TaskDetail taskId={searchSelectedId} lists={lists} onClose={() => setSearchSelectedId(null)} />
+        {/* Task detail modal (shown on <1024px — mobile + tablet).
+            On desktop >=1024px the panel above renders instead. */}
+        {!isDesktopPanel && selectedTaskId && (
+          <TaskDetail
+            taskId={selectedTaskId}
+            lists={lists}
+            onClose={() => setSelectedTaskId(null)}
+            variant="modal"
+          />
         )}
       </div>
     </LayoutCtx.Provider>
