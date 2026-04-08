@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoIt - Search Overlay Wireframe</title>
+<style>
+:root {
+  --color-accent: #007aff;
+  --color-danger: #ff3b30;
+  --color-success: #34c759;
+  --color-warning: #ff9500;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f5f5f7;
+  --color-bg-tertiary: #e8e8ed;
+  --color-text-primary: #1d1d1f;
+  --color-text-secondary: #86868b;
+  --color-text-tertiary: #c7c7cc;
+  --color-border: #e5e5ea;
+  --font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-popover: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-modal: 0 8px 32px rgba(0,0,0,0.16);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1c1c1e;
+    --color-bg-secondary: #2c2c2e;
+    --color-bg-tertiary: #3a3a3c;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #98989d;
+    --color-text-tertiary: #636366;
+    --color-border: #38383a;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-family);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mode switcher */
+.mode-switcher {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 200;
+  display: flex; gap: 4px;
+  background: var(--color-bg); border-radius: var(--radius-full);
+  padding: 4px; box-shadow: var(--shadow-popover);
+  border: 1px solid var(--color-border);
+}
+.mode-btn {
+  padding: 8px 20px; border: none; border-radius: var(--radius-full);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  background: transparent; color: var(--color-text-secondary);
+  transition: all 0.2s ease; font-family: var(--font-family);
+}
+.mode-btn.active { background: var(--color-accent); color: #fff; }
+
+/* ========== DESKTOP COMMAND PALETTE ========== */
+.desktop-view {
+  padding-top: 60px;
+}
+.cmd-overlay {
+  position: fixed; inset: 0; top: 60px;
+  background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 12vh; z-index: 100;
+  animation: fadeIn 0.12s ease-out;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.cmd-palette {
+  width: 100%; max-width: 560px; margin: 0 16px;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+  max-height: 70vh;
+  display: flex; flex-direction: column;
+  animation: cmdSlide 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes cmdSlide {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Search input */
+.cmd-input-area {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.cmd-search-icon {
+  flex-shrink: 0; color: var(--color-text-secondary);
+}
+.cmd-input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 16px; color: var(--color-text-primary);
+  font-family: var(--font-family);
+}
+.cmd-input::placeholder { color: var(--color-text-tertiary); }
+.cmd-badge {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 3px 8px; border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  font-size: 12px; font-weight: 500; color: var(--color-text-tertiary);
+  flex-shrink: 0; font-family: var(--font-family);
+}
+
+/* Results area */
+.cmd-results {
+  flex: 1; overflow-y: auto;
+}
+
+/* Category headers */
+.result-category {
+  padding: 10px 18px 6px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  position: sticky; top: 0; z-index: 1;
+}
+
+/* Result items */
+.result-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 18px; cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+  min-height: 44px;
+}
+.result-item:hover { background: var(--color-bg-secondary); }
+.result-item.active { background: rgba(0,122,255,0.08); }
+.result-item.active::before {
+  content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+  width: 3px; border-radius: 0 2px 2px 0; background: var(--color-accent);
+}
+
+/* Task result */
+.result-checkbox {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--color-text-tertiary);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+}
+.result-checkbox.completed {
+  background: var(--color-accent); border-color: var(--color-accent);
+}
+.result-checkbox.completed::after {
+  content: ''; width: 5px; height: 8px;
+  border: solid #fff; border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg); margin-top: -1px;
+}
+.result-content { flex: 1; min-width: 0; }
+.result-title {
+  font-size: 14px; font-weight: 500; color: var(--color-text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.result-title .highlight {
+  background: rgba(0,122,255,0.15); border-radius: 2px;
+  padding: 0 1px;
+}
+.result-title.completed {
+  text-decoration: line-through; color: var(--color-text-secondary);
+}
+.result-subtitle {
+  font-size: 12px; color: var(--color-text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 2px;
+  display: flex; align-items: center; gap: 6px;
+}
+.result-meta {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.result-priority {
+  width: 3px; height: 20px; border-radius: 2px;
+}
+.result-due {
+  font-size: 12px; white-space: nowrap;
+}
+.result-due.overdue { color: var(--color-danger); font-weight: 600; }
+.result-due.today { color: var(--color-accent); font-weight: 500; }
+.result-due.future { color: var(--color-text-secondary); }
+.result-label-chips {
+  display: flex; gap: 4px; margin-top: 4px;
+}
+.result-label-chip {
+  font-size: 10px; font-weight: 600; padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+
+/* List/Label results */
+.result-icon {
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.result-icon.list { background: rgba(0,122,255,0.1); color: var(--color-accent); }
+.result-icon.label { border-radius: var(--radius-full); }
+
+/* Recent searches */
+.recent-section {
+  padding: 16px 18px;
+}
+.recent-header {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+.recent-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; cursor: pointer;
+  font-size: 14px; color: var(--color-text-secondary);
+  transition: color 0.1s;
+}
+.recent-item:hover { color: var(--color-text-primary); }
+.recent-item .clock-icon { color: var(--color-text-tertiary); flex-shrink: 0; }
+
+/* Empty state */
+.empty-state {
+  padding: 32px 18px; text-align: center;
+}
+.empty-state .icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--color-bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 12px; color: var(--color-text-tertiary);
+}
+.empty-state .message {
+  font-size: 14px; color: var(--color-text-secondary);
+}
+
+/* Keyboard hints footer */
+.cmd-footer {
+  display: flex; align-items: center; justify-content: center; gap: 20px;
+  padding: 10px 18px; border-top: 1px solid var(--color-border);
+  font-size: 12px; color: var(--color-text-tertiary);
+  background: var(--color-bg-secondary);
+  flex-shrink: 0;
+}
+.cmd-footer kbd {
+  display: inline-block; padding: 2px 6px; border-radius: 4px;
+  background: var(--color-bg); border: 1px solid var(--color-border);
+  font-size: 11px; font-family: var(--font-family);
+  color: var(--color-text-secondary);
+}
+
+/* ========== MOBILE SEARCH ========== */
+.mobile-view {
+  display: none; padding-top: 60px;
+}
+.mobile-search-container {
+  max-width: 414px; margin: 0 auto;
+  height: calc(100vh - 60px);
+  background: var(--color-bg);
+  display: flex; flex-direction: column;
+}
+.mobile-search-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.mobile-search-input {
+  flex: 1; border: none; outline: none; background: var(--color-bg-secondary);
+  border-radius: var(--radius-md); padding: 10px 12px;
+  font-size: 16px; color: var(--color-text-primary);
+  font-family: var(--font-family);
+}
+.mobile-search-input::placeholder { color: var(--color-text-tertiary); }
+.mobile-cancel-btn {
+  font-size: 15px; font-weight: 500; color: var(--color-accent);
+  background: transparent; border: none; cursor: pointer;
+  min-width: 44px; min-height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-family);
+}
+.mobile-results {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.mobile-result-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; min-height: 52px;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer; transition: background 0.1s;
+}
+.mobile-result-item:active { background: var(--color-bg-secondary); }
+.mobile-result-checkbox {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--color-text-tertiary);
+  flex-shrink: 0; margin-top: 1px;
+}
+.mobile-result-content { flex: 1; min-width: 0; }
+.mobile-result-title {
+  font-size: 16px; font-weight: 500; color: var(--color-text-primary);
+}
+.mobile-result-title .highlight {
+  background: rgba(0,122,255,0.15); border-radius: 2px; padding: 0 1px;
+}
+.mobile-result-meta {
+  display: flex; align-items: center; gap: 8px; margin-top: 4px;
+  font-size: 13px; color: var(--color-text-secondary);
+}
+.mobile-result-priority-bar {
+  position: absolute; left: 0; top: 12px; bottom: 12px;
+  width: 3px; border-radius: 0 2px 2px 0;
+}
+
+/* State switcher */
+.state-switcher {
+  display: flex; gap: 4px; justify-content: center;
+  margin-top: 16px; margin-bottom: 16px;
+}
+.state-btn {
+  padding: 6px 14px; border: 1px solid var(--color-border);
+  border-radius: var(--radius-full); background: var(--color-bg);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  color: var(--color-text-secondary); transition: all 0.15s;
+  font-family: var(--font-family);
+}
+.state-btn.active {
+  background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Mode switcher -->
+<div class="mode-switcher">
+  <button class="mode-btn active" onclick="showMode('desktop')" id="btn-desktop">Desktop</button>
+  <button class="mode-btn" onclick="showMode('mobile')" id="btn-mobile">Mobile</button>
+</div>
+
+<!-- ========== DESKTOP COMMAND PALETTE ========== -->
+<div class="desktop-view" id="desktop-view">
+
+  <!-- State switcher for desktop -->
+  <div class="state-switcher">
+    <button class="state-btn active" onclick="showDesktopState('empty')" id="ds-empty">Empty (Recent)</button>
+    <button class="state-btn" onclick="showDesktopState('results')" id="ds-results">With Results</button>
+    <button class="state-btn" onclick="showDesktopState('no-results')" id="ds-no-results">No Results</button>
+  </div>
+
+  <div class="cmd-overlay">
+    <!-- STATE: Empty / Recent Searches -->
+    <div class="cmd-palette" id="state-empty">
+      <div class="cmd-input-area">
+        <div class="cmd-search-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <input type="text" class="cmd-input" placeholder="Search tasks, lists, labels..." autofocus>
+        <div class="cmd-badge">&#8984;K</div>
+      </div>
+
+      <div class="cmd-results">
+        <div class="recent-section">
+          <div class="recent-header">Recent Searches</div>
+          <div class="recent-item">
+            <div class="clock-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <span>sync engine</span>
+          </div>
+          <div class="recent-item">
+            <div class="clock-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <span>deployment</span>
+          </div>
+          <div class="recent-item">
+            <div class="clock-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <span>CRDT</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-footer">
+        <span><kbd>&#8593;&#8595;</kbd> Navigate</span>
+        <span><kbd>&#8629;</kbd> Open</span>
+        <span><kbd>Esc</kbd> Close</span>
+      </div>
+    </div>
+
+    <!-- STATE: With Results -->
+    <div class="cmd-palette hidden" id="state-results">
+      <div class="cmd-input-area">
+        <div class="cmd-search-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <input type="text" class="cmd-input" value="sync" style="font-size: 16px;">
+        <div class="cmd-badge">&#8984;K</div>
+      </div>
+
+      <div class="cmd-results">
+        <!-- Tasks category -->
+        <div class="result-category">Tasks (4)</div>
+
+        <div class="result-item active">
+          <div class="result-priority" style="background: #ff3b30;"></div>
+          <div class="result-checkbox"></div>
+          <div class="result-content">
+            <div class="result-title">Review pull request for <span class="highlight">sync</span> engine</div>
+            <div class="result-subtitle">
+              <span style="display: inline-flex; align-items: center; gap: 3px;">
+                <span style="width: 8px; height: 8px; border-radius: 2px; background: #007aff; display: inline-block;"></span>
+                Backend
+              </span>
+              <span class="result-due today">Today</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-priority" style="background: #ff9500;"></div>
+          <div class="result-checkbox"></div>
+          <div class="result-content">
+            <div class="result-title">Fix <span class="highlight">sync</span> queue retry logic</div>
+            <div class="result-subtitle">
+              <span style="display: inline-flex; align-items: center; gap: 3px;">
+                <span style="width: 8px; height: 8px; border-radius: 2px; background: #007aff; display: inline-block;"></span>
+                Backend
+              </span>
+              <span class="result-due future">Apr 9</span>
+            </div>
+            <div class="result-label-chips">
+              <span class="result-label-chip" style="background: rgba(255,59,48,0.1); color: #ff3b30;">Bug</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-checkbox"></div>
+          <div class="result-content">
+            <div class="result-title">Write <span class="highlight">sync</span> integration tests</div>
+            <div class="result-subtitle">
+              <span style="display: inline-flex; align-items: center; gap: 3px;">
+                <span style="width: 8px; height: 8px; border-radius: 2px; background: #5856d6; display: inline-block;"></span>
+                Testing
+              </span>
+              <span class="result-due future">Apr 12</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-checkbox completed"></div>
+          <div class="result-content">
+            <div class="result-title completed">Implement offline <span class="highlight">sync</span> engine</div>
+            <div class="result-subtitle">
+              <span style="display: inline-flex; align-items: center; gap: 3px;">
+                <span style="width: 8px; height: 8px; border-radius: 2px; background: #007aff; display: inline-block;"></span>
+                Backend
+              </span>
+              <span style="color: var(--color-text-tertiary);">Completed Mar 28</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lists category -->
+        <div class="result-category">Lists (1)</div>
+        <div class="result-item">
+          <div class="result-icon list">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+          </div>
+          <div class="result-content">
+            <div class="result-title"><span class="highlight">Sync</span> & Offline</div>
+            <div class="result-subtitle">3 tasks</div>
+          </div>
+        </div>
+
+        <!-- Labels category -->
+        <div class="result-category">Labels (1)</div>
+        <div class="result-item">
+          <div class="result-icon label" style="background: rgba(0,122,255,0.12);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          </div>
+          <div class="result-content">
+            <div class="result-title"><span class="highlight">Sync</span></div>
+            <div class="result-subtitle">5 tasks tagged</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-footer">
+        <span><kbd>&#8593;&#8595;</kbd> Navigate</span>
+        <span><kbd>&#8629;</kbd> Open</span>
+        <span><kbd>Esc</kbd> Close</span>
+      </div>
+    </div>
+
+    <!-- STATE: No Results -->
+    <div class="cmd-palette hidden" id="state-no-results">
+      <div class="cmd-input-area">
+        <div class="cmd-search-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <input type="text" class="cmd-input" value="xyznonexistent" style="font-size: 16px;">
+        <div class="cmd-badge">&#8984;K</div>
+      </div>
+
+      <div class="cmd-results">
+        <div class="empty-state">
+          <div class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </div>
+          <div class="message">No results found for "xyznonexistent"</div>
+          <div style="margin-top: 6px; font-size: 13px; color: var(--color-text-tertiary);">
+            Try searching with different keywords
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-footer">
+        <span><kbd>&#8593;&#8595;</kbd> Navigate</span>
+        <span><kbd>&#8629;</kbd> Open</span>
+        <span><kbd>Esc</kbd> Close</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MOBILE SEARCH ========== -->
+<div class="mobile-view" id="mobile-view">
+  <div class="state-switcher">
+    <button class="state-btn active" onclick="showMobileState('results')" id="ms-results">With Results</button>
+    <button class="state-btn" onclick="showMobileState('empty')" id="ms-empty">Empty</button>
+  </div>
+
+  <!-- Mobile: With Results -->
+  <div class="mobile-search-container" id="mobile-results">
+    <div class="mobile-search-header">
+      <input type="text" class="mobile-search-input" placeholder="Search..." value="sync" style="font-size: 16px;">
+      <button class="mobile-cancel-btn">Cancel</button>
+    </div>
+    <div class="mobile-results">
+      <!-- Category -->
+      <div style="padding: 12px 16px 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-secondary); background: var(--color-bg-secondary);">
+        Tasks
+      </div>
+
+      <div class="mobile-result-item" style="position: relative;">
+        <div class="mobile-result-priority-bar" style="background: #ff3b30;"></div>
+        <div class="mobile-result-checkbox"></div>
+        <div class="mobile-result-content">
+          <div class="mobile-result-title">Review pull request for <span class="highlight">sync</span> engine</div>
+          <div class="mobile-result-meta">
+            <span style="display: inline-flex; align-items: center; gap: 3px;">
+              <span style="width: 8px; height: 8px; border-radius: 2px; background: #007aff;"></span>
+              Backend
+            </span>
+            <span style="color: var(--color-accent); font-weight: 500;">Today</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-result-item" style="position: relative;">
+        <div class="mobile-result-priority-bar" style="background: #ff9500;"></div>
+        <div class="mobile-result-checkbox"></div>
+        <div class="mobile-result-content">
+          <div class="mobile-result-title">Fix <span class="highlight">sync</span> queue retry logic</div>
+          <div class="mobile-result-meta">
+            <span style="display: inline-flex; align-items: center; gap: 3px;">
+              <span style="width: 8px; height: 8px; border-radius: 2px; background: #007aff;"></span>
+              Backend
+            </span>
+            <span>Apr 9</span>
+            <span class="result-label-chip" style="background: rgba(255,59,48,0.1); color: #ff3b30; font-size: 11px; padding: 1px 6px; border-radius: 9999px; font-weight: 600;">Bug</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-result-item">
+        <div class="mobile-result-checkbox"></div>
+        <div class="mobile-result-content">
+          <div class="mobile-result-title">Write <span class="highlight">sync</span> integration tests</div>
+          <div class="mobile-result-meta">
+            <span style="display: inline-flex; align-items: center; gap: 3px;">
+              <span style="width: 8px; height: 8px; border-radius: 2px; background: #5856d6;"></span>
+              Testing
+            </span>
+            <span>Apr 12</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-result-item">
+        <div class="mobile-result-checkbox" style="background: var(--color-accent); border-color: var(--color-accent);"></div>
+        <div class="mobile-result-content">
+          <div class="mobile-result-title" style="text-decoration: line-through; color: var(--color-text-secondary);">Implement offline <span class="highlight">sync</span> engine</div>
+          <div class="mobile-result-meta">
+            <span style="color: var(--color-text-tertiary);">Completed Mar 28</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lists -->
+      <div style="padding: 12px 16px 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-secondary); background: var(--color-bg-secondary);">
+        Lists
+      </div>
+      <div class="mobile-result-item">
+        <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(0,122,255,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        </div>
+        <div class="mobile-result-content">
+          <div class="mobile-result-title"><span class="highlight">Sync</span> & Offline</div>
+          <div class="mobile-result-meta">3 tasks</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile: Empty state -->
+  <div class="mobile-search-container hidden" id="mobile-empty">
+    <div class="mobile-search-header">
+      <input type="text" class="mobile-search-input" placeholder="Search..." style="font-size: 16px;">
+      <button class="mobile-cancel-btn">Cancel</button>
+    </div>
+    <div class="mobile-results">
+      <div style="padding: 48px 16px; text-align: center;">
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--color-bg-secondary); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: var(--color-text-tertiary);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div style="font-size: 15px; color: var(--color-text-secondary);">
+          Search across tasks, lists, and labels
+        </div>
+        <div style="margin-top: 20px; font-size: 13px; color: var(--color-text-tertiary);">
+          Recent
+        </div>
+        <div style="margin-top: 8px;">
+          <div style="padding: 10px 0; font-size: 15px; color: var(--color-text-secondary); display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            sync engine
+          </div>
+          <div style="padding: 10px 0; font-size: 15px; color: var(--color-text-secondary); display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            deployment
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showMode(mode) {
+  document.getElementById('desktop-view').style.display = mode === 'desktop' ? 'block' : 'none';
+  document.getElementById('mobile-view').style.display = mode === 'mobile' ? 'block' : 'none';
+  document.getElementById('btn-desktop').classList.toggle('active', mode === 'desktop');
+  document.getElementById('btn-mobile').classList.toggle('active', mode === 'mobile');
+}
+
+function showDesktopState(state) {
+  document.getElementById('state-empty').classList.toggle('hidden', state !== 'empty');
+  document.getElementById('state-results').classList.toggle('hidden', state !== 'results');
+  document.getElementById('state-no-results').classList.toggle('hidden', state !== 'no-results');
+  document.getElementById('ds-empty').classList.toggle('active', state === 'empty');
+  document.getElementById('ds-results').classList.toggle('active', state === 'results');
+  document.getElementById('ds-no-results').classList.toggle('active', state === 'no-results');
+}
+
+function showMobileState(state) {
+  document.getElementById('mobile-results').classList.toggle('hidden', state !== 'results');
+  document.getElementById('mobile-empty').classList.toggle('hidden', state !== 'empty');
+  document.getElementById('ms-results').classList.toggle('active', state === 'results');
+  document.getElementById('ms-empty').classList.toggle('active', state === 'empty');
+}
+</script>
+</body>
+</html>

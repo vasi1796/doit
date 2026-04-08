@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoIt Wireframe — Today</title>
+<style>
+  :root {
+    --color-accent: #007aff;
+    --color-danger: #ff3b30;
+    --color-success: #34c759;
+    --color-warning: #ff9500;
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f7;
+    --color-bg-tertiary: #e8e8ed;
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #86868b;
+    --color-text-tertiary: #c7c7cc;
+    --color-border: #e5e5ea;
+    --color-border-light: #f2f2f7;
+    --font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-popover: 0 4px 16px rgba(0,0,0,0.12);
+    --sidebar-width: 260px;
+    --color-sidebar-bg: #f5f5f7;
+    --color-sidebar-hover: #e8e8ed;
+  }
+
+  [data-theme="dark"] {
+    --color-bg: #1c1c1e;
+    --color-bg-secondary: #2c2c2e;
+    --color-bg-tertiary: #3a3a3c;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #98989d;
+    --color-text-tertiary: #636366;
+    --color-border: #38383a;
+    --color-border-light: #2c2c2e;
+    --color-sidebar-bg: #2c2c2e;
+    --color-sidebar-hover: #3a3a3c;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-family);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    transition: background 0.2s, color 0.2s;
+    overflow-x: hidden;
+  }
+
+  .wf-controls {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border);
+    display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+    font-size: 13px; color: var(--color-text-secondary);
+  }
+  .wf-controls button {
+    padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid var(--color-border);
+    background: var(--color-bg); color: var(--color-text-primary); cursor: pointer;
+    font-size: 13px; font-family: var(--font-family); min-height: 32px;
+  }
+  .wf-controls button.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .wf-controls .spacer { flex: 1; }
+  .wf-controls .wf-title { font-weight: 600; color: var(--color-text-primary); }
+
+  .app-wrapper { margin-top: 48px; }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed; top: 48px; left: 0; bottom: 0;
+    width: var(--sidebar-width); background: var(--color-sidebar-bg);
+    border-right: 1px solid var(--color-border); padding: 16px 0;
+    overflow-y: auto;
+  }
+  .sidebar-section { padding: 0 12px; margin-bottom: 20px; }
+  .sidebar-section-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--color-text-tertiary);
+    padding: 0 8px; margin-bottom: 6px;
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    border-radius: var(--radius-md); cursor: pointer; font-size: 15px;
+    color: var(--color-text-primary); transition: background 0.15s; min-height: 44px;
+  }
+  .sidebar-item:hover { background: var(--color-sidebar-hover); }
+  .sidebar-item.active { background: rgba(0,122,255,0.1); color: var(--color-accent); }
+  .sidebar-item .icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; }
+  .sidebar-item .badge {
+    margin-left: auto; font-size: 12px; font-weight: 500;
+    background: var(--color-bg-tertiary); color: var(--color-text-secondary);
+    padding: 2px 8px; border-radius: var(--radius-full);
+  }
+
+  /* Main content */
+  .main-content {
+    margin-left: var(--sidebar-width); padding: 24px 32px 120px; max-width: 800px;
+  }
+
+  /* Page header */
+  .page-header { margin-bottom: 24px; }
+  .page-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.3px; }
+  .page-header .date-subtitle {
+    font-size: 15px; color: var(--color-text-secondary); margin-top: 2px;
+  }
+
+  /* Progress indicator */
+  .progress-bar-wrapper {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+    padding: 12px 16px; background: var(--color-bg-secondary);
+    border-radius: var(--radius-md); border: 1px solid var(--color-border-light);
+  }
+  .progress-ring {
+    width: 44px; height: 44px; position: relative; flex-shrink: 0;
+  }
+  .progress-ring svg { width: 44px; height: 44px; transform: rotate(-90deg); }
+  .progress-ring .ring-bg { fill: none; stroke: var(--color-bg-tertiary); stroke-width: 4; }
+  .progress-ring .ring-fg { fill: none; stroke: var(--color-success); stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+  .progress-text {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 12px; font-weight: 600;
+  }
+  .progress-info { flex: 1; }
+  .progress-info .progress-label { font-size: 15px; font-weight: 500; }
+  .progress-info .progress-sub { font-size: 13px; color: var(--color-text-secondary); }
+
+  /* Section headers */
+  .section-header {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+    margin-bottom: 8px; cursor: pointer; user-select: none;
+  }
+  .section-header h2 { font-size: 16px; font-weight: 600; }
+  .section-header .section-count {
+    font-size: 12px; font-weight: 500; padding: 2px 8px;
+    border-radius: var(--radius-full);
+  }
+  .section-header .collapse-icon {
+    margin-left: auto; color: var(--color-text-tertiary); font-size: 12px;
+    transition: transform 0.2s;
+  }
+  .section-header.collapsed .collapse-icon { transform: rotate(-90deg); }
+  .section-header.overdue h2 { color: var(--color-danger); }
+  .section-header.overdue .section-count {
+    background: rgba(255,59,48,0.1); color: var(--color-danger);
+  }
+  .section-header.today-section h2 { color: var(--color-accent); }
+  .section-header.today-section .section-count {
+    background: rgba(0,122,255,0.08); color: var(--color-accent);
+  }
+  .section-header.unscheduled h2 { color: var(--color-text-secondary); }
+  .section-header.unscheduled .section-count {
+    background: var(--color-bg-tertiary); color: var(--color-text-secondary);
+  }
+
+  .section-content { margin-bottom: 24px; }
+  .section-content.hidden { display: none; }
+
+  /* Quick-add */
+  .quick-add {
+    background: var(--color-bg-secondary); border-radius: var(--radius-md);
+    padding: 12px 16px; margin-bottom: 24px; border: 1px solid var(--color-border-light);
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .quick-add:focus-within { border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(0,122,255,0.12); }
+  .quick-add-row { display: flex; align-items: center; gap: 10px; }
+  .quick-add-circle {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--color-border); flex-shrink: 0;
+  }
+  .quick-add input {
+    flex: 1; border: none; background: transparent; font-size: 16px;
+    font-family: var(--font-family); color: var(--color-text-primary);
+    outline: none; min-height: 44px;
+  }
+  .quick-add input::placeholder { color: var(--color-text-tertiary); }
+  .quick-add .prefilled-date {
+    font-size: 13px; color: var(--color-accent); background: rgba(0,122,255,0.08);
+    padding: 4px 10px; border-radius: var(--radius-full); white-space: nowrap;
+  }
+
+  /* Task list */
+  .task-list { list-style: none; }
+  .task-item {
+    display: flex; align-items: flex-start; gap: 12px; padding: 12px 8px;
+    border-bottom: 1px solid var(--color-border-light); position: relative;
+    transition: background 0.15s; border-radius: var(--radius-sm);
+  }
+  .task-item:hover { background: var(--color-bg-secondary); }
+  .task-item.completed .task-title { text-decoration: line-through; color: var(--color-text-tertiary); }
+
+  .drag-handle {
+    width: 16px; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 2px; padding: 4px 0; cursor: grab;
+    opacity: 0; transition: opacity 0.15s; flex-shrink: 0; margin-top: 2px;
+  }
+  .task-item:hover .drag-handle { opacity: 0.4; }
+  .drag-dot { width: 3px; height: 3px; background: var(--color-text-tertiary); border-radius: 50%; }
+
+  .completion-circle {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--color-border);
+    flex-shrink: 0; cursor: pointer; transition: all 0.2s; display: flex;
+    align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .completion-circle:hover { border-color: var(--color-accent); }
+  .completion-circle.priority-high { border-color: var(--color-danger); }
+  .completion-circle.priority-medium { border-color: var(--color-warning); }
+  .completion-circle.priority-low { border-color: var(--color-success); }
+  .completion-circle.done { background: var(--color-success); border-color: var(--color-success); }
+  .completion-circle.done::after { content: '\2713'; color: #fff; font-size: 12px; font-weight: 700; }
+
+  .task-content { flex: 1; min-width: 0; }
+  .task-title { font-size: 15px; font-weight: 400; line-height: 1.4; color: var(--color-text-primary); }
+  .task-description-preview {
+    font-size: 13px; color: var(--color-text-secondary); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .task-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .meta-chip {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+    padding: 2px 8px; border-radius: var(--radius-full); white-space: nowrap;
+  }
+  .meta-chip.due-time { background: rgba(0,122,255,0.08); color: var(--color-accent); }
+  .meta-chip.overdue-chip { background: rgba(255,59,48,0.08); color: var(--color-danger); }
+  .meta-chip.label-pill { background: var(--color-bg-tertiary); color: var(--color-text-secondary); }
+  .label-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .meta-chip.subtask-count { color: var(--color-text-secondary); }
+  .meta-chip.recurrence-icon { color: var(--color-text-tertiary); }
+  .meta-chip.list-badge { color: var(--color-text-tertiary); font-style: italic; }
+
+  .task-hover-actions {
+    display: none; align-items: center; gap: 4px; flex-shrink: 0; margin-top: 2px;
+  }
+  .task-item:hover .task-hover-actions { display: flex; }
+  .hover-action-btn {
+    width: 32px; height: 32px; border-radius: var(--radius-sm); border: none;
+    background: var(--color-bg-secondary); color: var(--color-text-secondary);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.15s;
+  }
+  .hover-action-btn:hover { background: var(--color-bg-tertiary); color: var(--color-accent); }
+  .hover-action-btn.danger:hover { color: var(--color-danger); }
+
+  .swipe-indicator {
+    display: none; position: absolute; top: 0; bottom: 0; width: 80px;
+    align-items: center; justify-content: center; font-size: 20px; color: #fff;
+  }
+  .swipe-indicator.left { left: -80px; background: var(--color-success); }
+  .swipe-indicator.right { right: -80px; background: var(--color-danger); }
+
+  /* Section divider line */
+  .section-divider {
+    width: 100%; height: 1px; background: var(--color-border);
+    margin: 16px 0;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    display: none; position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--color-bg); border-top: 1px solid var(--color-border);
+    padding: 4px 0 env(safe-area-inset-bottom, 8px); z-index: 100;
+  }
+  .bottom-nav-items { display: flex; justify-content: space-around; align-items: center; }
+  .bottom-nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 6px 12px; font-size: 10px; color: var(--color-text-secondary);
+    cursor: pointer; min-width: 44px; min-height: 44px; justify-content: center;
+  }
+  .bottom-nav-item.active { color: var(--color-accent); }
+  .bottom-nav-item .nav-icon { display: inline-flex; align-items: center; justify-content: center; }
+
+  .fab {
+    display: none; position: fixed; bottom: 80px; right: 20px; z-index: 99;
+    width: 56px; height: 56px; border-radius: 50%; background: var(--color-accent);
+    color: #fff; border: none; font-size: 28px; cursor: pointer;
+    box-shadow: var(--shadow-popover); align-items: center; justify-content: center;
+  }
+
+  /* Mobile */
+  .app-wrapper.mobile .sidebar { display: none; }
+  .app-wrapper.mobile .main-content { margin-left: 0; padding: 16px 16px 160px; }
+  .app-wrapper.mobile .bottom-nav { display: block; }
+  .app-wrapper.mobile .fab { display: flex; }
+  .app-wrapper.mobile .page-header h1 { font-size: 24px; }
+  .app-wrapper.mobile .task-hover-actions { display: none !important; }
+  .app-wrapper.mobile .drag-handle { display: none; }
+  .app-wrapper.mobile .swipe-indicator { display: flex; }
+  .app-wrapper.mobile .progress-bar-wrapper { padding: 10px 12px; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .task-item { animation: fadeIn 0.2s ease-out; }
+  @keyframes checkmark { 0% { transform: scale(0.8); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  .completion-circle.animating { animation: checkmark 0.3s ease-out; }
+</style>
+</head>
+<body>
+<div class="wf-controls">
+  <span class="wf-title">DoIt Wireframe</span>
+  <span>|</span>
+  <span>Today</span>
+  <span class="spacer"></span>
+  <button class="active" onclick="setViewport('desktop')">Desktop</button>
+  <button onclick="setViewport('mobile')">Mobile</button>
+  <span>|</span>
+  <button onclick="toggleTheme()">Toggle Dark Mode</button>
+</div>
+
+<div class="app-wrapper" id="appWrapper">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-item">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span> Inbox <span class="badge">7</span>
+      </div>
+      <div class="sidebar-item active">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></span> Today <span class="badge">5</span>
+      </div>
+      <div class="sidebar-item">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg></span> Upcoming
+      </div>
+      <div class="sidebar-item">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span> Eisenhower
+      </div>
+      <div class="sidebar-item">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Calendar
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Lists</div>
+      <div class="sidebar-item">
+        <span class="icon"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#007aff"/></svg></span> Work <span class="badge">12</span>
+      </div>
+      <div class="sidebar-item">
+        <span class="icon"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#4cd964"/></svg></span> Personal <span class="badge">5</span>
+      </div>
+      <div class="sidebar-item">
+        <span class="icon"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#ff9500"/></svg></span> Shopping <span class="badge">3</span>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Labels</div>
+      <div class="sidebar-item">
+        <span class="icon"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#ff3b30"/></svg></span> Urgent
+      </div>
+      <div class="sidebar-item">
+        <span class="icon"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#5856d6"/></svg></span> Focus
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" style="color: var(--color-text-secondary)">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg></span> Completed
+      </div>
+      <div class="sidebar-item" style="color: var(--color-text-secondary)">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></span> Trash
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <!-- Header -->
+    <div class="page-header">
+      <h1>Today</h1>
+      <div class="date-subtitle">Sunday, April 6, 2026</div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-bar-wrapper">
+      <div class="progress-ring">
+        <svg viewBox="0 0 44 44">
+          <circle class="ring-bg" cx="22" cy="22" r="18" />
+          <circle class="ring-fg" cx="22" cy="22" r="18"
+            stroke-dasharray="113.1"
+            stroke-dashoffset="70.7"
+            id="progressRing" />
+        </svg>
+        <div class="progress-text" id="progressText">3/8</div>
+      </div>
+      <div class="progress-info">
+        <div class="progress-label" id="progressLabel">3 of 8 tasks done today</div>
+        <div class="progress-sub">Keep going, you're doing great!</div>
+      </div>
+    </div>
+
+    <!-- Quick-add -->
+    <div class="quick-add">
+      <div class="quick-add-row">
+        <div class="quick-add-circle"></div>
+        <input type="text" placeholder="Add a task for today..." style="font-size:16px;" aria-label="Add a task for today">
+        <span class="prefilled-date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Today</span>
+      </div>
+    </div>
+
+    <!-- Overdue section -->
+    <div class="section-header overdue" onclick="toggleSection(this)">
+      <h2>Overdue</h2>
+      <span class="section-count">2</span>
+      <span class="collapse-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </div>
+    <div class="section-content" id="overdueSection">
+      <ul class="task-list">
+        <li class="task-item">
+          <div class="swipe-indicator left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></div>
+          <div class="completion-circle priority-high" onclick="toggleComplete(this)" aria-label="Mark complete"></div>
+          <div class="task-content">
+            <div class="task-title">Review Q2 budget proposal</div>
+            <div class="task-description-preview">Need to review the updated figures from finance</div>
+            <div class="task-meta">
+              <span class="meta-chip overdue-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Apr 4</span>
+              <span class="meta-chip label-pill"><span class="label-dot" style="background:#ff3b30"></span> Urgent</span>
+              <span class="meta-chip subtask-count"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> 2/5</span>
+              <span class="meta-chip list-badge">Work</span>
+            </div>
+          </div>
+          <div class="task-hover-actions">
+            <button class="hover-action-btn" aria-label="Reschedule"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+            <button class="hover-action-btn" aria-label="Priority"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>
+            <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+          </div>
+          <div class="swipe-indicator right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></div>
+        </li>
+        <li class="task-item">
+          <div class="swipe-indicator left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></div>
+          <div class="completion-circle priority-medium" onclick="toggleComplete(this)" aria-label="Mark complete"></div>
+          <div class="task-content">
+            <div class="task-title">Submit expense report</div>
+            <div class="task-meta">
+              <span class="meta-chip overdue-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Apr 5</span>
+              <span class="meta-chip list-badge">Work</span>
+            </div>
+          </div>
+          <div class="task-hover-actions">
+            <button class="hover-action-btn" aria-label="Reschedule"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+            <button class="hover-action-btn" aria-label="Priority"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>
+            <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+          </div>
+          <div class="swipe-indicator right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- Today section -->
+    <div class="section-header today-section">
+      <h2>Today</h2>
+      <span class="section-count">5</span>
+    </div>
+    <div class="section-content">
+      <ul class="task-list">
+        <li class="task-item completed">
+          <div class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></div>
+          <div class="completion-circle done" onclick="toggleComplete(this)" aria-label="Mark incomplete"></div>
+          <div class="task-content">
+            <div class="task-title">Morning standup with team</div>
+            <div class="task-meta">
+              <span class="meta-chip due-time"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 9:00 AM</span>
+              <span class="meta-chip recurrence-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg> Daily</span>
+            </div>
+          </div>
+          <div class="task-hover-actions">
+            <button class="hover-action-btn" aria-label="Reschedule"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+            <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+          </div>
+        </li>
+        <li class="task-item completed">
+          <div class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></div>
+          <div class="completion-circle done" onclick="toggleComplete(this)" aria-label="Mark incomplete"></div>
+          <div class="task-content">
+            <div class="task-title">Reply to Sarah about project timeline</div>
+            <div class="task-meta">
+              <span class="meta-chip list-badge">Work</span>
+            </div>
+          </div>
+          <div class="task-hover-actions">
+            <button class="hover-action-btn" aria-label="Reschedule"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+            <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+          </div>
+        </li>
+        <li class="task-item completed">
+          <div class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></div>
+          <div class="completion-circle done" onclick="toggleComplete(this)" aria-label="Mark incomplete"></div>
+          <div class="task-content">
+            <div class="task-title">Pick up dry cleaning</div>
+            <div class="task-meta">
+              <span class="meta-chip due-time"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 12:30 PM</span>
+              <span class="meta-chip list-badge">Personal</span>
+            </div>
+          </div>
+          <div class="task-hover-actions">
+            <button class="hover-action-btn" aria-label="Reschedule"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+            <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+          </div>
+        </li>
+        <li class="task-item">
+          <div class="swipe-indicator left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></div>
+          <div class="completion-circle priority-medium" onclick="toggleComplete(this)" aria-label="Mark complete"></div>
+          <div class="task-content">
+            <div class="task-title">Book dentist appointment</div>
+            <div class="task-meta">
+              <span class="meta-chip due-time"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 3:00 PM</span>
+              <span class="meta-chip recurrence-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></span>
+            </div>
+          </div>
+          <div class="task-hover-actions">
+            <button class="hover-action-btn" aria-label="Reschedule"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+            <button class="hover-action-btn" aria-label="Priority"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>
+            <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+          </div>
+          <div class="swipe-indicator right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></div>
+        </li>
+        <li class="task-item">
+          <div class="swipe-indicator left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></div>
+          <div class="completion-circle" onclick="toggleComplete(this)" aria-label="Mark complete"></div>
+          <div class="task-content">
+            <div class="task-title">Prepare slides for Wednesday presentation</div>
+            <div class="task-description-preview">Include the new metrics dashboard screenshots</div>
+            <div class="task-meta">
+              <span class="meta-chip label-pill"><span class="label-dot" style="background:#5856d6"></span> Focus</span>
+              <span class="meta-chip list-badge">Work</span>
+            </div>
+          </div>
+          <div class="task-hover-actions">
+            <button class="hover-action-btn" aria-label="Reschedule"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+            <button class="hover-action-btn" aria-label="Priority"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>
+            <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+          </div>
+          <div class="swipe-indicator right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- Unscheduled section -->
+    <div class="section-header unscheduled" onclick="toggleSection(this)">
+      <h2>No date</h2>
+      <span class="section-count">1</span>
+      <span class="collapse-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </div>
+    <div class="section-content" id="unscheduledSection">
+      <ul class="task-list">
+        <li class="task-item">
+          <div class="swipe-indicator left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></div>
+          <div class="completion-circle priority-low" onclick="toggleComplete(this)" aria-label="Mark complete"></div>
+          <div class="task-content">
+            <div class="task-title">Research standing desk options</div>
+            <div class="task-meta">
+              <span class="meta-chip label-pill"><span class="label-dot" style="background:#5856d6"></span> Focus</span>
+            </div>
+          </div>
+          <div class="task-hover-actions">
+            <button class="hover-action-btn" aria-label="Set date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+            <button class="hover-action-btn" aria-label="Priority"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>
+            <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+          </div>
+          <div class="swipe-indicator right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></div>
+        </li>
+      </ul>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <div class="bottom-nav-items">
+      <div class="bottom-nav-item"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span><span>Inbox</span></div>
+      <div class="bottom-nav-item active"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></span><span>Today</span></div>
+      <div class="bottom-nav-item"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg></span><span>Upcoming</span></div>
+      <div class="bottom-nav-item"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span><span>Matrix</span></div>
+      <div class="bottom-nav-item"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></span><span>Lists</span></div>
+    </div>
+  </nav>
+  <button class="fab" aria-label="Add new task">+</button>
+</div>
+
+<script>
+  function setViewport(mode) {
+    const wrapper = document.getElementById('appWrapper');
+    const btns = document.querySelectorAll('.wf-controls button');
+    btns.forEach(b => b.classList.remove('active'));
+    if (mode === 'mobile') {
+      wrapper.classList.add('mobile');
+      btns[1].classList.add('active');
+    } else {
+      wrapper.classList.remove('mobile');
+      btns[0].classList.add('active');
+    }
+  }
+
+  function toggleTheme() {
+    document.documentElement.toggleAttribute('data-theme');
+    if (document.documentElement.hasAttribute('data-theme')) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  }
+
+  function toggleComplete(circle) {
+    const item = circle.closest('.task-item');
+    circle.classList.add('animating');
+    setTimeout(() => circle.classList.remove('animating'), 300);
+    if (circle.classList.contains('done')) {
+      circle.classList.remove('done');
+      item.classList.remove('completed');
+    } else {
+      circle.classList.add('done');
+      item.classList.add('completed');
+    }
+    updateProgress();
+  }
+
+  function toggleSection(header) {
+    header.classList.toggle('collapsed');
+    const content = header.nextElementSibling;
+    if (content && content.classList.contains('section-content')) {
+      content.classList.toggle('hidden');
+    }
+  }
+
+  function updateProgress() {
+    const allTasks = document.querySelectorAll('.task-item');
+    const doneTasks = document.querySelectorAll('.task-item.completed');
+    const total = allTasks.length;
+    const done = doneTasks.length;
+    const circumference = 2 * Math.PI * 18; // r=18
+    const offset = circumference - (done / total) * circumference;
+    document.getElementById('progressRing').setAttribute('stroke-dashoffset', offset);
+    document.getElementById('progressText').textContent = done + '/' + total;
+    document.getElementById('progressLabel').textContent = done + ' of ' + total + ' tasks done today';
+  }
+
+  // Mobile swipe
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.task-item')) touchStartX = e.touches[0].clientX;
+  });
+  document.addEventListener('touchmove', (e) => {
+    const item = e.target.closest('.task-item');
+    if (!item) return;
+    const diff = e.touches[0].clientX - touchStartX;
+    if (Math.abs(diff) > 40) {
+      item.style.transform = `translateX(${diff * 0.5}px)`;
+      item.style.transition = 'none';
+    }
+  });
+  document.addEventListener('touchend', (e) => {
+    const item = e.target.closest('.task-item');
+    if (!item) return;
+    item.style.transform = '';
+    item.style.transition = 'transform 0.3s ease';
+  });
+</script>
+</body>
+</html>

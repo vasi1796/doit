@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoIt — Eisenhower Matrix Wireframe</title>
+<style>
+  :root {
+    --color-accent: #007aff;
+    --color-danger: #ff3b30;
+    --color-success: #34c759;
+    --color-warning: #ff9500;
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f7;
+    --color-bg-tertiary: #e8e8ed;
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #86868b;
+    --color-text-tertiary: #c7c7cc;
+    --color-border: #e5e5ea;
+    --font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-popover: 0 4px 16px rgba(0,0,0,0.12);
+    --shadow-modal: 0 8px 32px rgba(0,0,0,0.16);
+
+    /* Quadrant colors */
+    --q-do: #ff3b30;
+    --q-do-bg: #fff5f5;
+    --q-schedule: #007aff;
+    --q-schedule-bg: #f0f7ff;
+    --q-delegate: #ff9500;
+    --q-delegate-bg: #fff8f0;
+    --q-eliminate: #86868b;
+    --q-eliminate-bg: #f5f5f7;
+  }
+
+  [data-theme="dark"] {
+    --color-bg: #1c1c1e;
+    --color-bg-secondary: #2c2c2e;
+    --color-bg-tertiary: #3a3a3c;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #98989d;
+    --color-text-tertiary: #636366;
+    --color-border: #38383a;
+    --q-do-bg: #3a1a18;
+    --q-schedule-bg: #1a2a3a;
+    --q-delegate-bg: #3a2a18;
+    --q-eliminate-bg: #2c2c2e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-family);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── Controls Bar ── */
+  .controls-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+  }
+  .controls-bar label { font-size: 13px; color: var(--color-text-secondary); font-weight: 500; }
+  .controls-bar select, .controls-bar button {
+    font-family: var(--font-family); font-size: 13px;
+    padding: 6px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    color: var(--color-text-primary); cursor: pointer; min-height: 32px;
+  }
+  .controls-bar button:hover { background: var(--color-bg-tertiary); }
+  .controls-bar .spacer { flex: 1; }
+
+  /* ── Wireframe Container ── */
+  .wireframe-wrap {
+    margin-top: 56px;
+    display: flex; justify-content: center;
+    padding: 24px 16px 48px;
+  }
+  .phone-frame {
+    width: 390px; min-height: 844px;
+    border: 1px solid var(--color-border); border-radius: 20px;
+    overflow: hidden; background: var(--color-bg);
+    box-shadow: var(--shadow-modal);
+    display: none; flex-direction: column;
+  }
+  .desktop-frame {
+    width: 100%; max-width: 1200px; min-height: 800px;
+    border: 1px solid var(--color-border); border-radius: 12px;
+    overflow: hidden; background: var(--color-bg);
+    box-shadow: var(--shadow-modal);
+    display: flex; flex-direction: column;
+  }
+  .wireframe-wrap[data-viewport="mobile"] .phone-frame { display: flex; }
+  .wireframe-wrap[data-viewport="mobile"] .desktop-frame { display: none; }
+  .wireframe-wrap[data-viewport="desktop"] .phone-frame { display: none; }
+  .wireframe-wrap[data-viewport="desktop"] .desktop-frame { display: flex; }
+
+  /* ── Page Header ── */
+  .page-header {
+    padding: 20px 20px 8px; flex-shrink: 0;
+  }
+  .page-header h1 {
+    font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
+  }
+  .page-header .subtitle {
+    font-size: 13px; color: var(--color-text-secondary); margin-top: 2px;
+  }
+
+  /* ── Axis Labels (Desktop) ── */
+  .matrix-container {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 0 20px 20px; position: relative;
+  }
+  .axis-labels-top {
+    display: flex; justify-content: center; gap: 4px;
+    padding: 8px 0 4px; margin-left: 32px;
+  }
+  .axis-label-segment {
+    flex: 1; text-align: center;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--color-text-tertiary);
+  }
+  .axis-label-left {
+    position: absolute; left: 8px; top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+  }
+
+  /* ── 2x2 Grid ── */
+  .matrix-grid {
+    flex: 1; display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px; margin-left: 24px;
+    min-height: 600px;
+  }
+
+  .quadrant {
+    border-radius: var(--radius-lg);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    transition: box-shadow 0.2s;
+  }
+  .quadrant:hover { box-shadow: var(--shadow-card); }
+
+  /* Drag affordance on quadrant */
+  .quadrant[data-droppable] {
+    transition: box-shadow 0.2s, outline 0.2s;
+  }
+
+  .quadrant-header {
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
+  }
+  .quadrant-icon {
+    width: 32px; height: 32px;
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .quadrant-info { min-width: 0; }
+  .quadrant-title {
+    font-size: 15px; font-weight: 700;
+  }
+  .quadrant-subtitle {
+    font-size: 11px; color: var(--color-text-secondary);
+  }
+  .quadrant-count {
+    margin-left: auto; font-size: 13px; font-weight: 600;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-tertiary);
+    width: 28px; height: 28px; border-radius: var(--radius-full);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .quadrant-body {
+    flex: 1; overflow-y: auto; padding: 0 8px 8px;
+  }
+
+  /* Q1: Do */
+  .quadrant.q-do { background: var(--q-do-bg); border-color: color-mix(in srgb, var(--q-do) 20%, transparent); }
+  .quadrant.q-do .quadrant-icon { background: var(--q-do); color: #fff; }
+  .quadrant.q-do .quadrant-title { color: var(--q-do); }
+
+  /* Q2: Schedule */
+  .quadrant.q-schedule { background: var(--q-schedule-bg); border-color: color-mix(in srgb, var(--q-schedule) 20%, transparent); }
+  .quadrant.q-schedule .quadrant-icon { background: var(--q-schedule); color: #fff; }
+  .quadrant.q-schedule .quadrant-title { color: var(--q-schedule); }
+
+  /* Q3: Delegate */
+  .quadrant.q-delegate { background: var(--q-delegate-bg); border-color: color-mix(in srgb, var(--q-delegate) 20%, transparent); }
+  .quadrant.q-delegate .quadrant-icon { background: var(--q-delegate); color: #fff; }
+  .quadrant.q-delegate .quadrant-title { color: var(--q-delegate); }
+
+  /* Q4: Eliminate */
+  .quadrant.q-eliminate { background: var(--q-eliminate-bg); border-color: var(--color-border); }
+  .quadrant.q-eliminate .quadrant-icon { background: var(--q-eliminate); color: #fff; }
+  .quadrant.q-eliminate .quadrant-title { color: var(--q-eliminate); }
+
+  /* ── Task Item ── */
+  .task-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; min-height: 48px;
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+    margin-bottom: 4px;
+    cursor: grab;
+    transition: box-shadow 0.15s, transform 0.15s;
+    border: 1px solid transparent;
+  }
+  .task-item:hover {
+    box-shadow: var(--shadow-card);
+    border-color: var(--color-border);
+  }
+  .task-item:active { transform: scale(0.98); }
+
+  .task-checkbox {
+    width: 20px; height: 20px;
+    border: 2px solid var(--color-text-tertiary);
+    border-radius: var(--radius-full);
+    flex-shrink: 0; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .task-checkbox:hover { border-color: var(--color-accent); }
+
+  .task-content { flex: 1; min-width: 0; }
+  .task-name {
+    font-size: 14px; color: var(--color-text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .task-meta {
+    font-size: 11px; color: var(--color-text-secondary); margin-top: 1px;
+  }
+
+  .drag-handle {
+    color: var(--color-text-tertiary); font-size: 12px;
+    opacity: 0; transition: opacity 0.15s;
+    cursor: grab; padding: 4px;
+  }
+  .task-item:hover .drag-handle { opacity: 1; }
+
+  /* ── Empty state ── */
+  .empty-quadrant {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 16px; text-align: center;
+    flex: 1;
+  }
+  .empty-quadrant .empty-icon {
+    font-size: 32px; margin-bottom: 8px; opacity: 0.4;
+  }
+  .empty-quadrant .empty-text {
+    font-size: 13px; color: var(--color-text-secondary);
+    font-weight: 500;
+  }
+
+  /* ── Mobile: Swipeable Tabs ── */
+  .mobile-tabs {
+    display: flex; padding: 8px 16px 0; gap: 4px;
+    overflow-x: auto; flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-tabs::-webkit-scrollbar { display: none; }
+
+  .mobile-tab {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer;
+    font-family: var(--font-family);
+    display: flex; align-items: center; gap: 6px;
+    min-height: 44px;
+    transition: all 0.2s;
+  }
+  .mobile-tab .tab-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .mobile-tab .tab-count {
+    font-size: 11px; font-weight: 700;
+    opacity: 0.7;
+  }
+
+  .mobile-tab.do-tab { background: rgba(255,59,48,0.1); color: var(--q-do); }
+  .mobile-tab.do-tab.active { background: var(--q-do); color: #fff; }
+  .mobile-tab.schedule-tab { background: rgba(0,122,255,0.1); color: var(--q-schedule); }
+  .mobile-tab.schedule-tab.active { background: var(--q-schedule); color: #fff; }
+  .mobile-tab.delegate-tab { background: rgba(255,149,0,0.1); color: var(--q-delegate); }
+  .mobile-tab.delegate-tab.active { background: var(--q-delegate); color: #fff; }
+  .mobile-tab.eliminate-tab { background: rgba(134,134,139,0.1); color: var(--q-eliminate); }
+  .mobile-tab.eliminate-tab.active { background: var(--q-eliminate); color: #fff; }
+
+  /* ── Mobile task list ── */
+  .mobile-task-list {
+    flex: 1; overflow-y: auto; padding: 8px 16px 20px;
+  }
+  .mobile-task-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 12px; min-height: 56px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .mobile-task-item .task-checkbox {
+    width: 22px; height: 22px;
+  }
+  .mobile-task-item .task-name {
+    font-size: 16px;
+  }
+  .mobile-task-item .task-meta {
+    font-size: 12px;
+  }
+
+  /* ── Summary banner ── */
+  .summary-banner {
+    display: flex; gap: 4px; padding: 12px 20px;
+    flex-shrink: 0;
+  }
+  .summary-pill {
+    flex: 1; text-align: center;
+    padding: 8px 4px;
+    border-radius: var(--radius-md);
+    font-size: 20px; font-weight: 700;
+    line-height: 1;
+  }
+  .summary-pill .pill-label {
+    font-size: 9px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-top: 2px; opacity: 0.7;
+    display: block;
+  }
+  .summary-pill.do-pill { background: rgba(255,59,48,0.1); color: var(--q-do); }
+  .summary-pill.schedule-pill { background: rgba(0,122,255,0.1); color: var(--q-schedule); }
+  .summary-pill.delegate-pill { background: rgba(255,149,0,0.1); color: var(--q-delegate); }
+  .summary-pill.eliminate-pill { background: rgba(134,134,139,0.1); color: var(--q-eliminate); }
+</style>
+</head>
+<body>
+
+<div class="controls-bar">
+  <label>Viewport:</label>
+  <select id="viewport-select">
+    <option value="desktop">Desktop</option>
+    <option value="mobile">Mobile</option>
+  </select>
+  <label style="margin-left:12px">Theme:</label>
+  <button id="theme-toggle">Toggle Dark Mode</button>
+  <span class="spacer"></span>
+  <span style="font-size:12px;color:var(--color-text-secondary)">DoIt Eisenhower Matrix Wireframe</span>
+</div>
+
+<div class="wireframe-wrap" id="wireframe-wrap" data-viewport="desktop">
+
+  <!-- ═══════════════════ DESKTOP ═══════════════════ -->
+  <div class="desktop-frame">
+    <div class="page-header">
+      <h1>Eisenhower Matrix</h1>
+      <div class="subtitle">Priority = importance, due today/overdue = urgent</div>
+    </div>
+
+    <div class="summary-banner">
+      <div class="summary-pill do-pill">4<span class="pill-label">Do</span></div>
+      <div class="summary-pill schedule-pill">6<span class="pill-label">Schedule</span></div>
+      <div class="summary-pill delegate-pill">3<span class="pill-label">Delegate</span></div>
+      <div class="summary-pill eliminate-pill">2<span class="pill-label">Eliminate</span></div>
+    </div>
+
+    <div class="matrix-container">
+      <div class="axis-label-left">IMPORTANT &uarr;</div>
+      <div class="axis-labels-top">
+        <span class="axis-label-segment">URGENT &larr;</span>
+        <span class="axis-label-segment">&rarr; NOT URGENT</span>
+      </div>
+
+      <div class="matrix-grid">
+        <!-- Q1: Do (Urgent + Important) -->
+        <div class="quadrant q-do" data-droppable>
+          <div class="quadrant-header">
+            <div class="quadrant-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <div class="quadrant-info">
+              <div class="quadrant-title">Do First</div>
+              <div class="quadrant-subtitle">Urgent &amp; Important</div>
+            </div>
+            <div class="quadrant-count">4</div>
+          </div>
+          <div class="quadrant-body">
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#ff3b30"></div>
+              <div class="task-content">
+                <div class="task-name">Fix production outage</div>
+                <div class="task-meta">Server &middot; Due today</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#ff3b30"></div>
+              <div class="task-content">
+                <div class="task-name">Submit quarterly report</div>
+                <div class="task-meta">Finance &middot; Overdue 2d</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#ff3b30"></div>
+              <div class="task-content">
+                <div class="task-name">Respond to client escalation</div>
+                <div class="task-meta">Support &middot; Due today</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#ff3b30"></div>
+              <div class="task-content">
+                <div class="task-name">Security patch deployment</div>
+                <div class="task-meta">Infrastructure &middot; Overdue 1d</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q2: Schedule (Important, Not Urgent) -->
+        <div class="quadrant q-schedule" data-droppable>
+          <div class="quadrant-header">
+            <div class="quadrant-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <div class="quadrant-info">
+              <div class="quadrant-title">Schedule</div>
+              <div class="quadrant-subtitle">Important &amp; Not Urgent</div>
+            </div>
+            <div class="quadrant-count">6</div>
+          </div>
+          <div class="quadrant-body">
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#007aff"></div>
+              <div class="task-content">
+                <div class="task-name">Design system documentation</div>
+                <div class="task-meta">Design &middot; Due Apr 15</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#007aff"></div>
+              <div class="task-content">
+                <div class="task-name">Backend refactor: event sourcing</div>
+                <div class="task-meta">Engineering &middot; Due Apr 20</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#007aff"></div>
+              <div class="task-content">
+                <div class="task-name">Prepare tech talk slides</div>
+                <div class="task-meta">Learning &middot; Due Apr 22</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#007aff"></div>
+              <div class="task-content">
+                <div class="task-name">Review architecture RFC</div>
+                <div class="task-meta">Engineering &middot; Due Apr 18</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#007aff"></div>
+              <div class="task-content">
+                <div class="task-name">Set up monitoring dashboards</div>
+                <div class="task-meta">DevOps &middot; Due Apr 25</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#007aff"></div>
+              <div class="task-content">
+                <div class="task-name">Write integration tests</div>
+                <div class="task-meta">Engineering &middot; Due Apr 28</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q3: Delegate (Urgent, Not Important) -->
+        <div class="quadrant q-delegate" data-droppable>
+          <div class="quadrant-header">
+            <div class="quadrant-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="quadrant-info">
+              <div class="quadrant-title">Delegate</div>
+              <div class="quadrant-subtitle">Urgent &amp; Not Important</div>
+            </div>
+            <div class="quadrant-count">3</div>
+          </div>
+          <div class="quadrant-body">
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#ff9500"></div>
+              <div class="task-content">
+                <div class="task-name">Reply to vendor emails</div>
+                <div class="task-meta">Admin &middot; Due today</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#ff9500"></div>
+              <div class="task-content">
+                <div class="task-name">Update team status page</div>
+                <div class="task-meta">Comms &middot; Overdue 1d</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#ff9500"></div>
+              <div class="task-content">
+                <div class="task-name">Schedule meeting rooms</div>
+                <div class="task-meta">Admin &middot; Due today</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q4: Eliminate (Neither) -->
+        <div class="quadrant q-eliminate" data-droppable>
+          <div class="quadrant-header">
+            <div class="quadrant-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </div>
+            <div class="quadrant-info">
+              <div class="quadrant-title">Eliminate</div>
+              <div class="quadrant-subtitle">Not Urgent &amp; Not Important</div>
+            </div>
+            <div class="quadrant-count">2</div>
+          </div>
+          <div class="quadrant-body">
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#86868b"></div>
+              <div class="task-content">
+                <div class="task-name">Reorganize bookmarks</div>
+                <div class="task-meta">Personal &middot; No due date</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox" style="border-color:#86868b"></div>
+              <div class="task-content">
+                <div class="task-name">Browse new dev tools</div>
+                <div class="task-meta">Exploration &middot; No due date</div>
+              </div>
+              <span class="drag-handle">&#x2630;</span>
+            </div>
+            <div class="empty-quadrant" style="padding:16px">
+              <div class="empty-icon">&#x1f389;</div>
+              <div class="empty-text">Almost clear &mdash; nice!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ MOBILE ═══════════════════ -->
+  <div class="phone-frame">
+    <div class="page-header" style="padding:16px 16px 4px">
+      <h1 style="font-size:24px">Matrix</h1>
+      <div class="subtitle">Priority = importance, due today/overdue = urgent</div>
+    </div>
+
+    <div class="summary-banner" style="padding:8px 16px">
+      <div class="summary-pill do-pill">4<span class="pill-label">Do</span></div>
+      <div class="summary-pill schedule-pill">6<span class="pill-label">Plan</span></div>
+      <div class="summary-pill delegate-pill">3<span class="pill-label">Delegate</span></div>
+      <div class="summary-pill eliminate-pill">2<span class="pill-label">Drop</span></div>
+    </div>
+
+    <!-- Mobile tabs -->
+    <div class="mobile-tabs">
+      <button class="mobile-tab do-tab active" data-q="do">
+        <span class="tab-dot" style="background:var(--q-do)"></span>
+        Do First
+        <span class="tab-count">4</span>
+      </button>
+      <button class="mobile-tab schedule-tab" data-q="schedule">
+        <span class="tab-dot" style="background:var(--q-schedule)"></span>
+        Schedule
+        <span class="tab-count">6</span>
+      </button>
+      <button class="mobile-tab delegate-tab" data-q="delegate">
+        <span class="tab-dot" style="background:var(--q-delegate)"></span>
+        Delegate
+        <span class="tab-count">3</span>
+      </button>
+      <button class="mobile-tab eliminate-tab" data-q="eliminate">
+        <span class="tab-dot" style="background:var(--q-eliminate)"></span>
+        Eliminate
+        <span class="tab-count">2</span>
+      </button>
+    </div>
+
+    <!-- Mobile task lists (one per quadrant, toggled) -->
+    <div class="mobile-task-list" id="mobile-do" style="display:block">
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#ff3b30"></div>
+        <div class="task-content">
+          <div class="task-name">Fix production outage</div>
+          <div class="task-meta">Server &middot; Due today</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#ff3b30"></div>
+        <div class="task-content">
+          <div class="task-name">Submit quarterly report</div>
+          <div class="task-meta">Finance &middot; Overdue 2d</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#ff3b30"></div>
+        <div class="task-content">
+          <div class="task-name">Respond to client escalation</div>
+          <div class="task-meta">Support &middot; Due today</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#ff3b30"></div>
+        <div class="task-content">
+          <div class="task-name">Security patch deployment</div>
+          <div class="task-meta">Infrastructure &middot; Overdue 1d</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-task-list" id="mobile-schedule" style="display:none">
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#007aff"></div>
+        <div class="task-content">
+          <div class="task-name">Design system documentation</div>
+          <div class="task-meta">Design &middot; Due Apr 15</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#007aff"></div>
+        <div class="task-content">
+          <div class="task-name">Backend refactor: event sourcing</div>
+          <div class="task-meta">Engineering &middot; Due Apr 20</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#007aff"></div>
+        <div class="task-content">
+          <div class="task-name">Prepare tech talk slides</div>
+          <div class="task-meta">Learning &middot; Due Apr 22</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#007aff"></div>
+        <div class="task-content">
+          <div class="task-name">Review architecture RFC</div>
+          <div class="task-meta">Engineering &middot; Due Apr 18</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#007aff"></div>
+        <div class="task-content">
+          <div class="task-name">Set up monitoring dashboards</div>
+          <div class="task-meta">DevOps &middot; Due Apr 25</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#007aff"></div>
+        <div class="task-content">
+          <div class="task-name">Write integration tests</div>
+          <div class="task-meta">Engineering &middot; Due Apr 28</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-task-list" id="mobile-delegate" style="display:none">
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#ff9500"></div>
+        <div class="task-content">
+          <div class="task-name">Reply to vendor emails</div>
+          <div class="task-meta">Admin &middot; Due today</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#ff9500"></div>
+        <div class="task-content">
+          <div class="task-name">Update team status page</div>
+          <div class="task-meta">Comms &middot; Overdue 1d</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#ff9500"></div>
+        <div class="task-content">
+          <div class="task-name">Schedule meeting rooms</div>
+          <div class="task-meta">Admin &middot; Due today</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-task-list" id="mobile-eliminate" style="display:none">
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#86868b"></div>
+        <div class="task-content">
+          <div class="task-name">Reorganize bookmarks</div>
+          <div class="task-meta">Personal &middot; No due date</div>
+        </div>
+      </div>
+      <div class="mobile-task-item">
+        <div class="task-checkbox" style="border-color:#86868b"></div>
+        <div class="task-content">
+          <div class="task-name">Browse new dev tools</div>
+          <div class="task-meta">Exploration &middot; No due date</div>
+        </div>
+      </div>
+      <div style="text-align:center;padding:32px 16px">
+        <div style="font-size:32px;opacity:0.4;margin-bottom:8px">&#x1f389;</div>
+        <div style="font-size:13px;color:var(--color-text-secondary);font-weight:500">Almost clear &mdash; nice!</div>
+      </div>
+    </div>
+
+    <div style="height:34px;flex-shrink:0;background:var(--color-bg)"></div>
+  </div>
+</div>
+
+<script>
+  // Viewport toggle
+  document.getElementById('viewport-select').addEventListener('change', function() {
+    document.getElementById('wireframe-wrap').dataset.viewport = this.value;
+  });
+
+  // Theme toggle
+  let dark = false;
+  document.getElementById('theme-toggle').addEventListener('click', function() {
+    dark = !dark;
+    if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  });
+
+  // Mobile tab switching
+  const tabs = document.querySelectorAll('.mobile-tab');
+  const lists = { do: 'mobile-do', schedule: 'mobile-schedule', delegate: 'mobile-delegate', eliminate: 'mobile-eliminate' };
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+      tabs.forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      Object.values(lists).forEach(id => document.getElementById(id).style.display = 'none');
+      document.getElementById(lists[this.dataset.q]).style.display = 'block';
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoIt Design System</title>
+<style>
+/* ============================================================
+   CSS CUSTOM PROPERTIES — DESIGN TOKENS
+   ============================================================ */
+:root {
+  /* --- Color Palette ---
+     Evolved from pure Apple HIG blue to a warmer, more distinctive palette.
+     The accent shifts from cold #007aff to a slightly warmer ultramarine
+     that still feels native but is more recognizable as "DoIt".
+  */
+  --color-accent: #3478F6;
+  --color-accent-hover: #2563EB;
+  --color-accent-light: rgba(52, 120, 246, 0.10);
+  --color-accent-medium: rgba(52, 120, 246, 0.18);
+
+  --color-red: #FF453A;
+  --color-orange: #FF9F0A;
+  --color-yellow: #FFD60A;
+  --color-green: #30D158;
+  --color-teal: #64D2FF;
+  --color-purple: #BF5AF2;
+  --color-pink: #FF375F;
+  --color-indigo: #5E5CE6;
+  --color-brown: #AC8E68;
+  --color-gray: #8E8E93;
+
+  /* --- Semantic Colors --- */
+  --color-bg: #FFFFFF;
+  --color-bg-secondary: #F2F2F7;
+  --color-bg-tertiary: #E5E5EA;
+  --color-bg-elevated: #FFFFFF;
+
+  --color-text-primary: #1C1C1E;
+  --color-text-secondary: #636366;
+  --color-text-tertiary: #AEAEB2;
+  --color-text-quaternary: #C7C7CC;
+
+  --color-separator: rgba(60, 60, 67, 0.12);
+  --color-separator-opaque: #D1D1D6;
+
+  --color-danger: #FF453A;
+  --color-success: #30D158;
+  --color-warning: #FF9F0A;
+
+  /* --- Priority Colors --- */
+  --priority-high: #FF453A;
+  --priority-medium: #FF9F0A;
+  --priority-low: #30D158;
+  --priority-none: transparent;
+
+  /* --- Typography --- */
+  --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+  --font-mono: 'SF Mono', SFMono-Regular, ui-monospace, monospace;
+
+  --text-title-1: 600 28px/34px var(--font-family);
+  --text-title-2: 600 22px/28px var(--font-family);
+  --text-title-3: 600 20px/24px var(--font-family);
+  --text-headline: 600 17px/22px var(--font-family);
+  --text-body: 400 17px/22px var(--font-family);
+  --text-callout: 400 16px/21px var(--font-family);
+  --text-subhead: 400 15px/20px var(--font-family);
+  --text-footnote: 400 13px/18px var(--font-family);
+  --text-caption-1: 400 12px/16px var(--font-family);
+  --text-caption-2: 400 11px/13px var(--font-family);
+
+  /* --- Spacing (4px grid) --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* --- Border Radius --- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* --- Shadows --- */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-popover: 0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-modal: 0 12px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-fab: 0 4px 14px rgba(52,120,246,0.30), 0 2px 6px rgba(0,0,0,0.08);
+
+  /* --- Transitions --- */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* --- Z-index scale --- */
+  --z-base: 1;
+  --z-card: 10;
+  --z-sticky: 20;
+  --z-popover: 30;
+  --z-modal: 40;
+  --z-fab: 50;
+  --z-toast: 60;
+}
+
+/* --- DARK MODE --- */
+[data-theme="dark"] {
+  --color-accent: #4A9EFF;
+  --color-accent-hover: #6BB3FF;
+  --color-accent-light: rgba(74, 158, 255, 0.12);
+  --color-accent-medium: rgba(74, 158, 255, 0.20);
+
+  --color-red: #FF6961;
+  --color-orange: #FFB340;
+  --color-yellow: #FFD426;
+  --color-green: #4ADE80;
+  --color-teal: #5BC0EB;
+  --color-purple: #C084FC;
+  --color-pink: #FF6B8A;
+  --color-indigo: #818CF8;
+  --color-brown: #C4A882;
+  --color-gray: #98989D;
+
+  --color-bg: #1C1C1E;
+  --color-bg-secondary: #2C2C2E;
+  --color-bg-tertiary: #3A3A3C;
+  --color-bg-elevated: #2C2C2E;
+
+  --color-text-primary: #F5F5F7;
+  --color-text-secondary: #98989D;
+  --color-text-tertiary: #636366;
+  --color-text-quaternary: #48484A;
+
+  --color-separator: rgba(84, 84, 88, 0.65);
+  --color-separator-opaque: #48484A;
+
+  --color-danger: #FF6961;
+  --color-success: #4ADE80;
+  --color-warning: #FFB340;
+
+  --priority-high: #FF6961;
+  --priority-medium: #FFB340;
+  --priority-low: #4ADE80;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-popover: 0 4px 20px rgba(0,0,0,0.40), 0 1px 6px rgba(0,0,0,0.25);
+  --shadow-modal: 0 12px 48px rgba(0,0,0,0.50), 0 4px 16px rgba(0,0,0,0.30);
+  --shadow-fab: 0 4px 16px rgba(74,158,255,0.25), 0 2px 6px rgba(0,0,0,0.20);
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font: var(--text-body);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background var(--transition-normal), color var(--transition-normal);
+}
+
+/* ============================================================
+   PAGE LAYOUT
+   ============================================================ */
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+  padding-bottom: 120px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-12);
+}
+.page-title {
+  font: var(--text-title-1);
+  color: var(--color-text-primary);
+}
+
+/* Theme toggle */
+.theme-toggle {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-separator-opaque);
+  border-radius: var(--radius-full);
+  font: var(--text-footnote);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-fast);
+}
+.theme-toggle:hover {
+  background: var(--color-bg-secondary);
+}
+.theme-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Section */
+.section {
+  margin-bottom: var(--space-12);
+}
+.section-title {
+  font: var(--text-title-2);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+.section-subtitle {
+  font: var(--text-subhead);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+.subsection {
+  margin-bottom: var(--space-8);
+}
+.subsection-title {
+  font: var(--text-headline);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+}
+
+/* ============================================================
+   1. COLOR PALETTE
+   ============================================================ */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+.color-swatch {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.color-swatch__preview {
+  height: 72px;
+  display: flex;
+  align-items: flex-end;
+  padding: var(--space-2);
+}
+.color-swatch__info {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-secondary);
+}
+.color-swatch__name {
+  font: var(--text-footnote);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-transform: capitalize;
+}
+.color-swatch__value {
+  font: var(--text-caption-2);
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+}
+
+.semantic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+.semantic-swatch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+.semantic-swatch__dot {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.semantic-swatch__label {
+  font: var(--text-footnote);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+.semantic-swatch__var {
+  font: var(--text-caption-2);
+  font-family: var(--font-mono);
+  color: var(--color-text-tertiary);
+}
+
+/* ============================================================
+   2. TYPOGRAPHY
+   ============================================================ */
+.type-specimen {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-separator);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-6);
+}
+.type-specimen:last-child { border-bottom: none; }
+.type-specimen__label {
+  font: var(--text-caption-2);
+  font-family: var(--font-mono);
+  color: var(--color-text-tertiary);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+.type-specimen__sample {
+  flex: 1;
+}
+
+/* ============================================================
+   3. SPACING
+   ============================================================ */
+.spacing-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.spacing-bar {
+  height: 24px;
+  background: var(--color-accent-light);
+  border: 1px solid var(--color-accent-medium);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+.spacing-bar:hover {
+  background: var(--color-accent-medium);
+}
+.spacing-label {
+  font: var(--text-footnote);
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+  min-width: 60px;
+}
+.spacing-value {
+  font: var(--text-caption-2);
+  font-family: var(--font-mono);
+  color: var(--color-text-tertiary);
+  min-width: 40px;
+}
+
+/* ============================================================
+   4. BORDER RADIUS
+   ============================================================ */
+.radius-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+}
+.radius-sample {
+  text-align: center;
+}
+.radius-box {
+  width: 80px;
+  height: 80px;
+  background: var(--color-accent-light);
+  border: 2px solid var(--color-accent);
+  margin-bottom: var(--space-2);
+}
+.radius-box--sm { border-radius: var(--radius-sm); }
+.radius-box--md { border-radius: var(--radius-md); }
+.radius-box--lg { border-radius: var(--radius-lg); }
+.radius-box--xl { border-radius: var(--radius-xl); }
+.radius-box--full { border-radius: var(--radius-full); }
+.radius-name {
+  font: var(--text-footnote);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+.radius-val {
+  font: var(--text-caption-2);
+  font-family: var(--font-mono);
+  color: var(--color-text-tertiary);
+}
+
+/* ============================================================
+   5. SHADOWS
+   ============================================================ */
+.shadow-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.shadow-sample {
+  text-align: center;
+}
+.shadow-box {
+  width: 120px;
+  height: 80px;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+}
+.shadow-box--sm { box-shadow: var(--shadow-sm); }
+.shadow-box--card { box-shadow: var(--shadow-card); }
+.shadow-box--popover { box-shadow: var(--shadow-popover); }
+.shadow-box--modal { box-shadow: var(--shadow-modal); }
+.shadow-box--fab { box-shadow: var(--shadow-fab); }
+.shadow-name {
+  font: var(--text-footnote);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+/* ============================================================
+   6. COMPONENTS — BUTTONS
+   ============================================================ */
+.component-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font: var(--text-subhead);
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-5);
+  min-height: 44px;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn--primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+.btn--primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.btn--secondary {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+.btn--secondary:hover {
+  background: var(--color-accent-medium);
+}
+
+.btn--destructive {
+  background: var(--color-danger);
+  color: #fff;
+}
+.btn--destructive:hover {
+  opacity: 0.9;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-accent);
+}
+.btn--ghost:hover {
+  background: var(--color-accent-light);
+}
+
+.btn--icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+.btn--icon:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.btn--disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.btn--disabled:active {
+  transform: none;
+}
+
+.btn--sm {
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  font: var(--text-footnote);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   COMPONENT — CHECKBOX (Task completion circle)
+   ============================================================ */
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.task-checkbox {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-text-quaternary);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.task-checkbox:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+.task-checkbox--checked {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  animation: checkbox-pop 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+.task-checkbox--checked svg {
+  animation: check-draw 0.2s ease-out forwards;
+}
+.task-checkbox--priority-high { border-color: var(--priority-high); }
+.task-checkbox--priority-high:hover { background: rgba(255,69,58,0.08); }
+.task-checkbox--priority-high.task-checkbox--checked { background: var(--priority-high); border-color: var(--priority-high); }
+.task-checkbox--priority-medium { border-color: var(--priority-medium); }
+.task-checkbox--priority-medium:hover { background: rgba(255,159,10,0.08); }
+.task-checkbox--priority-medium.task-checkbox--checked { background: var(--priority-medium); border-color: var(--priority-medium); }
+.task-checkbox--priority-low { border-color: var(--priority-low); }
+.task-checkbox--priority-low:hover { background: rgba(48,209,88,0.08); }
+.task-checkbox--priority-low.task-checkbox--checked { background: var(--priority-low); border-color: var(--priority-low); }
+
+@keyframes checkbox-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+@keyframes check-draw {
+  from { stroke-dashoffset: 20; }
+  to { stroke-dashoffset: 0; }
+}
+
+.checkbox-label {
+  font: var(--text-footnote);
+  color: var(--color-text-secondary);
+}
+
+/* ============================================================
+   COMPONENT — TEXT INPUT
+   ============================================================ */
+.input-group {
+  margin-bottom: var(--space-4);
+  max-width: 400px;
+}
+.input-label {
+  display: block;
+  font: var(--text-footnote);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1);
+}
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-3) var(--space-4);
+  font: var(--text-callout); /* 16px — prevents iOS auto-zoom */
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: all var(--transition-fast);
+  -webkit-appearance: none;
+}
+.input::placeholder {
+  color: var(--color-text-tertiary);
+}
+.input:focus {
+  background: var(--color-bg);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+.input--error {
+  border-color: var(--color-danger);
+}
+.input--error:focus {
+  box-shadow: 0 0 0 3px rgba(255,69,58,0.12);
+}
+.input-helper {
+  font: var(--text-caption-1);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-1);
+}
+.input-helper--error {
+  color: var(--color-danger);
+}
+
+textarea.input {
+  min-height: 88px;
+  resize: vertical;
+}
+
+/* ============================================================
+   COMPONENT — PRIORITY INDICATORS
+   ============================================================ */
+.priority-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+}
+.priority-sample {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  min-width: 160px;
+}
+
+/* Left-border accent style */
+.priority-bar {
+  width: 3px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+.priority-bar--high { background: var(--priority-high); }
+.priority-bar--medium { background: var(--priority-medium); }
+.priority-bar--low { background: var(--priority-low); }
+.priority-bar--none { background: var(--color-text-quaternary); }
+
+/* Flag icon style */
+.priority-flag {
+  flex-shrink: 0;
+}
+
+.priority-label {
+  font: var(--text-subhead);
+  color: var(--color-text-primary);
+}
+.priority-meta {
+  font: var(--text-caption-1);
+  color: var(--color-text-tertiary);
+}
+
+/* ============================================================
+   COMPONENT — LABEL PILLS
+   ============================================================ */
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.label-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-full);
+  font: var(--text-caption-1);
+  font-weight: 500;
+  transition: opacity var(--transition-fast);
+  cursor: default;
+}
+.label-pill:hover {
+  opacity: 0.8;
+}
+
+/* ============================================================
+   COMPONENT — LIST ITEM ROW (44px minimum)
+   ============================================================ */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  position: relative;
+}
+.list-item:hover {
+  background: var(--color-bg-secondary);
+}
+.list-item--active {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+.list-item__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+.list-item--active .list-item__icon {
+  color: var(--color-accent);
+}
+.list-item__text {
+  flex: 1;
+  font: var(--text-subhead);
+  color: inherit;
+}
+.list-item__count {
+  font: var(--text-footnote);
+  color: var(--color-text-tertiary);
+  min-width: 20px;
+  text-align: right;
+}
+.list-item--active .list-item__count {
+  color: var(--color-accent);
+  opacity: 0.7;
+}
+.list-item__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   COMPONENT — TASK ROW (the primary content item)
+   ============================================================ */
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  min-height: 44px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  position: relative;
+}
+.task-row:hover {
+  background: var(--color-bg-secondary);
+}
+.task-row__priority-bar {
+  position: absolute;
+  left: 0;
+  top: var(--space-3);
+  bottom: var(--space-3);
+  width: 3px;
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+}
+.task-row__content {
+  flex: 1;
+  min-width: 0;
+}
+.task-row__title {
+  font: var(--text-subhead);
+  color: var(--color-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.task-row__title--completed {
+  text-decoration: line-through;
+  color: var(--color-text-tertiary);
+}
+.task-row__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+.task-row__due {
+  font: var(--text-caption-1);
+  color: var(--color-text-secondary);
+}
+.task-row__due--overdue {
+  color: var(--color-danger);
+  font-weight: 500;
+}
+.task-row__description {
+  font: var(--text-caption-1);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+.task-row__trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   COMPONENT — CARD
+   ============================================================ */
+.card {
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+  transition: box-shadow var(--transition-fast);
+}
+.card:hover {
+  box-shadow: var(--shadow-popover);
+}
+.card__title {
+  font: var(--text-headline);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+.card__body {
+  font: var(--text-subhead);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.card__footer {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-separator);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ============================================================
+   COMPONENT — DIVIDER
+   ============================================================ */
+.divider {
+  height: 1px;
+  background: var(--color-separator);
+  margin: var(--space-4) 0;
+}
+.divider--with-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: transparent;
+  height: auto;
+}
+.divider--with-label::before,
+.divider--with-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-separator);
+}
+.divider__label {
+  font: var(--text-caption-2);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   COMPONENT — EMPTY STATE
+   ============================================================ */
+.empty-state {
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+}
+.empty-state__icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-5);
+  color: var(--color-text-quaternary);
+}
+.empty-state__title {
+  font: var(--text-headline);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+.empty-state__text {
+  font: var(--text-subhead);
+  color: var(--color-text-tertiary);
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   COMPONENT — BADGE
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  font: var(--text-caption-2);
+  font-weight: 600;
+  background: var(--color-accent);
+  color: #fff;
+}
+.badge--subtle {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+.badge--danger {
+  background: var(--color-danger);
+}
+
+/* ============================================================
+   COMPONENT — TOGGLE SWITCH
+   ============================================================ */
+.toggle {
+  position: relative;
+  width: 51px;
+  height: 31px;
+  border-radius: 16px;
+  background: var(--color-bg-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-normal);
+  -webkit-tap-highlight-color: transparent;
+  border: none;
+}
+.toggle--on {
+  background: var(--color-accent);
+}
+.toggle__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.06);
+  transition: transform var(--transition-normal);
+}
+.toggle--on .toggle__knob {
+  transform: translateX(20px);
+}
+
+/* ============================================================
+   COMPONENT — TOAST
+   ============================================================ */
+.toast-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 400px;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-popover);
+  font: var(--text-subhead);
+  color: var(--color-text-primary);
+  animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.toast__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.toast__icon--success { color: var(--color-success); }
+.toast__icon--error { color: var(--color-danger); }
+.toast__icon--info { color: var(--color-accent); }
+.toast__text { flex: 1; }
+.toast__action {
+  font: var(--text-footnote);
+  font-weight: 600;
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+.toast__action:hover {
+  background: var(--color-accent-light);
+}
+
+@keyframes toast-in {
+  from { transform: translateY(12px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ============================================================
+   COMPONENT — SEARCH BAR
+   ============================================================ */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  min-height: 36px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.search-bar:hover {
+  background: var(--color-separator-opaque);
+}
+.search-bar__icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+.search-bar__text {
+  flex: 1;
+  font: var(--text-footnote);
+  color: var(--color-text-tertiary);
+}
+.search-bar__kbd {
+  font: var(--text-caption-2);
+  font-family: var(--font-mono);
+  color: var(--color-text-quaternary);
+  background: var(--color-bg-secondary);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--color-separator);
+}
+
+/* ============================================================
+   SHOWCASE HELPERS
+   ============================================================ */
+.demo-bg {
+  background: var(--color-bg-secondary);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+}
+.demo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+@media (max-width: 640px) {
+  .demo-grid { grid-template-columns: 1fr; }
+}
+.demo-label {
+  font: var(--text-caption-2);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-3);
+}
+
+/* Tooltip showing token name on hover */
+[data-token]::after {
+  content: attr(data-token);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  background: var(--color-text-primary);
+  color: var(--color-bg);
+  font: var(--text-caption-2);
+  font-family: var(--font-mono);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+}
+[data-token]:hover::after {
+  opacity: 1;
+}
+</style>
+</head>
+<body>
+
+<!-- Theme toggle -->
+<button class="theme-toggle" onclick="toggleTheme()" id="themeToggle" aria-label="Toggle dark mode">
+  <svg id="themeIconLight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+  </svg>
+  <svg id="themeIconDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+  <span id="themeLabel">Dark</span>
+</button>
+
+<div class="page">
+
+<!-- ============================================================ -->
+<header class="page-header">
+  <h1 class="page-title">DoIt Design System</h1>
+</header>
+
+<!-- ============================================================
+     1. COLOR PALETTE
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Color Palette</h2>
+  <p class="section-subtitle">A warmer, more distinctive palette that retains the Apple-native feel. Accent shifted from #007aff to a slightly warmer ultramarine #3478F6.</p>
+
+  <div class="subsection">
+    <h3 class="subsection-title">Brand & UI Colors</h3>
+    <div class="color-grid" id="brandColors"></div>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">Semantic Colors</h3>
+    <div class="semantic-grid" id="semanticColors"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     2. TYPOGRAPHY
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Typography Scale</h2>
+  <p class="section-subtitle">SF Pro system font stack. All sizes follow Apple's Human Interface Guidelines dynamic type.</p>
+
+  <div class="demo-bg">
+    <div class="type-specimen">
+      <span class="type-specimen__label">Title 1<br>28/34 Semi</span>
+      <span class="type-specimen__sample" style="font: var(--text-title-1)">Inbox</span>
+    </div>
+    <div class="type-specimen">
+      <span class="type-specimen__label">Title 2<br>22/28 Semi</span>
+      <span class="type-specimen__sample" style="font: var(--text-title-2)">Today's Tasks</span>
+    </div>
+    <div class="type-specimen">
+      <span class="type-specimen__label">Title 3<br>20/24 Semi</span>
+      <span class="type-specimen__sample" style="font: var(--text-title-3)">My Projects</span>
+    </div>
+    <div class="type-specimen">
+      <span class="type-specimen__label">Headline<br>17/22 Semi</span>
+      <span class="type-specimen__sample" style="font: var(--text-headline)">Review API design document</span>
+    </div>
+    <div class="type-specimen">
+      <span class="type-specimen__label">Body<br>17/22 Regular</span>
+      <span class="type-specimen__sample" style="font: var(--text-body)">Write unit tests for the event store projection handler. Make sure to cover edge cases with empty payloads.</span>
+    </div>
+    <div class="type-specimen">
+      <span class="type-specimen__label">Callout<br>16/21 Regular</span>
+      <span class="type-specimen__sample" style="font: var(--text-callout)">Enter task title... (input placeholder, 16px minimum)</span>
+    </div>
+    <div class="type-specimen">
+      <span class="type-specimen__label">Subhead<br>15/20 Regular</span>
+      <span class="type-specimen__sample" style="font: var(--text-subhead)">Buy groceries for the week</span>
+    </div>
+    <div class="type-specimen">
+      <span class="type-specimen__label">Footnote<br>13/18 Regular</span>
+      <span class="type-specimen__sample" style="font: var(--text-footnote)">Due tomorrow at 9:00 AM</span>
+    </div>
+    <div class="type-specimen">
+      <span class="type-specimen__label">Caption 1<br>12/16 Regular</span>
+      <span class="type-specimen__sample" style="font: var(--text-caption-1)">3 of 5 subtasks completed</span>
+    </div>
+    <div class="type-specimen">
+      <span class="type-specimen__label">Caption 2<br>11/13 Regular</span>
+      <span class="type-specimen__sample" style="font: var(--text-caption-2)">LISTS &bull; LABELS &bull; OVERDUE</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     3. SPACING
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Spacing System</h2>
+  <p class="section-subtitle">4px base grid. Consistent spacing tokens for margins, paddings, and gaps.</p>
+
+  <div class="demo-bg">
+    <div class="spacing-row">
+      <span class="spacing-label">space-1</span>
+      <span class="spacing-value">4px</span>
+      <div class="spacing-bar" style="width: 4px"></div>
+    </div>
+    <div class="spacing-row">
+      <span class="spacing-label">space-2</span>
+      <span class="spacing-value">8px</span>
+      <div class="spacing-bar" style="width: 8px"></div>
+    </div>
+    <div class="spacing-row">
+      <span class="spacing-label">space-3</span>
+      <span class="spacing-value">12px</span>
+      <div class="spacing-bar" style="width: 12px"></div>
+    </div>
+    <div class="spacing-row">
+      <span class="spacing-label">space-4</span>
+      <span class="spacing-value">16px</span>
+      <div class="spacing-bar" style="width: 16px"></div>
+    </div>
+    <div class="spacing-row">
+      <span class="spacing-label">space-5</span>
+      <span class="spacing-value">20px</span>
+      <div class="spacing-bar" style="width: 20px"></div>
+    </div>
+    <div class="spacing-row">
+      <span class="spacing-label">space-6</span>
+      <span class="spacing-value">24px</span>
+      <div class="spacing-bar" style="width: 24px"></div>
+    </div>
+    <div class="spacing-row">
+      <span class="spacing-label">space-8</span>
+      <span class="spacing-value">32px</span>
+      <div class="spacing-bar" style="width: 32px"></div>
+    </div>
+    <div class="spacing-row">
+      <span class="spacing-label">space-10</span>
+      <span class="spacing-value">40px</span>
+      <div class="spacing-bar" style="width: 40px"></div>
+    </div>
+    <div class="spacing-row">
+      <span class="spacing-label">space-12</span>
+      <span class="spacing-value">48px</span>
+      <div class="spacing-bar" style="width: 48px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     4. BORDER RADIUS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Border Radius</h2>
+  <p class="section-subtitle">Consistent rounding system. Larger elements use larger radii.</p>
+
+  <div class="radius-grid">
+    <div class="radius-sample">
+      <div class="radius-box radius-box--sm"></div>
+      <div class="radius-name">Small</div>
+      <div class="radius-val">6px</div>
+    </div>
+    <div class="radius-sample">
+      <div class="radius-box radius-box--md"></div>
+      <div class="radius-name">Medium</div>
+      <div class="radius-val">10px</div>
+    </div>
+    <div class="radius-sample">
+      <div class="radius-box radius-box--lg"></div>
+      <div class="radius-name">Large</div>
+      <div class="radius-val">14px</div>
+    </div>
+    <div class="radius-sample">
+      <div class="radius-box radius-box--xl"></div>
+      <div class="radius-name">XL</div>
+      <div class="radius-val">20px</div>
+    </div>
+    <div class="radius-sample">
+      <div class="radius-box radius-box--full"></div>
+      <div class="radius-name">Full</div>
+      <div class="radius-val">9999px</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     5. SHADOWS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Shadow System</h2>
+  <p class="section-subtitle">Subtle elevation through shadows, not borders. Things 3 inspired depth.</p>
+
+  <div class="shadow-grid">
+    <div class="shadow-sample">
+      <div class="shadow-box shadow-box--sm"></div>
+      <div class="shadow-name">Small</div>
+    </div>
+    <div class="shadow-sample">
+      <div class="shadow-box shadow-box--card"></div>
+      <div class="shadow-name">Card</div>
+    </div>
+    <div class="shadow-sample">
+      <div class="shadow-box shadow-box--popover"></div>
+      <div class="shadow-name">Popover</div>
+    </div>
+    <div class="shadow-sample">
+      <div class="shadow-box shadow-box--modal"></div>
+      <div class="shadow-name">Modal</div>
+    </div>
+    <div class="shadow-sample">
+      <div class="shadow-box shadow-box--fab" style="background: var(--color-accent)"></div>
+      <div class="shadow-name">FAB</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     6. BUTTONS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Buttons</h2>
+  <p class="section-subtitle">All buttons meet 44px minimum tap target. Subtle press animation on active state.</p>
+
+  <div class="subsection">
+    <h3 class="subsection-title">Standard Sizes</h3>
+    <div class="component-row">
+      <button class="btn btn--primary">Add Task</button>
+      <button class="btn btn--secondary">Edit</button>
+      <button class="btn btn--destructive">Delete</button>
+      <button class="btn btn--ghost">Cancel</button>
+      <button class="btn btn--icon" aria-label="More options">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">Small Variant</h3>
+    <div class="component-row">
+      <button class="btn btn--primary btn--sm">Save</button>
+      <button class="btn btn--secondary btn--sm">Cancel</button>
+      <button class="btn btn--ghost btn--sm">Skip</button>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">Disabled State</h3>
+    <div class="component-row">
+      <button class="btn btn--primary btn--disabled" disabled>Add Task</button>
+      <button class="btn btn--secondary btn--disabled" disabled>Edit</button>
+      <button class="btn btn--ghost btn--disabled" disabled>Cancel</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     7. CHECKBOXES (Task Completion)
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Task Completion Checkbox</h2>
+  <p class="section-subtitle">The most used interaction in the app. Circle checkbox with priority-aware coloring and satisfying pop animation.</p>
+
+  <div class="demo-bg">
+    <div class="checkbox-row">
+      <div style="text-align: center">
+        <button class="task-checkbox" onclick="this.classList.toggle('task-checkbox--checked')" aria-label="Toggle task"></button>
+        <div class="checkbox-label" style="margin-top: 8px">Default</div>
+      </div>
+      <div style="text-align: center">
+        <button class="task-checkbox task-checkbox--checked" onclick="this.classList.toggle('task-checkbox--checked')" aria-label="Toggle task">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="stroke-dasharray:20;stroke-dashoffset:0"><path d="m5 12 5 5L20 7"/></svg>
+        </button>
+        <div class="checkbox-label" style="margin-top: 8px">Checked</div>
+      </div>
+      <div style="text-align: center">
+        <button class="task-checkbox task-checkbox--priority-high" onclick="this.classList.toggle('task-checkbox--checked')" aria-label="Toggle task"></button>
+        <div class="checkbox-label" style="margin-top: 8px">High</div>
+      </div>
+      <div style="text-align: center">
+        <button class="task-checkbox task-checkbox--priority-high task-checkbox--checked" onclick="this.classList.toggle('task-checkbox--checked')" aria-label="Toggle task">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+        </button>
+        <div class="checkbox-label" style="margin-top: 8px">High done</div>
+      </div>
+      <div style="text-align: center">
+        <button class="task-checkbox task-checkbox--priority-medium" onclick="this.classList.toggle('task-checkbox--checked')" aria-label="Toggle task"></button>
+        <div class="checkbox-label" style="margin-top: 8px">Medium</div>
+      </div>
+      <div style="text-align: center">
+        <button class="task-checkbox task-checkbox--priority-medium task-checkbox--checked" onclick="this.classList.toggle('task-checkbox--checked')" aria-label="Toggle task">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+        </button>
+        <div class="checkbox-label" style="margin-top: 8px">Med done</div>
+      </div>
+      <div style="text-align: center">
+        <button class="task-checkbox task-checkbox--priority-low" onclick="this.classList.toggle('task-checkbox--checked')" aria-label="Toggle task"></button>
+        <div class="checkbox-label" style="margin-top: 8px">Low</div>
+      </div>
+      <div style="text-align: center">
+        <button class="task-checkbox task-checkbox--priority-low task-checkbox--checked" onclick="this.classList.toggle('task-checkbox--checked')" aria-label="Toggle task">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+        </button>
+        <div class="checkbox-label" style="margin-top: 8px">Low done</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     8. TEXT INPUTS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Text Inputs</h2>
+  <p class="section-subtitle">All inputs use 16px minimum font to prevent iOS Safari auto-zoom. Focus ring uses accent color.</p>
+
+  <div class="demo-grid">
+    <div>
+      <div class="input-group">
+        <label class="input-label">Task Title</label>
+        <input class="input" type="text" placeholder="What needs to be done?" aria-label="Task title">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Description</label>
+        <textarea class="input" placeholder="Add notes..." aria-label="Task description"></textarea>
+      </div>
+    </div>
+    <div>
+      <div class="input-group">
+        <label class="input-label">Search</label>
+        <input class="input" type="text" placeholder="Search tasks..." value="grocery shopping" aria-label="Search">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Error State</label>
+        <input class="input input--error" type="text" value="" placeholder="Required field" aria-label="Error example">
+        <p class="input-helper input-helper--error">This field is required</p>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Disabled</label>
+        <input class="input" type="text" value="Read-only content" disabled aria-label="Disabled example" style="opacity: 0.5; cursor: not-allowed">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     9. PRIORITY INDICATORS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Priority Indicators</h2>
+  <p class="section-subtitle">Two styles: left-border accent (used in task list rows) and flag icon (used in detail view and chips). More expressive than simple color dots.</p>
+
+  <div class="subsection">
+    <h3 class="subsection-title">Left Border Accent (List View)</h3>
+    <div class="priority-grid">
+      <div class="priority-sample">
+        <div class="priority-bar priority-bar--high"></div>
+        <div>
+          <div class="priority-label">High Priority</div>
+          <div class="priority-meta">Urgent and important</div>
+        </div>
+      </div>
+      <div class="priority-sample">
+        <div class="priority-bar priority-bar--medium"></div>
+        <div>
+          <div class="priority-label">Medium Priority</div>
+          <div class="priority-meta">Important, not urgent</div>
+        </div>
+      </div>
+      <div class="priority-sample">
+        <div class="priority-bar priority-bar--low"></div>
+        <div>
+          <div class="priority-label">Low Priority</div>
+          <div class="priority-meta">Nice to have</div>
+        </div>
+      </div>
+      <div class="priority-sample">
+        <div class="priority-bar priority-bar--none"></div>
+        <div>
+          <div class="priority-label">No Priority</div>
+          <div class="priority-meta">Default state</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">Flag Icon (Detail & Chips)</h3>
+    <div class="component-row">
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--radius-full);background:rgba(255,69,58,0.10);color:var(--priority-high);font:var(--text-footnote);font-weight:500">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+        High
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--radius-full);background:rgba(255,159,10,0.10);color:var(--priority-medium);font:var(--text-footnote);font-weight:500">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+        Medium
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--radius-full);background:rgba(48,209,88,0.10);color:var(--priority-low);font:var(--text-footnote);font-weight:500">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+        Low
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--radius-full);background:var(--color-bg-secondary);color:var(--color-text-tertiary);font:var(--text-footnote);font-weight:500">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        None
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     10. LABEL PILLS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Label Pills / Badges</h2>
+  <p class="section-subtitle">Translucent background with matching text color. Used in task rows and detail views.</p>
+
+  <div class="pill-row" style="margin-bottom: var(--space-6)">
+    <span class="label-pill" style="background: rgba(52,120,246,0.12); color: var(--color-accent)">Work</span>
+    <span class="label-pill" style="background: rgba(255,69,58,0.12); color: var(--color-red)">Urgent</span>
+    <span class="label-pill" style="background: rgba(48,209,88,0.12); color: var(--color-green)">Health</span>
+    <span class="label-pill" style="background: rgba(191,90,242,0.12); color: var(--color-purple)">Personal</span>
+    <span class="label-pill" style="background: rgba(255,159,10,0.12); color: var(--color-orange)">Finance</span>
+    <span class="label-pill" style="background: rgba(255,55,95,0.12); color: var(--color-pink)">Family</span>
+    <span class="label-pill" style="background: rgba(142,142,147,0.12); color: var(--color-gray)">Someday</span>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">Count Badges</h3>
+    <div class="component-row">
+      <span class="badge">3</span>
+      <span class="badge">12</span>
+      <span class="badge badge--subtle">5</span>
+      <span class="badge badge--danger">!</span>
+      <span class="badge badge--danger">99+</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     11. LIST ITEM ROWS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Navigation List Items</h2>
+  <p class="section-subtitle">44px minimum height tap targets. Used in sidebar navigation.</p>
+
+  <div class="demo-bg" style="max-width: 280px">
+    <div class="list-item list-item--active">
+      <svg class="list-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+      <span class="list-item__text">Inbox</span>
+      <span class="list-item__count">12</span>
+    </div>
+    <div class="list-item">
+      <svg class="list-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+      <span class="list-item__text">Today</span>
+      <span class="list-item__count">5</span>
+    </div>
+    <div class="list-item">
+      <svg class="list-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+      <span class="list-item__text">Upcoming</span>
+      <span class="list-item__count">8</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="list-item">
+      <span class="list-item__dot" style="background: var(--color-accent)"></span>
+      <span class="list-item__text">Work Projects</span>
+      <span class="list-item__count">7</span>
+    </div>
+    <div class="list-item">
+      <span class="list-item__dot" style="background: var(--color-green)"></span>
+      <span class="list-item__text">Groceries</span>
+      <span class="list-item__count">3</span>
+    </div>
+    <div class="list-item">
+      <span class="list-item__dot" style="background: var(--color-purple)"></span>
+      <span class="list-item__text">Home Renovation</span>
+      <span class="list-item__count">15</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     12. TASK ROWS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Task Rows</h2>
+  <p class="section-subtitle">The primary content element. Priority shown via left border accent. Metadata and labels below the title.</p>
+
+  <div class="demo-bg" style="max-width: 600px; padding: 0; overflow: hidden; border-radius: var(--radius-lg)">
+    <!-- High priority task -->
+    <div class="task-row">
+      <div class="task-row__priority-bar" style="background: var(--priority-high)"></div>
+      <button class="task-checkbox task-checkbox--priority-high" aria-label="Complete task" onclick="this.classList.toggle('task-checkbox--checked')"></button>
+      <div class="task-row__content">
+        <div class="task-row__title">Review PR #42 — projection worker refactor</div>
+        <div class="task-row__meta">
+          <span class="task-row__due task-row__due--overdue">Overdue: Yesterday</span>
+          <span class="label-pill" style="background:rgba(52,120,246,0.12);color:var(--color-accent);font-size:11px;padding:2px 8px">Work</span>
+        </div>
+      </div>
+      <div class="task-row__trailing">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--priority-high)" stroke="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="var(--priority-high)" stroke-width="2"/></svg>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--color-separator);margin:0 20px"></div>
+
+    <!-- Medium priority task with subtasks -->
+    <div class="task-row">
+      <div class="task-row__priority-bar" style="background: var(--priority-medium)"></div>
+      <button class="task-checkbox task-checkbox--priority-medium" aria-label="Complete task" onclick="this.classList.toggle('task-checkbox--checked')"></button>
+      <div class="task-row__content">
+        <div class="task-row__title">Prepare design system wireframes</div>
+        <div class="task-row__description">Create HTML mockups for color palette, typography, and components</div>
+        <div class="task-row__meta">
+          <span class="task-row__due">Due: Tomorrow</span>
+          <span style="font:var(--text-caption-1);color:var(--color-text-secondary);display:inline-flex;align-items:center;gap:3px">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            2/4
+          </span>
+          <span class="label-pill" style="background:rgba(191,90,242,0.12);color:var(--color-purple);font-size:11px;padding:2px 8px">Design</span>
+        </div>
+      </div>
+      <div class="task-row__trailing">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--priority-medium)" stroke="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="var(--priority-medium)" stroke-width="2"/></svg>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--color-separator);margin:0 20px"></div>
+
+    <!-- Low priority task -->
+    <div class="task-row">
+      <div class="task-row__priority-bar" style="background: var(--priority-low)"></div>
+      <button class="task-checkbox task-checkbox--priority-low" aria-label="Complete task" onclick="this.classList.toggle('task-checkbox--checked')"></button>
+      <div class="task-row__content">
+        <div class="task-row__title">Buy new running shoes</div>
+        <div class="task-row__meta">
+          <span class="task-row__due">Due: Apr 12</span>
+          <span class="label-pill" style="background:rgba(48,209,88,0.12);color:var(--color-green);font-size:11px;padding:2px 8px">Health</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--color-separator);margin:0 20px"></div>
+
+    <!-- No priority task with recurrence -->
+    <div class="task-row">
+      <button class="task-checkbox" aria-label="Complete task" onclick="this.classList.toggle('task-checkbox--checked')"></button>
+      <div class="task-row__content">
+        <div class="task-row__title">Water the plants</div>
+        <div class="task-row__meta">
+          <span style="font:var(--text-caption-1);color:var(--color-text-secondary);display:inline-flex;align-items:center;gap:3px">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            Every 3 days
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--color-separator);margin:0 20px"></div>
+
+    <!-- Completed task -->
+    <div class="task-row" style="opacity: 0.6">
+      <button class="task-checkbox task-checkbox--checked" aria-label="Uncomplete task">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+      </button>
+      <div class="task-row__content">
+        <div class="task-row__title task-row__title--completed">Deploy staging environment</div>
+        <div class="task-row__meta">
+          <span class="label-pill" style="background:rgba(52,120,246,0.12);color:var(--color-accent);font-size:11px;padding:2px 8px">Work</span>
+          <span class="label-pill" style="background:rgba(255,69,58,0.12);color:var(--color-red);font-size:11px;padding:2px 8px">Urgent</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     13. CARDS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Cards</h2>
+  <p class="section-subtitle">Elevated containers for grouped content. Used in Eisenhower matrix quadrants and calendar views.</p>
+
+  <div class="demo-grid">
+    <div class="card">
+      <div class="card__title">Urgent & Important</div>
+      <div class="card__body">3 tasks due today that need your immediate attention. Review PR, fix projection bug, deploy hotfix.</div>
+      <div class="card__footer">
+        <span style="font: var(--text-caption-1); color: var(--color-text-tertiary)">3 tasks</span>
+        <button class="btn btn--ghost btn--sm">View all</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card__title">Weekly Summary</div>
+      <div class="card__body">You completed 12 tasks this week and have 5 remaining. Great progress on the design system wireframes.</div>
+      <div class="card__footer">
+        <span style="font: var(--text-caption-1); color: var(--color-success)">+12 completed</span>
+        <button class="btn btn--ghost btn--sm">Details</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     14. DIVIDERS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Dividers</h2>
+  <p class="section-subtitle">Semantic separators between content groups.</p>
+
+  <div class="demo-bg" style="max-width: 400px">
+    <p style="font: var(--text-subhead); color: var(--color-text-primary)">Content above</p>
+    <div class="divider"></div>
+    <p style="font: var(--text-subhead); color: var(--color-text-primary)">Content below</p>
+    <div style="height: var(--space-6)"></div>
+    <div class="divider divider--with-label">
+      <span class="divider__label">Overdue</span>
+    </div>
+    <div style="height: var(--space-4)"></div>
+    <div class="divider divider--with-label">
+      <span class="divider__label">Completed</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     15. EMPTY STATES
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Empty States</h2>
+  <p class="section-subtitle">Friendly, helpful empty states that guide users toward next actions.</p>
+
+  <div class="demo-grid">
+    <div class="demo-bg">
+      <div class="empty-state">
+        <svg class="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+        </svg>
+        <h3 class="empty-state__title">Inbox Zero</h3>
+        <p class="empty-state__text">All caught up! New tasks without a list will appear here.</p>
+      </div>
+    </div>
+    <div class="demo-bg">
+      <div class="empty-state">
+        <svg class="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <h3 class="empty-state__title">No results</h3>
+        <p class="empty-state__text">Try a different search term or check your spelling.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     16. TOASTS
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Toast Notifications</h2>
+  <p class="section-subtitle">Non-blocking feedback for user actions. Toasts support optional action buttons for undo operations.</p>
+
+  <div class="toast-preview">
+    <div class="toast">
+      <svg class="toast__icon toast__icon--success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+      <span class="toast__text">Task completed</span>
+    </div>
+    <div class="toast">
+      <svg class="toast__icon toast__icon--error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <span class="toast__text">Failed to sync</span>
+    </div>
+    <div class="toast">
+      <svg class="toast__icon toast__icon--info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
+      <span class="toast__text">Task deleted</span>
+      <button class="toast__action">Undo</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     17. SEARCH BAR
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Search Bar</h2>
+  <p class="section-subtitle">Compact search trigger for the sidebar. Opens the full Cmd+K search overlay.</p>
+
+  <div style="max-width: 260px">
+    <div class="search-bar">
+      <svg class="search-bar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span class="search-bar__text">Search</span>
+      <kbd class="search-bar__kbd">&#8984;K</kbd>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     18. TOGGLES
+     ============================================================ -->
+<section class="section">
+  <h2 class="section-title">Toggle Switches</h2>
+  <p class="section-subtitle">iOS-style toggle for boolean settings like notification preferences.</p>
+
+  <div class="component-row">
+    <div style="display:flex;align-items:center;gap:var(--space-3)">
+      <button class="toggle" onclick="this.classList.toggle('toggle--on')" aria-label="Toggle off">
+        <span class="toggle__knob"></span>
+      </button>
+      <span style="font:var(--text-subhead);color:var(--color-text-primary)">Off</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:var(--space-3)">
+      <button class="toggle toggle--on" onclick="this.classList.toggle('toggle--on')" aria-label="Toggle on">
+        <span class="toggle__knob"></span>
+      </button>
+      <span style="font:var(--text-subhead);color:var(--color-text-primary)">On</span>
+    </div>
+  </div>
+</section>
+
+</div><!-- /.page -->
+
+<script>
+// === Theme toggle ===
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeIconLight').style.display = isDark ? '' : 'none';
+  document.getElementById('themeIconDark').style.display = isDark ? 'none' : '';
+  document.getElementById('themeLabel').textContent = isDark ? 'Dark' : 'Light';
+}
+
+// Respect system preference on load
+if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+  toggleTheme();
+}
+
+// === Render color swatches ===
+const brandColors = [
+  { name: 'Accent', var: '--color-accent', hex: '#3478F6' },
+  { name: 'Red', var: '--color-red', hex: '#FF453A' },
+  { name: 'Orange', var: '--color-orange', hex: '#FF9F0A' },
+  { name: 'Yellow', var: '--color-yellow', hex: '#FFD60A' },
+  { name: 'Green', var: '--color-green', hex: '#30D158' },
+  { name: 'Teal', var: '--color-teal', hex: '#64D2FF' },
+  { name: 'Purple', var: '--color-purple', hex: '#BF5AF2' },
+  { name: 'Pink', var: '--color-pink', hex: '#FF375F' },
+  { name: 'Indigo', var: '--color-indigo', hex: '#5E5CE6' },
+  { name: 'Brown', var: '--color-brown', hex: '#AC8E68' },
+  { name: 'Gray', var: '--color-gray', hex: '#8E8E93' },
+];
+
+const brandGrid = document.getElementById('brandColors');
+brandColors.forEach(c => {
+  brandGrid.innerHTML += `
+    <div class="color-swatch">
+      <div class="color-swatch__preview" style="background: var(${c.var})"></div>
+      <div class="color-swatch__info">
+        <div class="color-swatch__name">${c.name}</div>
+        <div class="color-swatch__value">${c.hex}</div>
+      </div>
+    </div>`;
+});
+
+const semanticColors = [
+  { name: 'Background', var: '--color-bg' },
+  { name: 'BG Secondary', var: '--color-bg-secondary' },
+  { name: 'BG Tertiary', var: '--color-bg-tertiary' },
+  { name: 'Text Primary', var: '--color-text-primary' },
+  { name: 'Text Secondary', var: '--color-text-secondary' },
+  { name: 'Text Tertiary', var: '--color-text-tertiary' },
+  { name: 'Separator', var: '--color-separator-opaque' },
+  { name: 'Danger', var: '--color-danger' },
+  { name: 'Success', var: '--color-success' },
+  { name: 'Warning', var: '--color-warning' },
+];
+
+const semanticGrid = document.getElementById('semanticColors');
+semanticColors.forEach(c => {
+  semanticGrid.innerHTML += `
+    <div class="semantic-swatch">
+      <div class="semantic-swatch__dot" style="background: var(${c.var})"></div>
+      <div>
+        <div class="semantic-swatch__label">${c.name}</div>
+        <div class="semantic-swatch__var">${c.var}</div>
+      </div>
+    </div>`;
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoIt — Trash Wireframe</title>
+<style>
+  :root {
+    --color-accent: #007aff;
+    --color-danger: #ff3b30;
+    --color-success: #34c759;
+    --color-warning: #ff9500;
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f7;
+    --color-bg-tertiary: #e8e8ed;
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #86868b;
+    --color-text-tertiary: #c7c7cc;
+    --color-border: #e5e5ea;
+    --font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-popover: 0 4px 16px rgba(0,0,0,0.12);
+    --shadow-modal: 0 8px 32px rgba(0,0,0,0.16);
+  }
+
+  [data-theme="dark"] {
+    --color-bg: #1c1c1e;
+    --color-bg-secondary: #2c2c2e;
+    --color-bg-tertiary: #3a3a3c;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #98989d;
+    --color-text-tertiary: #636366;
+    --color-border: #38383a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-family);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── Controls Bar ── */
+  .controls-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+  }
+  .controls-bar label { font-size: 13px; color: var(--color-text-secondary); font-weight: 500; }
+  .controls-bar select, .controls-bar button {
+    font-family: var(--font-family); font-size: 13px;
+    padding: 6px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    color: var(--color-text-primary); cursor: pointer; min-height: 32px;
+  }
+  .controls-bar button:hover { background: var(--color-bg-tertiary); }
+  .controls-bar .spacer { flex: 1; }
+
+  /* ── Wireframe Container ── */
+  .wireframe-wrap {
+    margin-top: 56px;
+    display: flex; justify-content: center;
+    padding: 24px 16px 48px;
+  }
+  .phone-frame {
+    width: 390px; min-height: 844px;
+    border: 1px solid var(--color-border); border-radius: 20px;
+    overflow: hidden; background: var(--color-bg);
+    box-shadow: var(--shadow-modal);
+    display: none; flex-direction: column;
+  }
+  .desktop-frame {
+    width: 100%; max-width: 720px; min-height: 800px;
+    border: 1px solid var(--color-border); border-radius: 12px;
+    overflow: hidden; background: var(--color-bg);
+    box-shadow: var(--shadow-modal);
+    display: flex; flex-direction: column;
+  }
+  .wireframe-wrap[data-viewport="mobile"] .phone-frame { display: flex; }
+  .wireframe-wrap[data-viewport="mobile"] .desktop-frame { display: none; }
+  .wireframe-wrap[data-viewport="desktop"] .phone-frame { display: none; }
+  .wireframe-wrap[data-viewport="desktop"] .desktop-frame { display: flex; }
+
+  /* ── Page Header ── */
+  .page-header {
+    padding: 20px 20px 8px; flex-shrink: 0;
+  }
+  .page-header h1 {
+    font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
+  }
+
+  /* ── Warning Banner ── */
+  .warning-banner {
+    margin: 12px 20px;
+    padding: 12px 16px;
+    background: rgba(255,149,0,0.08);
+    border: 1px solid rgba(255,149,0,0.2);
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--color-warning);
+    font-weight: 500;
+  }
+  .warning-banner .warning-icon {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Bulk Actions ── */
+  .bulk-actions {
+    display: flex; gap: 8px;
+    padding: 8px 20px 16px;
+  }
+  .bulk-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    font-size: 14px; font-weight: 600;
+    font-family: var(--font-family);
+    cursor: pointer;
+    min-height: 44px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.15s;
+    border: none;
+  }
+  .bulk-btn.restore-all {
+    background: rgba(0,122,255,0.08);
+    color: var(--color-accent);
+  }
+  .bulk-btn.restore-all:hover { background: rgba(0,122,255,0.15); }
+  .bulk-btn.empty-trash {
+    background: rgba(255,59,48,0.08);
+    color: var(--color-danger);
+  }
+  .bulk-btn.empty-trash:hover { background: rgba(255,59,48,0.15); }
+
+  /* ── Task Items ── */
+  .scroll-content {
+    flex: 1; overflow-y: auto; padding: 0 12px 24px;
+  }
+
+  .trash-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    min-height: 64px;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .trash-item:hover { background: var(--color-bg-secondary); }
+
+  .trash-icon {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .trash-content { flex: 1; min-width: 0; }
+  .trash-title {
+    font-size: 15px;
+    color: var(--color-text-secondary);
+    text-decoration: line-through;
+    text-decoration-color: var(--color-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .trash-meta {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    margin-top: 2px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .days-badge {
+    display: inline-flex;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 10px; font-weight: 600;
+    background: rgba(255,149,0,0.1);
+    color: var(--color-warning);
+  }
+  .days-badge.urgent {
+    background: rgba(255,59,48,0.1);
+    color: var(--color-danger);
+  }
+
+  /* Action buttons */
+  .trash-actions {
+    display: flex; gap: 4px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .trash-item:hover .trash-actions { opacity: 1; }
+
+  .action-btn {
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: none;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: background 0.15s;
+  }
+  .action-btn.restore { color: var(--color-success); }
+  .action-btn.restore:hover { background: rgba(52,199,89,0.1); }
+  .action-btn.delete { color: var(--color-danger); }
+  .action-btn.delete:hover { background: rgba(255,59,48,0.1); }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 0 12px;
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 80px 32px; text-align: center;
+    flex: 1;
+  }
+  .empty-illustration {
+    width: 120px; height: 120px;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .empty-title {
+    font-size: 18px; font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+  }
+  .empty-subtitle {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    max-width: 240px;
+  }
+
+  /* ── Mobile swipe indicators ── */
+  .swipe-labels {
+    display: none;
+    padding: 4px 20px 8px;
+    font-size: 11px; color: var(--color-text-tertiary);
+    text-align: center;
+  }
+  .wireframe-wrap[data-viewport="mobile"] .swipe-labels { display: block; }
+
+  /* ── Confirm dialog ── */
+  .confirm-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; border-radius: inherit;
+  }
+  .confirm-dialog {
+    width: 300px;
+    background: var(--color-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    text-align: center;
+    box-shadow: var(--shadow-modal);
+  }
+  .confirm-title {
+    font-size: 17px; font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .confirm-text {
+    font-size: 13px; color: var(--color-text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .confirm-actions {
+    display: flex; gap: 8px;
+  }
+  .confirm-btn {
+    flex: 1; padding: 12px;
+    border-radius: var(--radius-md);
+    font-size: 15px; font-weight: 600;
+    font-family: var(--font-family);
+    cursor: pointer; border: none;
+    min-height: 44px;
+    transition: opacity 0.15s;
+  }
+  .confirm-btn:hover { opacity: 0.85; }
+  .confirm-btn.cancel { background: var(--color-bg-secondary); color: var(--color-text-primary); }
+  .confirm-btn.destructive { background: var(--color-danger); color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="controls-bar">
+  <label>Viewport:</label>
+  <select id="viewport-select">
+    <option value="desktop">Desktop</option>
+    <option value="mobile">Mobile</option>
+  </select>
+  <label style="margin-left:12px">Theme:</label>
+  <button id="theme-toggle">Toggle Dark Mode</button>
+  <label style="margin-left:12px">State:</label>
+  <select id="state-select">
+    <option value="populated">With Items</option>
+    <option value="empty">Empty</option>
+    <option value="confirm">Confirm Dialog</option>
+  </select>
+  <span class="spacer"></span>
+  <span style="font-size:12px;color:var(--color-text-secondary)">DoIt Trash Wireframe</span>
+</div>
+
+<div class="wireframe-wrap" id="wireframe-wrap" data-viewport="desktop">
+
+  <!-- ═══════════════════ DESKTOP ═══════════════════ -->
+  <div class="desktop-frame" id="desktop-frame" style="position:relative">
+    <!-- Populated state -->
+    <div id="desktop-populated">
+      <div class="page-header">
+        <h1>Trash</h1>
+      </div>
+
+      <div class="warning-banner">
+        <span class="warning-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        Items are permanently deleted after 30 days
+      </div>
+
+      <div class="bulk-actions">
+        <button class="bulk-btn restore-all">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Restore All
+        </button>
+        <button class="bulk-btn empty-trash" id="desktop-empty-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          Empty Trash
+        </button>
+      </div>
+
+      <div class="scroll-content">
+        <!-- Task 1 -->
+        <div class="trash-item">
+          <div class="trash-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          </div>
+          <div class="trash-content">
+            <div class="trash-title">Old project brainstorm notes</div>
+            <div class="trash-meta">
+              Deleted Apr 3 &middot;
+              <span class="days-badge">27 days left</span>
+            </div>
+          </div>
+          <div class="trash-actions">
+            <button class="action-btn restore" aria-label="Restore">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+            <button class="action-btn delete" aria-label="Delete permanently">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <!-- Task 2 -->
+        <div class="trash-item">
+          <div class="trash-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          </div>
+          <div class="trash-content">
+            <div class="trash-title">Draft: team retrospective questions</div>
+            <div class="trash-meta">
+              Deleted Mar 28 &middot;
+              <span class="days-badge">22 days left</span>
+            </div>
+          </div>
+          <div class="trash-actions">
+            <button class="action-btn restore" aria-label="Restore">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+            <button class="action-btn delete" aria-label="Delete permanently">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <!-- Task 3 -->
+        <div class="trash-item">
+          <div class="trash-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          </div>
+          <div class="trash-content">
+            <div class="trash-title">Cancel subscription reminder</div>
+            <div class="trash-meta">
+              Deleted Mar 20 &middot;
+              <span class="days-badge">14 days left</span>
+            </div>
+          </div>
+          <div class="trash-actions">
+            <button class="action-btn restore" aria-label="Restore">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+            <button class="action-btn delete" aria-label="Delete permanently">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <!-- Task 4 (urgent) -->
+        <div class="trash-item">
+          <div class="trash-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          </div>
+          <div class="trash-content">
+            <div class="trash-title">Unused API endpoint cleanup</div>
+            <div class="trash-meta">
+              Deleted Mar 10 &middot;
+              <span class="days-badge urgent">4 days left</span>
+            </div>
+          </div>
+          <div class="trash-actions">
+            <button class="action-btn restore" aria-label="Restore">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+            <button class="action-btn delete" aria-label="Delete permanently">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <!-- Task 5 (urgent) -->
+        <div class="trash-item">
+          <div class="trash-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          </div>
+          <div class="trash-content">
+            <div class="trash-title">Test data generation script</div>
+            <div class="trash-meta">
+              Deleted Mar 8 &middot;
+              <span class="days-badge urgent">2 days left</span>
+            </div>
+          </div>
+          <div class="trash-actions">
+            <button class="action-btn restore" aria-label="Restore">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+            <button class="action-btn delete" aria-label="Delete permanently">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="desktop-empty" style="display:none;flex:1;flex-direction:column">
+      <div class="page-header">
+        <h1>Trash</h1>
+      </div>
+      <div class="empty-state">
+        <div class="empty-illustration">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="1.5" stroke-linecap="round">
+            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            <path d="m9 11 6 6" opacity="0.4"/><path d="m15 11-6 6" opacity="0.4"/>
+          </svg>
+        </div>
+        <div class="empty-title">Trash is empty</div>
+        <div class="empty-subtitle">Deleted tasks will appear here for 30 days before being permanently removed</div>
+      </div>
+    </div>
+
+    <!-- Confirm dialog overlay -->
+    <div class="confirm-overlay" id="desktop-confirm" style="display:none">
+      <div class="confirm-dialog">
+        <div class="confirm-title">Empty Trash?</div>
+        <div class="confirm-text">This will permanently delete all 5 items. This action cannot be undone.</div>
+        <div class="confirm-actions">
+          <button class="confirm-btn cancel" id="confirm-cancel">Cancel</button>
+          <button class="confirm-btn destructive">Delete All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ MOBILE ═══════════════════ -->
+  <div class="phone-frame" id="mobile-frame" style="position:relative">
+    <!-- Populated state -->
+    <div id="mobile-populated">
+      <div class="page-header" style="padding:16px 16px 4px">
+        <h1 style="font-size:24px">Trash</h1>
+      </div>
+
+      <div class="warning-banner" style="margin:8px 16px;padding:10px 14px;font-size:12px">
+        <span class="warning-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        Auto-deleted after 30 days
+      </div>
+
+      <div class="bulk-actions" style="padding:4px 16px 8px">
+        <button class="bulk-btn restore-all" style="font-size:13px;padding:8px 12px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Restore All
+        </button>
+        <button class="bulk-btn empty-trash" style="font-size:13px;padding:8px 12px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+          Empty
+        </button>
+      </div>
+
+      <div class="swipe-labels">Swipe: left to delete, right to restore</div>
+
+      <div class="scroll-content" style="padding: 0 8px 24px">
+        <div class="trash-item">
+          <div class="trash-icon" style="width:32px;height:32px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+          </div>
+          <div class="trash-content">
+            <div class="trash-title" style="font-size:14px">Old project brainstorm notes</div>
+            <div class="trash-meta">
+              Deleted Apr 3 &middot;
+              <span class="days-badge">27d left</span>
+            </div>
+          </div>
+        </div>
+        <div class="divider" style="margin:0 8px"></div>
+
+        <div class="trash-item">
+          <div class="trash-icon" style="width:32px;height:32px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+          </div>
+          <div class="trash-content">
+            <div class="trash-title" style="font-size:14px">Draft: team retro questions</div>
+            <div class="trash-meta">
+              Deleted Mar 28 &middot;
+              <span class="days-badge">22d left</span>
+            </div>
+          </div>
+        </div>
+        <div class="divider" style="margin:0 8px"></div>
+
+        <div class="trash-item">
+          <div class="trash-icon" style="width:32px;height:32px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+          </div>
+          <div class="trash-content">
+            <div class="trash-title" style="font-size:14px">Cancel subscription reminder</div>
+            <div class="trash-meta">
+              Deleted Mar 20 &middot;
+              <span class="days-badge">14d left</span>
+            </div>
+          </div>
+        </div>
+        <div class="divider" style="margin:0 8px"></div>
+
+        <div class="trash-item">
+          <div class="trash-icon" style="width:32px;height:32px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+          </div>
+          <div class="trash-content">
+            <div class="trash-title" style="font-size:14px">Unused API endpoint cleanup</div>
+            <div class="trash-meta">
+              Deleted Mar 10 &middot;
+              <span class="days-badge urgent">4d left</span>
+            </div>
+          </div>
+        </div>
+        <div class="divider" style="margin:0 8px"></div>
+
+        <div class="trash-item">
+          <div class="trash-icon" style="width:32px;height:32px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+          </div>
+          <div class="trash-content">
+            <div class="trash-title" style="font-size:14px">Test data generation script</div>
+            <div class="trash-meta">
+              Deleted Mar 8 &middot;
+              <span class="days-badge urgent">2d left</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:34px;flex-shrink:0;background:var(--color-bg)"></div>
+    </div>
+
+    <!-- Mobile empty state -->
+    <div id="mobile-empty" style="display:none;flex:1;flex-direction:column">
+      <div class="page-header" style="padding:16px 16px 4px">
+        <h1 style="font-size:24px">Trash</h1>
+      </div>
+      <div class="empty-state" style="padding:60px 24px">
+        <div class="empty-illustration" style="width:100px;height:100px">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="1.5" stroke-linecap="round">
+            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            <path d="m9 11 6 6" opacity="0.4"/><path d="m15 11-6 6" opacity="0.4"/>
+          </svg>
+        </div>
+        <div class="empty-title" style="font-size:16px">Trash is empty</div>
+        <div class="empty-subtitle" style="font-size:13px">Deleted tasks appear here for 30 days</div>
+      </div>
+    </div>
+
+    <!-- Mobile confirm overlay -->
+    <div class="confirm-overlay" id="mobile-confirm" style="display:none">
+      <div class="confirm-dialog" style="width:280px;padding:20px">
+        <div class="confirm-title" style="font-size:16px">Empty Trash?</div>
+        <div class="confirm-text" style="font-size:13px">This will permanently delete all 5 items. This cannot be undone.</div>
+        <div class="confirm-actions">
+          <button class="confirm-btn cancel" id="mobile-confirm-cancel">Cancel</button>
+          <button class="confirm-btn destructive">Delete All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Viewport toggle
+  document.getElementById('viewport-select').addEventListener('change', function() {
+    document.getElementById('wireframe-wrap').dataset.viewport = this.value;
+  });
+
+  // Theme toggle
+  let dark = false;
+  document.getElementById('theme-toggle').addEventListener('click', function() {
+    dark = !dark;
+    if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  });
+
+  // State toggle
+  document.getElementById('state-select').addEventListener('change', function() {
+    const v = this.value;
+    // Desktop
+    document.getElementById('desktop-populated').style.display = v === 'populated' || v === 'confirm' ? '' : 'none';
+    document.getElementById('desktop-empty').style.display = v === 'empty' ? 'flex' : 'none';
+    document.getElementById('desktop-confirm').style.display = v === 'confirm' ? 'flex' : 'none';
+    // Mobile
+    document.getElementById('mobile-populated').style.display = v === 'populated' || v === 'confirm' ? '' : 'none';
+    document.getElementById('mobile-empty').style.display = v === 'empty' ? 'flex' : 'none';
+    document.getElementById('mobile-confirm').style.display = v === 'confirm' ? 'flex' : 'none';
+  });
+
+  // Confirm cancel buttons
+  document.getElementById('confirm-cancel').addEventListener('click', function() {
+    document.getElementById('desktop-confirm').style.display = 'none';
+    document.getElementById('state-select').value = 'populated';
+  });
+  document.getElementById('mobile-confirm-cancel').addEventListener('click', function() {
+    document.getElementById('mobile-confirm').style.display = 'none';
+    document.getElementById('state-select').value = 'populated';
+  });
+
+  // Empty trash button shows confirm
+  document.getElementById('desktop-empty-btn').addEventListener('click', function() {
+    document.getElementById('desktop-confirm').style.display = 'flex';
+    document.getElementById('state-select').value = 'confirm';
+  });
+</script>
+</body>
+</html>

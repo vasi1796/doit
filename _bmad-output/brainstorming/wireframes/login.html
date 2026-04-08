@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoIt — Login Wireframe</title>
+<style>
+  :root {
+    --color-accent: #007aff;
+    --color-danger: #ff3b30;
+    --color-success: #34c759;
+    --color-warning: #ff9500;
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f7;
+    --color-bg-tertiary: #e8e8ed;
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #86868b;
+    --color-text-tertiary: #c7c7cc;
+    --color-border: #e5e5ea;
+    --font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-popover: 0 4px 16px rgba(0,0,0,0.12);
+    --shadow-modal: 0 8px 32px rgba(0,0,0,0.16);
+
+    /* Login-specific */
+    --gradient-start: #f5f5f7;
+    --gradient-end: #e8e8ed;
+    --card-bg: rgba(255,255,255,0.8);
+    --card-border: rgba(255,255,255,0.6);
+  }
+
+  [data-theme="dark"] {
+    --color-bg: #1c1c1e;
+    --color-bg-secondary: #2c2c2e;
+    --color-bg-tertiary: #3a3a3c;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #98989d;
+    --color-text-tertiary: #636366;
+    --color-border: #38383a;
+    --gradient-start: #000000;
+    --gradient-end: #1c1c1e;
+    --card-bg: rgba(44,44,46,0.8);
+    --card-border: rgba(56,56,58,0.6);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-family);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── Controls Bar ── */
+  .controls-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+  }
+  .controls-bar label { font-size: 13px; color: var(--color-text-secondary); font-weight: 500; }
+  .controls-bar select, .controls-bar button {
+    font-family: var(--font-family); font-size: 13px;
+    padding: 6px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    color: var(--color-text-primary); cursor: pointer; min-height: 32px;
+  }
+  .controls-bar button:hover { background: var(--color-bg-tertiary); }
+  .controls-bar .spacer { flex: 1; }
+
+  /* ── Wireframe Container ── */
+  .wireframe-wrap {
+    margin-top: 56px;
+    display: flex; justify-content: center;
+    padding: 24px 16px 48px;
+  }
+  .phone-frame {
+    width: 390px; height: 844px;
+    border: 1px solid var(--color-border); border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-modal);
+    display: none;
+  }
+  .desktop-frame {
+    width: 100%; max-width: 1200px; height: 800px;
+    border: 1px solid var(--color-border); border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-modal);
+    display: block;
+  }
+  .wireframe-wrap[data-viewport="mobile"] .phone-frame { display: block; }
+  .wireframe-wrap[data-viewport="mobile"] .desktop-frame { display: none; }
+  .wireframe-wrap[data-viewport="desktop"] .phone-frame { display: none; }
+  .wireframe-wrap[data-viewport="desktop"] .desktop-frame { display: block; }
+
+  /* ── Login Page ── */
+  .login-page {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Subtle background pattern */
+  .login-page::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(0,122,255,0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(88,86,214,0.04) 0%, transparent 50%),
+      radial-gradient(circle at 50% 10%, rgba(52,199,89,0.03) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  /* Grid pattern overlay */
+  .login-page::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  [data-theme="dark"] .login-page::after {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  }
+
+  .login-content {
+    position: relative;
+    z-index: 1;
+    display: flex; flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    padding: 0 24px;
+  }
+
+  /* ── App Icon ── */
+  .app-icon {
+    width: 80px; height: 80px;
+    background: var(--color-accent);
+    border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+    box-shadow:
+      0 4px 16px rgba(0,122,255,0.25),
+      0 1px 3px rgba(0,122,255,0.1);
+    position: relative;
+  }
+  .app-icon::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.3), transparent);
+    pointer-events: none;
+  }
+
+  .app-title {
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--color-text-primary);
+    margin-bottom: 8px;
+  }
+  .app-tagline {
+    font-size: 17px;
+    color: var(--color-text-secondary);
+    text-align: center;
+    line-height: 1.5;
+    margin-bottom: 36px;
+  }
+
+  /* ── Login Card ── */
+  .login-card {
+    width: 100%;
+    padding: 32px 28px;
+    background: var(--card-bg);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.06),
+      0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  /* Google Sign-in Button */
+  .google-btn {
+    width: 100%;
+    min-height: 52px;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 14px 20px;
+    background: var(--color-text-primary);
+    color: var(--color-bg);
+    border: none; border-radius: 14px;
+    font-size: 16px; font-weight: 600;
+    font-family: var(--font-family);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .google-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .google-btn:active {
+    transform: scale(0.98);
+  }
+
+  [data-theme="dark"] .google-btn {
+    background: #f5f5f7;
+    color: #1d1d1f;
+  }
+
+  /* Divider */
+  .login-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 24px 0;
+  }
+  .login-divider::before,
+  .login-divider::after {
+    content: '';
+    flex: 1; height: 1px;
+    background: var(--color-border);
+  }
+  .login-divider span {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-text-tertiary);
+  }
+
+  /* Dev login form */
+  .dev-form {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .dev-input {
+    width: 100%;
+    min-height: 52px;
+    padding: 14px 18px;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: var(--color-bg-secondary);
+    font-size: 16px;
+    font-family: var(--font-family);
+    color: var(--color-text-primary);
+    outline: none;
+    transition: all 0.2s;
+  }
+  .dev-input:focus {
+    border-color: var(--color-accent);
+    background: var(--color-bg);
+    box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
+  }
+  .dev-input::placeholder {
+    color: var(--color-text-tertiary);
+  }
+  .dev-btn {
+    width: 100%;
+    min-height: 52px;
+    padding: 14px 20px;
+    background: var(--color-accent);
+    color: #fff;
+    border: none; border-radius: 14px;
+    font-size: 16px; font-weight: 600;
+    font-family: var(--font-family);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .dev-btn:hover {
+    background: color-mix(in srgb, var(--color-accent) 85%, black);
+  }
+  .dev-btn:active { transform: scale(0.98); }
+
+  /* ── Footer ── */
+  .login-footer {
+    position: relative;
+    z-index: 1;
+    margin-top: 32px;
+    text-align: center;
+  }
+  .login-footer-text {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.3px;
+  }
+
+  /* PWA install hint */
+  .pwa-hint {
+    position: relative;
+    z-index: 1;
+    margin-top: 16px;
+    padding: 10px 16px;
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--color-text-secondary);
+    max-width: 360px;
+  }
+  .pwa-hint .share-icon {
+    flex-shrink: 0;
+    color: var(--color-accent);
+  }
+
+  /* ── Feature pills (desktop) ── */
+  .feature-pills {
+    position: relative;
+    z-index: 1;
+    display: flex; gap: 8px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .feature-pill {
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .feature-pill .pill-icon {
+    font-size: 14px;
+  }
+
+  /* ── Error message ── */
+  .error-msg {
+    margin-top: 12px;
+    padding: 10px 16px;
+    background: rgba(255,59,48,0.08);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--color-danger);
+    text-align: center;
+    display: none;
+  }
+
+  /* ── Mobile adjustments ── */
+  .phone-frame .app-icon {
+    width: 72px; height: 72px;
+    border-radius: 20px;
+  }
+  .phone-frame .app-title {
+    font-size: 36px;
+  }
+  .phone-frame .app-tagline {
+    font-size: 16px;
+    margin-bottom: 28px;
+  }
+  .phone-frame .login-card {
+    padding: 24px 22px;
+  }
+  .phone-frame .login-footer {
+    margin-top: 24px;
+  }
+  .phone-frame .feature-pills {
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="controls-bar">
+  <label>Viewport:</label>
+  <select id="viewport-select">
+    <option value="desktop">Desktop</option>
+    <option value="mobile">Mobile</option>
+  </select>
+  <label style="margin-left:12px">Theme:</label>
+  <button id="theme-toggle">Toggle Dark Mode</button>
+  <label style="margin-left:12px">Dev Mode:</label>
+  <select id="dev-toggle">
+    <option value="prod">Production (Google only)</option>
+    <option value="dev">Development (with dev login)</option>
+  </select>
+  <span class="spacer"></span>
+  <span style="font-size:12px;color:var(--color-text-secondary)">DoIt Login Wireframe</span>
+</div>
+
+<div class="wireframe-wrap" id="wireframe-wrap" data-viewport="desktop">
+
+  <!-- ═══════════════════ DESKTOP ═══════════════════ -->
+  <div class="desktop-frame">
+    <div class="login-page">
+      <div class="login-content">
+        <!-- App branding -->
+        <div class="app-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m9 12 2 2 4-4"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+        </div>
+        <h1 class="app-title">DoIt</h1>
+        <p class="app-tagline">Your tasks, organized.<br>Beautifully simple.</p>
+
+        <!-- Login card -->
+        <div class="login-card">
+          <button class="google-btn" aria-label="Sign in with Google">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Continue with Google
+          </button>
+
+          <!-- Dev login (hidden by default) -->
+          <div class="dev-section" id="desktop-dev" style="display:none">
+            <div class="login-divider">
+              <span>Development</span>
+            </div>
+            <form class="dev-form">
+              <input type="email" class="dev-input" placeholder="dev@test.com" aria-label="Development email">
+              <button type="button" class="dev-btn">Dev Login</button>
+            </form>
+          </div>
+
+          <div class="error-msg" id="desktop-error">Connection failed. Please try again.</div>
+        </div>
+
+        <!-- Feature pills -->
+        <div class="feature-pills">
+          <span class="feature-pill"><span class="pill-icon">&#9889;</span> Offline-first</span>
+          <span class="feature-pill"><span class="pill-icon">&#128274;</span> Self-hosted</span>
+          <span class="feature-pill"><span class="pill-icon">&#127822;</span> Safari PWA</span>
+          <span class="feature-pill"><span class="pill-icon">&#128260;</span> CRDT sync</span>
+        </div>
+
+        <div class="login-footer">
+          <p class="login-footer-text">Personal &middot; Self-hosted &middot; Offline-first</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ MOBILE ═══════════════════ -->
+  <div class="phone-frame">
+    <div class="login-page">
+      <div class="login-content">
+        <!-- App branding -->
+        <div class="app-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m9 12 2 2 4-4"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+        </div>
+        <h1 class="app-title">DoIt</h1>
+        <p class="app-tagline">Your tasks, organized.<br>Beautifully simple.</p>
+
+        <!-- Login card -->
+        <div class="login-card">
+          <button class="google-btn" aria-label="Sign in with Google">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Continue with Google
+          </button>
+
+          <!-- Dev login (hidden by default) -->
+          <div class="dev-section" id="mobile-dev" style="display:none">
+            <div class="login-divider">
+              <span>Development</span>
+            </div>
+            <form class="dev-form">
+              <input type="email" class="dev-input" placeholder="dev@test.com" aria-label="Development email">
+              <button type="button" class="dev-btn">Dev Login</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- PWA install hint -->
+        <div class="pwa-hint">
+          <span class="share-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+              <polyline points="16 6 12 2 8 6"/>
+              <line x1="12" y1="2" x2="12" y2="15"/>
+            </svg>
+          </span>
+          Tap Share, then "Add to Home Screen" for the best experience
+        </div>
+
+        <div class="login-footer">
+          <p class="login-footer-text">Personal &middot; Self-hosted &middot; Offline-first</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Viewport toggle
+  document.getElementById('viewport-select').addEventListener('change', function() {
+    document.getElementById('wireframe-wrap').dataset.viewport = this.value;
+  });
+
+  // Theme toggle
+  let dark = false;
+  document.getElementById('theme-toggle').addEventListener('click', function() {
+    dark = !dark;
+    if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  });
+
+  // Dev mode toggle
+  document.getElementById('dev-toggle').addEventListener('change', function() {
+    const isDev = this.value === 'dev';
+    document.getElementById('desktop-dev').style.display = isDev ? '' : 'none';
+    document.getElementById('mobile-dev').style.display = isDev ? '' : 'none';
+  });
+</script>
+</body>
+</html>

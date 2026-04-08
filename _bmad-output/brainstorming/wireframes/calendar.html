@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoIt — Calendar Wireframe</title>
+<style>
+  :root {
+    --color-accent: #007aff;
+    --color-danger: #ff3b30;
+    --color-success: #34c759;
+    --color-warning: #ff9500;
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f7;
+    --color-bg-tertiary: #e8e8ed;
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #86868b;
+    --color-text-tertiary: #c7c7cc;
+    --color-border: #e5e5ea;
+    --font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-popover: 0 4px 16px rgba(0,0,0,0.12);
+    --shadow-modal: 0 8px 32px rgba(0,0,0,0.16);
+  }
+
+  [data-theme="dark"] {
+    --color-bg: #1c1c1e;
+    --color-bg-secondary: #2c2c2e;
+    --color-bg-tertiary: #3a3a3c;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #98989d;
+    --color-text-tertiary: #636366;
+    --color-border: #38383a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-family);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── Controls Bar ── */
+  .controls-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+  }
+  .controls-bar label {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+  }
+  .controls-bar select, .controls-bar button {
+    font-family: var(--font-family);
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    min-height: 32px;
+  }
+  .controls-bar button:hover { background: var(--color-bg-tertiary); }
+  .controls-bar .spacer { flex: 1; }
+
+  /* ── Wireframe Container ── */
+  .wireframe-wrap {
+    margin-top: 56px;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 48px;
+  }
+  .phone-frame {
+    width: 390px;
+    min-height: 844px;
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--color-bg);
+    box-shadow: var(--shadow-modal);
+    display: none;
+    flex-direction: column;
+  }
+  .desktop-frame {
+    width: 100%;
+    max-width: 1200px;
+    min-height: 800px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--color-bg);
+    box-shadow: var(--shadow-modal);
+    display: flex;
+    flex-direction: column;
+  }
+  .wireframe-wrap[data-viewport="mobile"] .phone-frame { display: flex; }
+  .wireframe-wrap[data-viewport="mobile"] .desktop-frame { display: none; }
+  .wireframe-wrap[data-viewport="desktop"] .phone-frame { display: none; }
+  .wireframe-wrap[data-viewport="desktop"] .desktop-frame { display: flex; }
+
+  /* ── Page Header ── */
+  .page-header {
+    padding: 20px 20px 8px;
+    flex-shrink: 0;
+  }
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .today-btn {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family);
+  }
+
+  /* ── View Switcher ── */
+  .view-switcher {
+    display: flex;
+    margin: 8px 20px 4px;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+    gap: 2px;
+  }
+  .view-tab {
+    flex: 1;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 12px;
+    border-radius: 5px;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-family: var(--font-family);
+    min-height: 34px;
+    transition: all 0.2s;
+  }
+  .view-tab.active {
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    font-weight: 600;
+  }
+
+  /* ── Month Navigation ── */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px;
+    gap: 16px;
+  }
+  .month-nav-btn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-full);
+    transition: background 0.2s;
+  }
+  .month-nav-btn:hover { background: var(--color-bg-secondary); }
+  .month-label {
+    font-size: 16px;
+    font-weight: 600;
+    min-width: 160px;
+    text-align: center;
+    color: var(--color-text-primary);
+  }
+
+  /* ── Weekday Headers ── */
+  .weekday-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 0 12px;
+    margin-bottom: 4px;
+  }
+  .weekday-cell {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 0;
+  }
+  .weekday-cell.weekend { color: var(--color-text-tertiary); }
+
+  /* ── Calendar Grid (Desktop) ── */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    flex: 1;
+    padding: 0 12px 12px;
+    gap: 1px;
+  }
+  .cal-day {
+    min-height: 110px;
+    padding: 6px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: box-shadow 0.2s, background 0.15s;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .cal-day:hover {
+    box-shadow: inset 0 0 0 2px var(--color-accent);
+  }
+  .cal-day.other-month {
+    background: var(--color-bg-secondary);
+    opacity: 0.5;
+  }
+  .cal-day.weekend-col {
+    background: color-mix(in srgb, var(--color-bg-secondary) 50%, var(--color-bg));
+  }
+  .cal-day.today {
+    box-shadow: inset 0 0 0 2px var(--color-accent);
+  }
+
+  .day-number {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    margin-bottom: 4px;
+  }
+  .today .day-number {
+    background: var(--color-accent);
+    color: #fff;
+    font-weight: 700;
+  }
+  .other-month .day-number { color: var(--color-text-tertiary); }
+
+  .day-tasks {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+  }
+  .day-task {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    transition: background 0.15s;
+    min-height: 20px;
+  }
+  .day-task:hover { background: var(--color-bg-tertiary); }
+  .task-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+  }
+  .day-task .task-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .day-task.phantom { opacity: 0.5; }
+  .day-overflow {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    padding: 2px 4px;
+    font-weight: 500;
+  }
+
+  /* Quick-add indicator on day hover */
+  .cal-day .quick-add-hint {
+    display: none;
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-full);
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 14px;
+    line-height: 20px;
+    text-align: center;
+    font-weight: 300;
+  }
+  .cal-day:hover .quick-add-hint { display: block; }
+
+  /* Drag affordance */
+  .day-task.draggable {
+    cursor: grab;
+    position: relative;
+  }
+  .day-task.draggable::before {
+    content: '⠿';
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+    margin-right: 2px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .day-task.draggable:hover::before { opacity: 1; }
+
+  /* ── Mobile Calendar: Compact Dots ── */
+  .cal-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 0 8px 8px;
+    gap: 1px;
+  }
+  .cal-day-compact {
+    min-height: 48px;
+    padding: 4px 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .cal-day-compact:hover, .cal-day-compact.selected {
+    background: var(--color-bg-secondary);
+  }
+  .cal-day-compact.today .day-number-compact {
+    background: var(--color-accent);
+    color: #fff;
+    font-weight: 700;
+  }
+  .cal-day-compact.other-month { opacity: 0.4; }
+  .day-number-compact {
+    font-size: 14px;
+    font-weight: 500;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    color: var(--color-text-primary);
+  }
+  .cal-day-compact.selected .day-number-compact {
+    background: var(--color-bg-tertiary);
+  }
+  .cal-day-compact.today.selected .day-number-compact {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  .task-dots {
+    display: flex;
+    gap: 3px;
+    margin-top: 3px;
+    min-height: 6px;
+  }
+  .task-dots .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: var(--radius-full);
+  }
+
+  /* ── Mobile Selected Day Panel ── */
+  .day-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 12px 20px;
+    border-top: 1px solid var(--color-border);
+  }
+  .day-panel-header {
+    padding: 12px 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .day-panel-date {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .day-panel-add {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--color-accent);
+    cursor: pointer;
+    font-size: 22px;
+    border-radius: var(--radius-full);
+  }
+  .day-panel-add:hover { background: var(--color-bg-secondary); }
+
+  .day-task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--color-border);
+    min-height: 52px;
+  }
+  .day-task-item .checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--color-text-tertiary);
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .day-task-item .checkbox:hover { border-color: var(--color-accent); }
+  .day-task-item .task-info { flex: 1; min-width: 0; }
+  .day-task-item .task-name {
+    font-size: 15px;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .day-task-item .task-meta {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+  }
+  .day-task-item .recurrence-icon {
+    color: var(--color-text-tertiary);
+    font-size: 12px;
+  }
+
+  .empty-day {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+  }
+
+  /* ── Week Strip (Mobile) ── */
+  .week-strip {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 12px;
+    gap: 4px;
+    scroll-snap-type: x mandatory;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .week-strip::-webkit-scrollbar { display: none; }
+  .week-day {
+    flex-shrink: 0;
+    width: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 4px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    scroll-snap-align: center;
+    transition: background 0.15s;
+  }
+  .week-day:hover { background: var(--color-bg-secondary); }
+  .week-day.active { background: var(--color-accent); }
+  .week-day .wd-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+  }
+  .week-day.active .wd-label { color: rgba(255,255,255,0.7); }
+  .week-day .wd-num {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .week-day.active .wd-num { color: #fff; }
+  .week-day .wd-dots {
+    display: flex;
+    gap: 2px;
+    margin-top: 4px;
+    min-height: 4px;
+  }
+  .week-day .wd-dots .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+  }
+
+  /* ── Desktop Day Focus Popover ── */
+  .day-popover {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 360px;
+    max-height: 480px;
+    background: var(--color-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-modal);
+    border: 1px solid var(--color-border);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .day-popover-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .day-popover-title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .day-popover-close {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    border: none;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+    font-family: var(--font-family);
+  }
+  .day-popover-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .day-popover-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: var(--color-accent);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: var(--font-family);
+    font-weight: 500;
+    min-height: 44px;
+    width: 100%;
+    border-top: 1px solid var(--color-border);
+  }
+  .day-popover-add:hover { background: var(--color-bg-secondary); }
+
+  /* ── CSS Animation for month transition ── */
+  @keyframes slideInRight {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideInLeft {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .cal-grid, .cal-grid-compact {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  /* ── Desktop Overlay ── */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.2);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+    border-radius: 12px;
+  }
+
+  .desktop-frame { position: relative; }
+</style>
+</head>
+<body>
+
+<div class="controls-bar">
+  <label>Viewport:</label>
+  <select id="viewport-select">
+    <option value="desktop">Desktop</option>
+    <option value="mobile">Mobile</option>
+  </select>
+  <label style="margin-left:12px">Theme:</label>
+  <button id="theme-toggle">Toggle Dark Mode</button>
+  <span class="spacer"></span>
+  <span style="font-size:12px;color:var(--color-text-secondary)">DoIt Calendar Wireframe</span>
+</div>
+
+<div class="wireframe-wrap" id="wireframe-wrap" data-viewport="desktop">
+
+  <!-- ═══════════════════ DESKTOP ═══════════════════ -->
+  <div class="desktop-frame" id="desktop-frame">
+    <div class="page-header">
+      <div class="header-row">
+        <h1>Calendar</h1>
+        <button class="today-btn">Today</button>
+      </div>
+    </div>
+
+    <!-- View switcher -->
+    <div class="view-switcher">
+      <button class="view-tab active">Month</button>
+      <button class="view-tab">Week</button>
+    </div>
+
+    <!-- Month navigation -->
+    <div class="month-nav">
+      <button class="month-nav-btn" aria-label="Previous month">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="month-label">April 2026</span>
+      <button class="month-nav-btn" aria-label="Next month">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+
+    <!-- Weekday headers -->
+    <div class="weekday-row">
+      <div class="weekday-cell weekend">Sun</div>
+      <div class="weekday-cell">Mon</div>
+      <div class="weekday-cell">Tue</div>
+      <div class="weekday-cell">Wed</div>
+      <div class="weekday-cell">Thu</div>
+      <div class="weekday-cell">Fri</div>
+      <div class="weekday-cell weekend">Sat</div>
+    </div>
+
+    <!-- Calendar grid -->
+    <div class="cal-grid" id="desktop-cal-grid">
+      <!-- Row 1: Mar 29 - Apr 4 -->
+      <div class="cal-day other-month weekend-col"><div class="day-number">29</div></div>
+      <div class="cal-day other-month"><div class="day-number">30</div></div>
+      <div class="cal-day other-month"><div class="day-number">31</div></div>
+      <div class="cal-day"><div class="day-number">1</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff3b30"></span><span class="task-title">Q1 report deadline</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">2</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff9500"></span><span class="task-title">Dentist appointment</span></div>
+          <div class="day-task phantom draggable"><span class="task-dot" style="background:#007aff"></span><span class="task-title">Daily standup</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">3</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day weekend-col"><div class="day-number">4</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#34c759"></span><span class="task-title">Grocery shopping</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+
+      <!-- Row 2: Apr 5-11 -->
+      <div class="cal-day weekend-col"><div class="day-number">5</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day today"><div class="day-number">6</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff3b30"></span><span class="task-title">Ship calendar redesign</span></div>
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff9500"></span><span class="task-title">Review pull requests</span></div>
+          <div class="day-task phantom draggable"><span class="task-dot" style="background:#007aff"></span><span class="task-title">Daily standup</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">7</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#5856d6"></span><span class="task-title">Design review meeting</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">8</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">9</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff9500"></span><span class="task-title">Weekly sync</span></div>
+          <div class="day-task phantom draggable"><span class="task-dot" style="background:#007aff"></span><span class="task-title">Daily standup</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">10</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff3b30"></span><span class="task-title">Deploy v2.0</span></div>
+          <div class="day-task draggable"><span class="task-dot" style="background:#34c759"></span><span class="task-title">Write changelog</span></div>
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff9500"></span><span class="task-title">Notify stakeholders</span></div>
+          <div class="day-overflow">+1 more</div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day weekend-col"><div class="day-number">11</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+
+      <!-- Row 3: Apr 12-18 -->
+      <div class="cal-day weekend-col"><div class="day-number">12</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#34c759"></span><span class="task-title">Meal prep</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">13</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">14</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff9500"></span><span class="task-title">Sprint planning</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">15</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff3b30"></span><span class="task-title">Tax filing deadline</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">16</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">17</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day weekend-col"><div class="day-number">18</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+
+      <!-- Row 4: Apr 19-25 -->
+      <div class="cal-day weekend-col"><div class="day-number">19</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">20</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#5856d6"></span><span class="task-title">Backend refactor</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">21</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">22</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff9500"></span><span class="task-title">1:1 with manager</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">23</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">24</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#34c759"></span><span class="task-title">Book flights</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day weekend-col"><div class="day-number">25</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+
+      <!-- Row 5: Apr 26-May 2 -->
+      <div class="cal-day weekend-col"><div class="day-number">26</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">27</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">28</div>
+        <div class="day-tasks">
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff3b30"></span><span class="task-title">Sprint demo</span></div>
+          <div class="day-task draggable"><span class="task-dot" style="background:#ff9500"></span><span class="task-title">Retro meeting</span></div>
+        </div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">29</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day"><div class="day-number">30</div>
+        <span class="quick-add-hint">+</span>
+      </div>
+      <div class="cal-day other-month"><div class="day-number">1</div></div>
+      <div class="cal-day other-month weekend-col"><div class="day-number">2</div></div>
+
+      <!-- Row 6 -->
+      <div class="cal-day other-month weekend-col"><div class="day-number">3</div></div>
+      <div class="cal-day other-month"><div class="day-number">4</div></div>
+      <div class="cal-day other-month"><div class="day-number">5</div></div>
+      <div class="cal-day other-month"><div class="day-number">6</div></div>
+      <div class="cal-day other-month"><div class="day-number">7</div></div>
+      <div class="cal-day other-month"><div class="day-number">8</div></div>
+      <div class="cal-day other-month weekend-col"><div class="day-number">9</div></div>
+    </div>
+
+    <!-- Day Focus Popover (shows when clicking a day) -->
+    <div class="overlay" id="desktop-overlay" style="display:none"></div>
+    <div class="day-popover" id="desktop-popover" style="display:none">
+      <div class="day-popover-header">
+        <span class="day-popover-title">Monday, April 6</span>
+        <button class="day-popover-close" id="popover-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="day-popover-body">
+        <div class="day-task-item">
+          <div class="checkbox" style="border-color:#ff3b30"></div>
+          <div class="task-info">
+            <div class="task-name">Ship calendar redesign</div>
+            <div class="task-meta">Work &middot; High priority</div>
+          </div>
+        </div>
+        <div class="day-task-item">
+          <div class="checkbox" style="border-color:#ff9500"></div>
+          <div class="task-info">
+            <div class="task-name">Review pull requests</div>
+            <div class="task-meta">Work &middot; Medium priority</div>
+          </div>
+        </div>
+        <div class="day-task-item" style="opacity:0.5">
+          <div class="checkbox" style="border-color:#c7c7cc"></div>
+          <div class="task-info">
+            <div class="task-name">Daily standup</div>
+            <div class="task-meta">
+              <span class="recurrence-icon">&#x21bb;</span> Recurring daily &middot; Work
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="day-popover-add">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add task for April 6
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ MOBILE ═══════════════════ -->
+  <div class="phone-frame" id="mobile-frame">
+    <div class="page-header" style="padding: 16px 16px 4px">
+      <div class="header-row">
+        <h1 style="font-size:24px">Calendar</h1>
+        <button class="today-btn">Today</button>
+      </div>
+    </div>
+
+    <!-- View switcher -->
+    <div class="view-switcher" style="margin: 4px 16px">
+      <button class="view-tab active" id="mobile-month-tab">Month</button>
+      <button class="view-tab" id="mobile-week-tab">Week</button>
+    </div>
+
+    <!-- MONTH VIEW (Mobile) -->
+    <div id="mobile-month-view">
+      <div class="month-nav" style="padding: 4px 16px">
+        <button class="month-nav-btn" aria-label="Previous month">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <span class="month-label" style="font-size:15px">April 2026</span>
+        <button class="month-nav-btn" aria-label="Next month">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+
+      <div class="weekday-row" style="padding: 0 8px">
+        <div class="weekday-cell weekend">S</div>
+        <div class="weekday-cell">M</div>
+        <div class="weekday-cell">T</div>
+        <div class="weekday-cell">W</div>
+        <div class="weekday-cell">T</div>
+        <div class="weekday-cell">F</div>
+        <div class="weekday-cell weekend">S</div>
+      </div>
+
+      <div class="cal-grid-compact">
+        <!-- Row 1 -->
+        <div class="cal-day-compact other-month"><span class="day-number-compact">29</span></div>
+        <div class="cal-day-compact other-month"><span class="day-number-compact">30</span></div>
+        <div class="cal-day-compact other-month"><span class="day-number-compact">31</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">1</span><div class="task-dots"><span class="dot" style="background:#ff3b30"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">2</span><div class="task-dots"><span class="dot" style="background:#ff9500"></span><span class="dot" style="background:#007aff"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">3</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">4</span><div class="task-dots"><span class="dot" style="background:#34c759"></span></div></div>
+
+        <!-- Row 2 -->
+        <div class="cal-day-compact"><span class="day-number-compact">5</span></div>
+        <div class="cal-day-compact today selected"><span class="day-number-compact">6</span><div class="task-dots"><span class="dot" style="background:#ff3b30"></span><span class="dot" style="background:#ff9500"></span><span class="dot" style="background:#007aff"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">7</span><div class="task-dots"><span class="dot" style="background:#5856d6"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">8</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">9</span><div class="task-dots"><span class="dot" style="background:#ff9500"></span><span class="dot" style="background:#007aff"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">10</span><div class="task-dots"><span class="dot" style="background:#ff3b30"></span><span class="dot" style="background:#34c759"></span><span class="dot" style="background:#ff9500"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">11</span></div>
+
+        <!-- Row 3 -->
+        <div class="cal-day-compact"><span class="day-number-compact">12</span><div class="task-dots"><span class="dot" style="background:#34c759"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">13</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">14</span><div class="task-dots"><span class="dot" style="background:#ff9500"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">15</span><div class="task-dots"><span class="dot" style="background:#ff3b30"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">16</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">17</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">18</span></div>
+
+        <!-- Row 4 -->
+        <div class="cal-day-compact"><span class="day-number-compact">19</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">20</span><div class="task-dots"><span class="dot" style="background:#5856d6"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">21</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">22</span><div class="task-dots"><span class="dot" style="background:#ff9500"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">23</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">24</span><div class="task-dots"><span class="dot" style="background:#34c759"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">25</span></div>
+
+        <!-- Row 5 -->
+        <div class="cal-day-compact"><span class="day-number-compact">26</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">27</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">28</span><div class="task-dots"><span class="dot" style="background:#ff3b30"></span><span class="dot" style="background:#ff9500"></span></div></div>
+        <div class="cal-day-compact"><span class="day-number-compact">29</span></div>
+        <div class="cal-day-compact"><span class="day-number-compact">30</span></div>
+        <div class="cal-day-compact other-month"><span class="day-number-compact">1</span></div>
+        <div class="cal-day-compact other-month"><span class="day-number-compact">2</span></div>
+      </div>
+    </div>
+
+    <!-- WEEK VIEW (Mobile) - hidden by default -->
+    <div id="mobile-week-view" style="display:none">
+      <div class="week-strip">
+        <div class="week-day"><span class="wd-label">Sun</span><span class="wd-num">5</span></div>
+        <div class="week-day active"><span class="wd-label">Mon</span><span class="wd-num">6</span><div class="wd-dots"><span class="dot" style="background:#ff3b30"></span><span class="dot" style="background:#ff9500"></span><span class="dot" style="background:#007aff"></span></div></div>
+        <div class="week-day"><span class="wd-label">Tue</span><span class="wd-num">7</span><div class="wd-dots"><span class="dot" style="background:#5856d6"></span></div></div>
+        <div class="week-day"><span class="wd-label">Wed</span><span class="wd-num">8</span></div>
+        <div class="week-day"><span class="wd-label">Thu</span><span class="wd-num">9</span><div class="wd-dots"><span class="dot" style="background:#ff9500"></span><span class="dot" style="background:#007aff"></span></div></div>
+        <div class="week-day"><span class="wd-label">Fri</span><span class="wd-num">10</span><div class="wd-dots"><span class="dot" style="background:#ff3b30"></span><span class="dot" style="background:#34c759"></span></div></div>
+        <div class="week-day"><span class="wd-label">Sat</span><span class="wd-num">11</span></div>
+      </div>
+    </div>
+
+    <!-- Selected Day Task List (Mobile) -->
+    <div class="day-panel">
+      <div class="day-panel-header">
+        <span class="day-panel-date">Monday, April 6</span>
+        <button class="day-panel-add" aria-label="Add task">+</button>
+      </div>
+      <div class="day-task-item">
+        <div class="checkbox" style="border-color:#ff3b30"></div>
+        <div class="task-info">
+          <div class="task-name">Ship calendar redesign</div>
+          <div class="task-meta">Work &middot; High priority</div>
+        </div>
+      </div>
+      <div class="day-task-item">
+        <div class="checkbox" style="border-color:#ff9500"></div>
+        <div class="task-info">
+          <div class="task-name">Review pull requests</div>
+          <div class="task-meta">Work &middot; Medium priority</div>
+        </div>
+      </div>
+      <div class="day-task-item" style="opacity:0.5">
+        <div class="checkbox" style="border-color:#c7c7cc"></div>
+        <div class="task-info">
+          <div class="task-name">Daily standup</div>
+          <div class="task-meta">
+            <span class="recurrence-icon">&#x21bb;</span> Recurring daily &middot; Work
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom safe area -->
+    <div style="height:34px;flex-shrink:0;background:var(--color-bg)"></div>
+  </div>
+</div>
+
+<script>
+  // Viewport toggle
+  document.getElementById('viewport-select').addEventListener('change', function() {
+    document.getElementById('wireframe-wrap').dataset.viewport = this.value;
+  });
+
+  // Theme toggle
+  document.getElementById('theme-toggle').addEventListener('click', function() {
+    document.documentElement.toggleAttribute('data-theme') ||
+    document.documentElement.setAttribute('data-theme', 'dark');
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  });
+  let dark = false;
+  document.getElementById('theme-toggle').addEventListener('click', function() {
+    dark = !dark;
+    if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  });
+
+  // Desktop: day click shows popover
+  document.querySelectorAll('#desktop-frame .cal-day.today').forEach(day => {
+    day.addEventListener('click', function() {
+      document.getElementById('desktop-overlay').style.display = 'block';
+      document.getElementById('desktop-popover').style.display = 'flex';
+    });
+  });
+  document.getElementById('popover-close').addEventListener('click', function() {
+    document.getElementById('desktop-overlay').style.display = 'none';
+    document.getElementById('desktop-popover').style.display = 'none';
+  });
+  document.getElementById('desktop-overlay').addEventListener('click', function() {
+    this.style.display = 'none';
+    document.getElementById('desktop-popover').style.display = 'none';
+  });
+
+  // Mobile: month/week tab toggle
+  document.getElementById('mobile-month-tab').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('mobile-week-tab').classList.remove('active');
+    document.getElementById('mobile-month-view').style.display = '';
+    document.getElementById('mobile-week-view').style.display = 'none';
+  });
+  document.getElementById('mobile-week-tab').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('mobile-month-tab').classList.remove('active');
+    document.getElementById('mobile-month-view').style.display = 'none';
+    document.getElementById('mobile-week-view').style.display = '';
+  });
+</script>
+</body>
+</html>

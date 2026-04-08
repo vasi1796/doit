@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DoIt Layout Shell</title>
+<style>
+/* ============================================================
+   DESIGN TOKENS (same as design-system.html)
+   ============================================================ */
+:root {
+  --color-accent: #3478F6;
+  --color-accent-hover: #2563EB;
+  --color-accent-light: rgba(52, 120, 246, 0.10);
+  --color-accent-medium: rgba(52, 120, 246, 0.18);
+
+  --color-red: #FF453A;
+  --color-orange: #FF9F0A;
+  --color-yellow: #FFD60A;
+  --color-green: #30D158;
+  --color-teal: #64D2FF;
+  --color-purple: #BF5AF2;
+  --color-pink: #FF375F;
+  --color-indigo: #5E5CE6;
+  --color-gray: #8E8E93;
+
+  --color-bg: #FFFFFF;
+  --color-bg-secondary: #F2F2F7;
+  --color-bg-tertiary: #E5E5EA;
+  --color-bg-elevated: #FFFFFF;
+
+  --color-text-primary: #1C1C1E;
+  --color-text-secondary: #636366;
+  --color-text-tertiary: #AEAEB2;
+  --color-text-quaternary: #C7C7CC;
+
+  --color-separator: rgba(60, 60, 67, 0.12);
+  --color-separator-opaque: #D1D1D6;
+
+  --color-danger: #FF453A;
+  --color-success: #30D158;
+  --color-warning: #FF9F0A;
+
+  --priority-high: #FF453A;
+  --priority-medium: #FF9F0A;
+  --priority-low: #30D158;
+
+  --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+  --font-mono: 'SF Mono', SFMono-Regular, ui-monospace, monospace;
+
+  --text-title-1: 600 28px/34px var(--font-family);
+  --text-title-2: 600 22px/28px var(--font-family);
+  --text-title-3: 600 20px/24px var(--font-family);
+  --text-headline: 600 17px/22px var(--font-family);
+  --text-body: 400 17px/22px var(--font-family);
+  --text-callout: 400 16px/21px var(--font-family);
+  --text-subhead: 400 15px/20px var(--font-family);
+  --text-footnote: 400 13px/18px var(--font-family);
+  --text-caption-1: 400 12px/16px var(--font-family);
+  --text-caption-2: 400 11px/13px var(--font-family);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-popover: 0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-modal: 0 12px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-fab: 0 4px 14px rgba(52,120,246,0.30), 0 2px 6px rgba(0,0,0,0.08);
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* Sidebar specific */
+  --sidebar-width: 272px;
+  --bottom-nav-height: 50px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+[data-theme="dark"] {
+  --color-accent: #4A9EFF;
+  --color-accent-hover: #6BB3FF;
+  --color-accent-light: rgba(74, 158, 255, 0.12);
+  --color-accent-medium: rgba(74, 158, 255, 0.20);
+
+  --color-red: #FF6961;
+  --color-orange: #FFB340;
+  --color-green: #4ADE80;
+  --color-purple: #C084FC;
+  --color-pink: #FF6B8A;
+  --color-indigo: #818CF8;
+  --color-gray: #98989D;
+
+  --color-bg: #1C1C1E;
+  --color-bg-secondary: #2C2C2E;
+  --color-bg-tertiary: #3A3A3C;
+  --color-bg-elevated: #2C2C2E;
+
+  --color-text-primary: #F5F5F7;
+  --color-text-secondary: #98989D;
+  --color-text-tertiary: #636366;
+  --color-text-quaternary: #48484A;
+
+  --color-separator: rgba(84, 84, 88, 0.65);
+  --color-separator-opaque: #48484A;
+
+  --color-danger: #FF6961;
+  --color-success: #4ADE80;
+  --color-warning: #FFB340;
+
+  --priority-high: #FF6961;
+  --priority-medium: #FFB340;
+  --priority-low: #4ADE80;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-popover: 0 4px 20px rgba(0,0,0,0.40), 0 1px 6px rgba(0,0,0,0.25);
+  --shadow-modal: 0 12px 48px rgba(0,0,0,0.50), 0 4px 16px rgba(0,0,0,0.30);
+  --shadow-fab: 0 4px 16px rgba(74,158,255,0.25), 0 2px 6px rgba(0,0,0,0.20);
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font: var(--text-body);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background var(--transition-normal), color var(--transition-normal);
+}
+
+/* ============================================================
+   VIEWPORT INDICATOR (dev tool)
+   ============================================================ */
+.viewport-indicator {
+  position: fixed;
+  top: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-separator-opaque);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-popover);
+  font: var(--text-caption-1);
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  pointer-events: auto;
+}
+.viewport-indicator__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 11px;
+}
+.viewport-indicator__label--mobile {
+  background: rgba(255,55,95,0.12);
+  color: var(--color-pink);
+}
+.viewport-indicator__label--tablet {
+  background: rgba(191,90,242,0.12);
+  color: var(--color-purple);
+}
+.viewport-indicator__label--desktop {
+  background: rgba(52,120,246,0.12);
+  color: var(--color-accent);
+}
+.viewport-indicator__label--widescreen {
+  background: rgba(48,209,88,0.12);
+  color: var(--color-green);
+}
+
+/* ============================================================
+   THEME TOGGLE
+   ============================================================ */
+.controls {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-4);
+  z-index: 9999;
+  display: flex;
+  gap: var(--space-2);
+}
+.ctrl-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-separator-opaque);
+  border-radius: var(--radius-full);
+  font: var(--text-caption-1);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.ctrl-btn:hover { background: var(--color-bg-secondary); }
+.ctrl-btn svg { width: 14px; height: 14px; }
+
+/* ============================================================
+   APP SHELL — FULL LAYOUT
+   ============================================================ */
+.app-shell {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ============================================================
+   SIDEBAR (Desktop: always visible, Mobile: drawer)
+   ============================================================ */
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Frosted glass effect — improvement over flat gray */
+  background: rgba(242, 242, 247, 0.85);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-right: 1px solid var(--color-separator);
+  transition: background var(--transition-normal);
+}
+[data-theme="dark"] .sidebar {
+  background: rgba(44, 44, 46, 0.85);
+}
+
+.sidebar__scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-4);
+}
+
+/* Sidebar header */
+.sidebar__header {
+  padding: var(--space-5) var(--space-5) var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.sidebar__logo {
+  width: 28px;
+  height: 28px;
+  background: var(--color-accent);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+.sidebar__title {
+  font: var(--text-title-3);
+  color: var(--color-text-primary);
+  letter-spacing: -0.3px;
+}
+
+/* Search bar in sidebar */
+.sidebar__search {
+  margin: var(--space-3) var(--space-3) var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  min-height: 36px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.sidebar__search:hover { background: var(--color-separator-opaque); }
+.sidebar__search svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+.sidebar__search span {
+  flex: 1;
+  font: var(--text-footnote);
+  color: var(--color-text-tertiary);
+}
+.sidebar__search kbd {
+  font: var(--text-caption-2);
+  font-family: var(--font-mono);
+  color: var(--color-text-quaternary);
+  background: var(--color-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--color-separator);
+}
+
+/* Nav items */
+.sidebar__nav {
+  padding: 0 var(--space-2);
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  position: relative;
+  text-decoration: none;
+  color: var(--color-text-primary);
+  font: var(--text-subhead);
+}
+.nav-item:hover {
+  background: rgba(0,0,0,0.04);
+}
+[data-theme="dark"] .nav-item:hover {
+  background: rgba(255,255,255,0.06);
+}
+.nav-item--active {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+.nav-item--active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--color-accent-light);
+  border-radius: var(--radius-md);
+  z-index: -1;
+  animation: nav-active-in 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+@keyframes nav-active-in {
+  from { transform: scaleX(0.92) scaleY(0.85); opacity: 0; }
+  to { transform: scaleX(1) scaleY(1); opacity: 1; }
+}
+.nav-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+.nav-item--active svg {
+  color: var(--color-accent);
+}
+.nav-item__text {
+  flex: 1;
+}
+.nav-item__count {
+  font: var(--text-caption-1);
+  color: var(--color-text-tertiary);
+}
+.nav-item--active .nav-item__count {
+  color: var(--color-accent);
+  opacity: 0.7;
+}
+.nav-item__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  font: var(--text-caption-2);
+  font-weight: 600;
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* Section headers */
+.sidebar__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  margin-top: var(--space-2);
+}
+.sidebar__section-label {
+  font: var(--text-caption-2);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.sidebar__section-action {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  background: none;
+  border: none;
+}
+.sidebar__section-action:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+/* Color dots for lists */
+.nav-item__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Label color indicators (square) */
+.nav-item__label-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Collapsible section */
+.sidebar__collapsible {
+  overflow: hidden;
+  transition: max-height var(--transition-slow), opacity var(--transition-normal);
+}
+.sidebar__collapsible--collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+.sidebar__collapsible--expanded {
+  max-height: 500px;
+  opacity: 1;
+}
+
+/* Sidebar divider */
+.sidebar__divider {
+  height: 1px;
+  background: var(--color-separator);
+  margin: var(--space-3) var(--space-5);
+}
+
+/* Sidebar footer */
+.sidebar__footer {
+  padding: var(--space-2) var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-separator);
+  flex-shrink: 0;
+}
+.sidebar__footer-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  min-height: 38px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  font: var(--text-footnote);
+  color: var(--color-text-secondary);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.sidebar__footer-item:hover {
+  background: rgba(0,0,0,0.04);
+}
+[data-theme="dark"] .sidebar__footer-item:hover {
+  background: rgba(255,255,255,0.06);
+}
+.sidebar__footer-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Sync status indicator */
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--text-caption-2);
+  color: var(--color-success);
+}
+.sync-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+/* Toggle in sidebar */
+.sidebar-toggle {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--color-bg-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-normal);
+  border: none;
+  flex-shrink: 0;
+}
+.sidebar-toggle--on { background: var(--color-accent); }
+.sidebar-toggle__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  transition: transform var(--transition-normal);
+}
+.sidebar-toggle--on .sidebar-toggle__knob {
+  transform: translateX(18px);
+}
+
+/* ============================================================
+   MAIN CONTENT AREA
+   ============================================================ */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg);
+  min-width: 0;
+}
+
+.main__header {
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  flex-shrink: 0;
+}
+.main__title {
+  font: var(--text-title-1);
+  color: var(--color-text-primary);
+  letter-spacing: -0.5px;
+}
+
+.main__content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Task list content */
+.task-section {
+  padding: 0;
+}
+.task-section__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  position: sticky;
+  top: 0;
+  background: var(--color-bg);
+  z-index: 2;
+}
+.task-section__label {
+  font: var(--text-caption-2);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.task-section__line {
+  flex: 1;
+  height: 1px;
+  background: var(--color-separator);
+}
+
+/* Task rows */
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-6);
+  min-height: 44px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  position: relative;
+}
+.task-row:hover { background: var(--color-bg-secondary); }
+
+.task-row__priority-bar {
+  position: absolute;
+  left: 0;
+  top: var(--space-3);
+  bottom: var(--space-3);
+  width: 3px;
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+}
+
+.task-checkbox {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--color-text-quaternary);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  -webkit-tap-highlight-color: transparent;
+}
+.task-checkbox:hover { border-color: var(--color-accent); }
+.task-checkbox--high { border-color: var(--priority-high); }
+.task-checkbox--medium { border-color: var(--priority-medium); }
+.task-checkbox--low { border-color: var(--priority-low); }
+
+.task-row__body { flex: 1; min-width: 0; }
+.task-row__title {
+  font: var(--text-subhead);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task-row__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+.task-row__due {
+  font: var(--text-caption-1);
+  color: var(--color-text-secondary);
+}
+.task-row__due--overdue {
+  color: var(--color-danger);
+  font-weight: 500;
+}
+.task-row__label {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font: var(--text-caption-2);
+  font-weight: 500;
+}
+.task-row__subtask {
+  font: var(--text-caption-1);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.task-row__trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.task-separator {
+  height: 1px;
+  background: var(--color-separator);
+  margin: 0 var(--space-6);
+}
+
+/* ============================================================
+   DETAIL PANEL (iPad three-column)
+   ============================================================ */
+.detail-panel {
+  width: 380px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--color-separator);
+  background: var(--color-bg);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+.detail-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-separator);
+  flex-shrink: 0;
+}
+.detail-panel__close {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.detail-panel__close:hover {
+  background: var(--color-bg-secondary);
+}
+.detail-panel__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5);
+}
+.detail-panel__title {
+  font: var(--text-title-3);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+}
+.detail-panel__field {
+  margin-bottom: var(--space-5);
+}
+.detail-panel__field-label {
+  font: var(--text-footnote);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1);
+}
+.detail-panel__field-value {
+  font: var(--text-subhead);
+  color: var(--color-text-primary);
+}
+.detail-panel__description {
+  font: var(--text-subhead);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--space-5);
+}
+
+/* Subtask list in detail */
+.subtask-list { list-style: none; }
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  min-height: 36px;
+}
+.subtask-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-text-quaternary);
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.subtask-check:hover { border-color: var(--color-accent); }
+.subtask-check--done {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+.subtask-text {
+  font: var(--text-subhead);
+  color: var(--color-text-primary);
+}
+.subtask-text--done {
+  text-decoration: line-through;
+  color: var(--color-text-tertiary);
+}
+
+/* ============================================================
+   FAB (Floating Action Button)
+   ============================================================ */
+.fab {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-6);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-fab);
+  z-index: 50;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.fab:hover {
+  background: var(--color-accent-hover);
+  transform: scale(1.05);
+}
+.fab:active {
+  transform: scale(0.95);
+}
+.fab svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* ============================================================
+   BOTTOM NAV (Mobile only)
+   ============================================================ */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255,255,255,0.92);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid var(--color-separator);
+  z-index: 100;
+  padding-bottom: var(--safe-area-bottom);
+}
+[data-theme="dark"] .bottom-nav {
+  background: rgba(28,28,30,0.92);
+}
+.bottom-nav__tabs {
+  display: flex;
+}
+.bottom-nav__tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--bottom-nav-height);
+  padding: var(--space-1) 0;
+  color: var(--color-text-secondary);
+  font: var(--text-caption-2);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  background: none;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+.bottom-nav__tab--active {
+  color: var(--color-accent);
+}
+.bottom-nav__tab svg {
+  width: 22px;
+  height: 22px;
+  margin-bottom: 1px;
+}
+.bottom-nav__tab span {
+  font-size: 10px;
+  line-height: 1.2;
+}
+.bottom-nav__tab-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 18px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: #fff;
+  font: var(--text-caption-2);
+  font-weight: 700;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sync pill floating above bottom nav */
+.sync-pill {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom) + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font: var(--text-caption-2);
+  font-weight: 500;
+  z-index: 99;
+  animation: sync-pill-in 0.3s ease;
+}
+.sync-pill--pending {
+  background: rgba(255,159,10,0.12);
+  color: var(--color-warning);
+}
+.sync-pill--syncing {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+@keyframes sync-pill-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ============================================================
+   MOBILE DRAWER (Full-screen)
+   ============================================================ */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+.drawer-overlay--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  max-width: 85vw;
+  z-index: 201;
+  transform: translateX(-100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.drawer--open {
+  transform: translateX(0);
+}
+
+/* ============================================================
+   RESPONSIVE BREAKPOINTS
+   ============================================================ */
+
+/* Mobile (<768px): hide sidebar, show bottom nav */
+@media (max-width: 767px) {
+  .sidebar-desktop { display: none; }
+  .bottom-nav { display: block; }
+  .sync-pill { display: flex; }
+  .fab {
+    bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom) + var(--space-4));
+    right: var(--space-5);
+  }
+  .main__header {
+    padding: var(--space-5) var(--space-5) var(--space-3);
+  }
+  .task-row { padding-left: var(--space-5); padding-right: var(--space-5); }
+  .task-separator { margin: 0 var(--space-5); }
+  .task-section__header { padding-left: var(--space-5); padding-right: var(--space-5); }
+  .main__content { padding-bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom) + 80px); }
+}
+
+/* Tablet (768-1023px): sidebar visible, no detail panel */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sidebar-desktop { display: flex; }
+  .bottom-nav { display: none; }
+  .detail-panel { display: none; }
+}
+
+/* Desktop (1024px+): sidebar + detail panel */
+@media (min-width: 1024px) {
+  .sidebar-desktop { display: flex; }
+  .bottom-nav { display: none; }
+  .detail-panel { display: flex; }
+}
+
+/* Widescreen (1440px+): wider detail panel */
+@media (min-width: 1440px) {
+  .detail-panel { width: 440px; }
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty-state {
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+}
+.empty-state__icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--space-4);
+  color: var(--color-text-quaternary);
+}
+.empty-state__title {
+  font: var(--text-headline);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+.empty-state__text {
+  font: var(--text-subhead);
+  color: var(--color-text-tertiary);
+  max-width: 260px;
+  margin: 0 auto;
+}
+</style>
+</head>
+<body>
+
+<!-- Viewport width indicator -->
+<div class="viewport-indicator" id="viewportIndicator">
+  <span id="vpWidth">---</span>px
+  <span id="vpLabel" class="viewport-indicator__label viewport-indicator__label--desktop">Desktop</span>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <button class="ctrl-btn" onclick="toggleTheme()" id="themeToggle" aria-label="Toggle dark mode">
+    <svg id="themeIconLight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    <svg id="themeIconDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+    <span id="themeLabel">Dark</span>
+  </button>
+  <button class="ctrl-btn" onclick="toggleDrawer()" id="drawerToggle" aria-label="Toggle mobile drawer" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    Menu
+  </button>
+</div>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div class="app-shell">
+
+  <!-- ========== SIDEBAR (Desktop) ========== -->
+  <aside class="sidebar sidebar-desktop">
+    <div class="sidebar__scroll">
+      <!-- Logo & title -->
+      <div class="sidebar__header">
+        <div class="sidebar__logo">D</div>
+        <div class="sidebar__title">DoIt</div>
+      </div>
+
+      <!-- Search -->
+      <div class="sidebar__search" role="button" tabindex="0" aria-label="Search tasks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Search</span>
+        <kbd>&#8984;K</kbd>
+      </div>
+
+      <!-- Smart lists -->
+      <nav class="sidebar__nav">
+        <div class="nav-item nav-item--active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          <span class="nav-item__text">Inbox</span>
+          <span class="nav-item__badge">12</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+          <span class="nav-item__text">Today</span>
+          <span class="nav-item__badge" style="background:var(--color-danger)">5</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+          <span class="nav-item__text">Upcoming</span>
+          <span class="nav-item__count">8</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <span class="nav-item__text">Matrix</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="nav-item__text">Calendar</span>
+        </div>
+      </nav>
+
+      <div class="sidebar__divider"></div>
+
+      <!-- User lists -->
+      <div class="sidebar__section-header">
+        <span class="sidebar__section-label">Lists</span>
+        <button class="sidebar__section-action" aria-label="Add list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <nav class="sidebar__nav">
+        <div class="nav-item">
+          <span class="nav-item__dot" style="background: var(--color-accent)"></span>
+          <span class="nav-item__text">Work Projects</span>
+          <span class="nav-item__count">7</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-item__dot" style="background: var(--color-green)"></span>
+          <span class="nav-item__text">Groceries</span>
+          <span class="nav-item__count">3</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-item__dot" style="background: var(--color-purple)"></span>
+          <span class="nav-item__text">Home Renovation</span>
+          <span class="nav-item__count">15</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-item__dot" style="background: var(--color-orange)"></span>
+          <span class="nav-item__text">Learning</span>
+          <span class="nav-item__count">4</span>
+        </div>
+      </nav>
+
+      <!-- Labels (collapsible) -->
+      <div class="sidebar__section-header">
+        <span class="sidebar__section-label" style="cursor:pointer" onclick="toggleLabels()" role="button" tabindex="0">
+          <span id="labelsChevron" style="display:inline-block;transition:transform 0.2s;transform:rotate(90deg);font-size:10px;margin-right:4px">&#9654;</span>
+          Labels
+        </span>
+      </div>
+      <div class="sidebar__collapsible sidebar__collapsible--expanded" id="labelsSection">
+        <nav class="sidebar__nav">
+          <div class="nav-item">
+            <span class="nav-item__label-dot" style="background: var(--color-accent)"></span>
+            <span class="nav-item__text">Work</span>
+          </div>
+          <div class="nav-item">
+            <span class="nav-item__label-dot" style="background: var(--color-red)"></span>
+            <span class="nav-item__text">Urgent</span>
+          </div>
+          <div class="nav-item">
+            <span class="nav-item__label-dot" style="background: var(--color-green)"></span>
+            <span class="nav-item__text">Health</span>
+          </div>
+          <div class="nav-item">
+            <span class="nav-item__label-dot" style="background: var(--color-purple)"></span>
+            <span class="nav-item__text">Personal</span>
+          </div>
+        </nav>
+      </div>
+
+      <div class="sidebar__divider"></div>
+
+      <!-- Completed & Trash -->
+      <nav class="sidebar__nav">
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+          <span class="nav-item__text">Completed</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
+          <span class="nav-item__text">Trash</span>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Sidebar footer -->
+    <div class="sidebar__footer">
+      <button class="sidebar__footer-item" type="button">
+        <span class="sync-status">
+          <span class="sync-status__dot"></span>
+          Synced
+        </span>
+      </button>
+      <button class="sidebar__footer-item" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span style="flex:1">Reminders</span>
+        <span class="sidebar-toggle sidebar-toggle--on" role="switch" aria-checked="true"><span class="sidebar-toggle__knob"></span></span>
+      </button>
+      <button class="sidebar__footer-item" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Calendar Feed</span>
+      </button>
+      <button class="sidebar__footer-item" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Sign out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ========== MAIN CONTENT ========== -->
+  <div class="main">
+    <div class="main__header">
+      <h1 class="main__title">Inbox</h1>
+    </div>
+
+    <div class="main__content">
+      <!-- Overdue section -->
+      <div class="task-section">
+        <div class="task-section__header">
+          <span class="task-section__label" style="color: var(--color-danger)">Overdue</span>
+          <span class="task-section__line"></span>
+        </div>
+
+        <div class="task-row">
+          <div class="task-row__priority-bar" style="background: var(--priority-high)"></div>
+          <button class="task-checkbox task-checkbox--high" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Review PR #42 -- projection worker refactor</div>
+            <div class="task-row__meta">
+              <span class="task-row__due task-row__due--overdue">Yesterday</span>
+              <span class="task-row__label" style="background:rgba(52,120,246,0.12);color:var(--color-accent)">Work</span>
+            </div>
+          </div>
+          <div class="task-row__trailing">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--priority-high)" stroke="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="var(--priority-high)" stroke-width="2"/></svg>
+          </div>
+        </div>
+        <div class="task-separator"></div>
+
+        <div class="task-row">
+          <div class="task-row__priority-bar" style="background: var(--priority-medium)"></div>
+          <button class="task-checkbox task-checkbox--medium" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Fix CRDT merge edge case for empty OR-Sets</div>
+            <div class="task-row__meta">
+              <span class="task-row__due task-row__due--overdue">2 days ago</span>
+              <span class="task-row__label" style="background:rgba(255,69,58,0.12);color:var(--color-red)">Urgent</span>
+              <span class="task-row__label" style="background:rgba(52,120,246,0.12);color:var(--color-accent)">Work</span>
+            </div>
+          </div>
+          <div class="task-row__trailing">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--priority-medium)" stroke="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="var(--priority-medium)" stroke-width="2"/></svg>
+          </div>
+        </div>
+        <div class="task-separator"></div>
+      </div>
+
+      <!-- Today section -->
+      <div class="task-section">
+        <div class="task-section__header">
+          <span class="task-section__label">Today</span>
+          <span class="task-section__line"></span>
+        </div>
+
+        <div class="task-row">
+          <div class="task-row__priority-bar" style="background: var(--priority-high)"></div>
+          <button class="task-checkbox task-checkbox--high" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Deploy staging environment for QA testing</div>
+            <div class="task-row__meta">
+              <span class="task-row__due">Today at 2:00 PM</span>
+              <span class="task-row__subtask">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                1/3
+              </span>
+            </div>
+          </div>
+          <div class="task-row__trailing">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--priority-high)" stroke="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="var(--priority-high)" stroke-width="2"/></svg>
+          </div>
+        </div>
+        <div class="task-separator"></div>
+
+        <div class="task-row">
+          <button class="task-checkbox" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Prepare design system wireframes for review</div>
+            <div class="task-row__meta">
+              <span class="task-row__due">Today</span>
+              <span class="task-row__label" style="background:rgba(191,90,242,0.12);color:var(--color-purple)">Design</span>
+            </div>
+          </div>
+        </div>
+        <div class="task-separator"></div>
+
+        <div class="task-row">
+          <button class="task-checkbox" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Write integration tests for event store</div>
+            <div class="task-row__meta">
+              <span class="task-row__due">Today at 5:00 PM</span>
+            </div>
+          </div>
+        </div>
+        <div class="task-separator"></div>
+
+        <div class="task-row">
+          <div class="task-row__priority-bar" style="background: var(--priority-low)"></div>
+          <button class="task-checkbox task-checkbox--low" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Water the plants</div>
+            <div class="task-row__meta">
+              <span style="font:var(--text-caption-1);color:var(--color-text-secondary);display:inline-flex;align-items:center;gap:3px">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                Every 3 days
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="task-separator"></div>
+      </div>
+
+      <!-- No date section -->
+      <div class="task-section">
+        <div class="task-section__header">
+          <span class="task-section__label">No Date</span>
+          <span class="task-section__line"></span>
+        </div>
+
+        <div class="task-row">
+          <button class="task-checkbox" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Read DDIA Chapter 9 -- Consistency and Consensus</div>
+            <div class="task-row__meta">
+              <span class="task-row__label" style="background:rgba(255,159,10,0.12);color:var(--color-orange)">Learning</span>
+            </div>
+          </div>
+        </div>
+        <div class="task-separator"></div>
+
+        <div class="task-row">
+          <button class="task-checkbox" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Research background sync alternatives for Safari</div>
+          </div>
+        </div>
+        <div class="task-separator"></div>
+
+        <div class="task-row">
+          <button class="task-checkbox" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Set up automated PostgreSQL backups</div>
+            <div class="task-row__meta">
+              <span class="task-row__label" style="background:rgba(52,120,246,0.12);color:var(--color-accent)">Work</span>
+              <span class="task-row__subtask">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                0/2
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="task-separator"></div>
+
+        <div class="task-row">
+          <button class="task-checkbox" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Buy new running shoes</div>
+            <div class="task-row__meta">
+              <span class="task-row__label" style="background:rgba(48,209,88,0.12);color:var(--color-green)">Health</span>
+            </div>
+          </div>
+        </div>
+        <div class="task-separator"></div>
+
+        <div class="task-row">
+          <button class="task-checkbox" aria-label="Complete task"></button>
+          <div class="task-row__body">
+            <div class="task-row__title">Plan weekend hiking trip with friends</div>
+            <div class="task-row__meta">
+              <span class="task-row__label" style="background:rgba(191,90,242,0.12);color:var(--color-purple)">Personal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== DETAIL PANEL (iPad/Desktop) ========== -->
+  <div class="detail-panel">
+    <div class="detail-panel__header">
+      <span style="font:var(--text-footnote);color:var(--color-text-tertiary)">Task Detail</span>
+      <button class="detail-panel__close" aria-label="Close detail">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="detail-panel__content">
+      <!-- Task header -->
+      <div style="display:flex;align-items:flex-start;gap:var(--space-3);margin-bottom:var(--space-5)">
+        <button class="task-checkbox task-checkbox--high" aria-label="Complete task" style="margin-top:3px"></button>
+        <div class="detail-panel__title" style="margin-bottom:0">Deploy staging environment for QA testing</div>
+      </div>
+
+      <!-- Priority -->
+      <div class="detail-panel__field">
+        <div class="detail-panel__field-label">Priority</div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--radius-full);background:rgba(255,69,58,0.10);color:var(--priority-high);font:var(--text-footnote);font-weight:500">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+          High
+        </span>
+      </div>
+
+      <!-- Due date -->
+      <div class="detail-panel__field">
+        <div class="detail-panel__field-label">Due Date</div>
+        <div class="detail-panel__field-value">Today at 2:00 PM</div>
+      </div>
+
+      <!-- List -->
+      <div class="detail-panel__field">
+        <div class="detail-panel__field-label">List</div>
+        <div style="display:flex;align-items:center;gap:var(--space-2)">
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--color-accent)"></span>
+          <span class="detail-panel__field-value">Work Projects</span>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="detail-panel__field">
+        <div class="detail-panel__field-label">Notes</div>
+        <div class="detail-panel__description">
+          Need to deploy the staging build before QA team starts testing at 3 PM. Make sure to run the migration script first and verify the RabbitMQ connection is stable.
+        </div>
+      </div>
+
+      <!-- Subtasks -->
+      <div class="detail-panel__field">
+        <div class="detail-panel__field-label">Subtasks (1/3)</div>
+        <ul class="subtask-list">
+          <li class="subtask-item">
+            <button class="subtask-check subtask-check--done" aria-label="Uncomplete subtask">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </button>
+            <span class="subtask-text subtask-text--done">Run database migrations</span>
+          </li>
+          <li class="subtask-item">
+            <button class="subtask-check" aria-label="Complete subtask"></button>
+            <span class="subtask-text">Deploy API and worker services</span>
+          </li>
+          <li class="subtask-item">
+            <button class="subtask-check" aria-label="Complete subtask"></button>
+            <span class="subtask-text">Verify health checks pass</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Labels -->
+      <div class="detail-panel__field">
+        <div class="detail-panel__field-label">Labels</div>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)">
+          <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:var(--radius-full);font:var(--text-caption-1);font-weight:500;background:rgba(52,120,246,0.12);color:var(--color-accent)">Work</span>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:var(--space-2);margin-top:var(--space-6);padding-top:var(--space-4);border-top:1px solid var(--color-separator)">
+        <button style="flex:1;min-height:44px;border:none;border-radius:var(--radius-md);background:var(--color-bg-secondary);color:var(--color-text-primary);font:var(--text-subhead);font-weight:500;cursor:pointer;transition:all 0.15s ease" onmouseover="this.style.background='var(--color-bg-tertiary)'" onmouseout="this.style.background='var(--color-bg-secondary)'">
+          Move to List
+        </button>
+        <button style="min-height:44px;padding:0 var(--space-4);border:none;border-radius:var(--radius-md);background:rgba(255,69,58,0.1);color:var(--color-danger);font:var(--text-subhead);font-weight:500;cursor:pointer;transition:all 0.15s ease" onmouseover="this.style.background='rgba(255,69,58,0.18)'" onmouseout="this.style.background='rgba(255,69,58,0.1)'">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.app-shell -->
+
+<!-- ========== FAB ========== -->
+<button class="fab" aria-label="New task">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
+
+<!-- ========== BOTTOM NAV (Mobile) ========== -->
+<nav class="bottom-nav">
+  <div class="bottom-nav__tabs">
+    <button class="bottom-nav__tab bottom-nav__tab--active" aria-label="Inbox">
+      <span class="bottom-nav__tab-badge">12</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+      <span>Inbox</span>
+    </button>
+    <button class="bottom-nav__tab" aria-label="Today">
+      <span class="bottom-nav__tab-badge" style="background:var(--color-danger)">5</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+      <span>Today</span>
+    </button>
+    <button class="bottom-nav__tab" aria-label="Upcoming">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+      <span>Upcoming</span>
+    </button>
+    <button class="bottom-nav__tab" aria-label="Done">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+      <span>Done</span>
+    </button>
+    <button class="bottom-nav__tab" aria-label="More" onclick="toggleDrawer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <span>More</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ========== SYNC PILL (Mobile) ========== -->
+<div class="sync-pill sync-pill--pending" id="syncPill" style="display:none">
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+  Pending changes
+</div>
+
+<!-- ========== MOBILE DRAWER ========== -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+<div class="drawer" id="drawer">
+  <aside class="sidebar" style="width:100%;border-right:none">
+    <div class="sidebar__scroll">
+      <div class="sidebar__header">
+        <div class="sidebar__logo">D</div>
+        <div class="sidebar__title">DoIt</div>
+      </div>
+
+      <div class="sidebar__search" role="button" tabindex="0" aria-label="Search tasks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Search</span>
+      </div>
+
+      <div class="sidebar__section-header">
+        <span class="sidebar__section-label">Lists</span>
+        <button class="sidebar__section-action" aria-label="Add list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <nav class="sidebar__nav">
+        <div class="nav-item">
+          <span class="nav-item__dot" style="background: var(--color-accent)"></span>
+          <span class="nav-item__text">Work Projects</span>
+          <span class="nav-item__count">7</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-item__dot" style="background: var(--color-green)"></span>
+          <span class="nav-item__text">Groceries</span>
+          <span class="nav-item__count">3</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-item__dot" style="background: var(--color-purple)"></span>
+          <span class="nav-item__text">Home Renovation</span>
+          <span class="nav-item__count">15</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-item__dot" style="background: var(--color-orange)"></span>
+          <span class="nav-item__text">Learning</span>
+          <span class="nav-item__count">4</span>
+        </div>
+      </nav>
+
+      <div class="sidebar__section-header">
+        <span class="sidebar__section-label">Labels</span>
+      </div>
+      <nav class="sidebar__nav">
+        <div class="nav-item">
+          <span class="nav-item__label-dot" style="background: var(--color-accent)"></span>
+          <span class="nav-item__text">Work</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-item__label-dot" style="background: var(--color-red)"></span>
+          <span class="nav-item__text">Urgent</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-item__label-dot" style="background: var(--color-green)"></span>
+          <span class="nav-item__text">Health</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-item__label-dot" style="background: var(--color-purple)"></span>
+          <span class="nav-item__text">Personal</span>
+        </div>
+      </nav>
+
+      <div class="sidebar__divider"></div>
+
+      <nav class="sidebar__nav">
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <span class="nav-item__text">Eisenhower Matrix</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="nav-item__text">Calendar</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
+          <span class="nav-item__text">Trash</span>
+        </div>
+      </nav>
+    </div>
+
+    <div class="sidebar__footer">
+      <button class="sidebar__footer-item" type="button">
+        <span class="sync-status"><span class="sync-status__dot"></span> Synced</span>
+      </button>
+      <button class="sidebar__footer-item" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Sign out</span>
+      </button>
+    </div>
+  </aside>
+</div>
+
+<script>
+// === Theme toggle ===
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeIconLight').style.display = isDark ? '' : 'none';
+  document.getElementById('themeIconDark').style.display = isDark ? 'none' : '';
+  document.getElementById('themeLabel').textContent = isDark ? 'Dark' : 'Light';
+}
+if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+  toggleTheme();
+}
+
+// === Viewport indicator ===
+function updateViewport() {
+  const w = window.innerWidth;
+  document.getElementById('vpWidth').textContent = w;
+  const label = document.getElementById('vpLabel');
+
+  // Remove all label classes
+  label.className = 'viewport-indicator__label';
+
+  if (w < 768) {
+    label.textContent = 'Mobile';
+    label.classList.add('viewport-indicator__label--mobile');
+  } else if (w < 1024) {
+    label.textContent = 'Tablet';
+    label.classList.add('viewport-indicator__label--tablet');
+  } else if (w < 1440) {
+    label.textContent = 'Desktop';
+    label.classList.add('viewport-indicator__label--desktop');
+  } else {
+    label.textContent = 'Widescreen';
+    label.classList.add('viewport-indicator__label--widescreen');
+  }
+
+  // Show/hide drawer toggle button
+  const drawerToggle = document.getElementById('drawerToggle');
+  if (w < 768) {
+    drawerToggle.style.display = 'flex';
+    document.getElementById('syncPill').style.display = 'flex';
+  } else {
+    drawerToggle.style.display = 'none';
+    document.getElementById('syncPill').style.display = 'none';
+    // Close drawer if open
+    document.getElementById('drawerOverlay').classList.remove('drawer-overlay--open');
+    document.getElementById('drawer').classList.remove('drawer--open');
+  }
+}
+window.addEventListener('resize', updateViewport);
+updateViewport();
+
+// === Mobile drawer ===
+function toggleDrawer() {
+  const overlay = document.getElementById('drawerOverlay');
+  const drawer = document.getElementById('drawer');
+  const isOpen = drawer.classList.contains('drawer--open');
+
+  if (isOpen) {
+    overlay.classList.remove('drawer-overlay--open');
+    drawer.classList.remove('drawer--open');
+  } else {
+    overlay.classList.add('drawer-overlay--open');
+    drawer.classList.add('drawer--open');
+  }
+}
+
+// === Collapsible labels section ===
+function toggleLabels() {
+  const section = document.getElementById('labelsSection');
+  const chevron = document.getElementById('labelsChevron');
+  const isExpanded = section.classList.contains('sidebar__collapsible--expanded');
+
+  if (isExpanded) {
+    section.classList.remove('sidebar__collapsible--expanded');
+    section.classList.add('sidebar__collapsible--collapsed');
+    chevron.style.transform = 'rotate(0deg)';
+  } else {
+    section.classList.remove('sidebar__collapsible--collapsed');
+    section.classList.add('sidebar__collapsible--expanded');
+    chevron.style.transform = 'rotate(90deg)';
+  }
+}
+
+// === Interactive checkboxes ===
+document.querySelectorAll('.task-checkbox').forEach(cb => {
+  cb.addEventListener('click', function() {
+    const isChecked = this.classList.contains('task-checkbox--checked-anim');
+    if (isChecked) {
+      this.classList.remove('task-checkbox--checked-anim');
+      this.innerHTML = '';
+      this.style.borderColor = '';
+      this.style.background = '';
+      const row = this.closest('.task-row');
+      if (row) {
+        row.style.opacity = '';
+        const title = row.querySelector('.task-row__title');
+        if (title) {
+          title.style.textDecoration = '';
+          title.style.color = '';
+        }
+      }
+    } else {
+      this.classList.add('task-checkbox--checked-anim');
+      const color = getComputedStyle(this).borderColor;
+      this.style.background = color === 'rgba(0, 0, 0, 0)' || color === 'transparent'
+        ? 'var(--color-accent)' : color;
+      this.style.borderColor = this.style.background;
+      this.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>';
+
+      // Animate the row
+      const row = this.closest('.task-row');
+      if (row) {
+        row.style.transition = 'opacity 0.4s ease 0.3s';
+        row.style.opacity = '0.5';
+        const title = row.querySelector('.task-row__title');
+        if (title) {
+          title.style.textDecoration = 'line-through';
+          title.style.color = 'var(--color-text-tertiary)';
+        }
+      }
+
+      // Pop animation
+      this.animate([
+        { transform: 'scale(1)' },
+        { transform: 'scale(1.2)' },
+        { transform: 'scale(1)' },
+      ], { duration: 250, easing: 'cubic-bezier(0.18, 0.89, 0.32, 1.28)' });
+    }
+  });
+});
+</script>
+
+</body>
+</html>

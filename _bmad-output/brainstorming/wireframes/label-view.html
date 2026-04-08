@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoIt Wireframe — Label View</title>
+<style>
+  :root {
+    --color-accent: #007aff;
+    --color-danger: #ff3b30;
+    --color-success: #34c759;
+    --color-warning: #ff9500;
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f7;
+    --color-bg-tertiary: #e8e8ed;
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #86868b;
+    --color-text-tertiary: #c7c7cc;
+    --color-border: #e5e5ea;
+    --color-border-light: #f2f2f7;
+    --font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-popover: 0 4px 16px rgba(0,0,0,0.12);
+    --sidebar-width: 260px;
+    --color-sidebar-bg: #f5f5f7;
+    --color-sidebar-hover: #e8e8ed;
+    --label-color: #ff3b30;
+  }
+
+  [data-theme="dark"] {
+    --color-bg: #1c1c1e;
+    --color-bg-secondary: #2c2c2e;
+    --color-bg-tertiary: #3a3a3c;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #98989d;
+    --color-text-tertiary: #636366;
+    --color-border: #38383a;
+    --color-border-light: #2c2c2e;
+    --color-sidebar-bg: #2c2c2e;
+    --color-sidebar-hover: #3a3a3c;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-family);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    transition: background 0.2s, color 0.2s;
+    overflow-x: hidden;
+  }
+
+  .wf-controls {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border);
+    display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+    font-size: 13px; color: var(--color-text-secondary);
+  }
+  .wf-controls button {
+    padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid var(--color-border);
+    background: var(--color-bg); color: var(--color-text-primary); cursor: pointer;
+    font-size: 13px; font-family: var(--font-family); min-height: 32px;
+  }
+  .wf-controls button.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .wf-controls .spacer { flex: 1; }
+  .wf-controls .wf-title { font-weight: 600; color: var(--color-text-primary); }
+
+  .app-wrapper { margin-top: 48px; }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed; top: 48px; left: 0; bottom: 0;
+    width: var(--sidebar-width); background: var(--color-sidebar-bg);
+    border-right: 1px solid var(--color-border); padding: 16px 0; overflow-y: auto;
+  }
+  .sidebar-section { padding: 0 12px; margin-bottom: 20px; }
+  .sidebar-section-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--color-text-tertiary);
+    padding: 0 8px; margin-bottom: 6px;
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    border-radius: var(--radius-md); cursor: pointer; font-size: 15px;
+    color: var(--color-text-primary); transition: background 0.15s; min-height: 44px;
+  }
+  .sidebar-item:hover { background: var(--color-sidebar-hover); }
+  .sidebar-item.active { background: rgba(255,59,48,0.08); color: var(--label-color); }
+  .sidebar-item .icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; }
+  .sidebar-item .badge {
+    margin-left: auto; font-size: 12px; font-weight: 500;
+    background: var(--color-bg-tertiary); color: var(--color-text-secondary);
+    padding: 2px 8px; border-radius: var(--radius-full);
+  }
+
+  /* Main */
+  .main-content {
+    margin-left: var(--sidebar-width); padding: 24px 32px 120px; max-width: 800px;
+  }
+
+  /* Label header */
+  .label-header {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 24px;
+  }
+  .label-chip-large {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 16px; border-radius: var(--radius-full);
+    font-size: 13px; font-weight: 500;
+  }
+  .label-dot-large {
+    width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+  }
+  .label-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.3px; }
+  .label-header .count {
+    font-size: 15px; font-weight: 500; color: var(--color-text-secondary);
+    background: var(--color-bg-secondary); padding: 2px 10px;
+    border-radius: var(--radius-full);
+  }
+
+  /* Description / info bar */
+  .label-info {
+    font-size: 14px; color: var(--color-text-secondary);
+    margin-bottom: 20px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .filter-chip {
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 12px; border-radius: var(--radius-full);
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    font-size: 13px; color: var(--color-text-secondary); cursor: pointer;
+    transition: all 0.15s; min-height: 32px;
+  }
+  .filter-chip:hover { border-color: var(--label-color); color: var(--label-color); }
+  .filter-chip.active { background: rgba(255,59,48,0.06); border-color: var(--label-color); color: var(--label-color); }
+  .filter-chip .chevron { display: inline-flex; align-items: center; margin-left: 2px; }
+
+  /* Task list */
+  .task-list { list-style: none; }
+
+  .task-item {
+    display: flex; align-items: flex-start; gap: 12px; padding: 12px 8px;
+    border-bottom: 1px solid var(--color-border-light); position: relative;
+    transition: background 0.15s; border-radius: var(--radius-sm);
+  }
+  .task-item:hover { background: var(--color-bg-secondary); }
+  .task-item.completed .task-title { text-decoration: line-through; color: var(--color-text-tertiary); }
+
+  .completion-circle {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--color-border);
+    flex-shrink: 0; cursor: pointer; transition: all 0.2s; display: flex;
+    align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .completion-circle:hover { border-color: var(--color-accent); }
+  .completion-circle.priority-high { border-color: var(--color-danger); }
+  .completion-circle.priority-medium { border-color: var(--color-warning); }
+  .completion-circle.priority-low { border-color: var(--color-success); }
+  .completion-circle.done { background: var(--color-success); border-color: var(--color-success); }
+  .completion-circle.done::after { content: '\2713'; color: #fff; font-size: 12px; font-weight: 700; }
+
+  .task-content { flex: 1; min-width: 0; }
+  .task-title { font-size: 15px; font-weight: 400; line-height: 1.4; }
+  .task-description-preview {
+    font-size: 13px; color: var(--color-text-secondary); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .task-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .meta-chip {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+    padding: 2px 8px; border-radius: var(--radius-full); white-space: nowrap;
+  }
+  .meta-chip.due-date { background: rgba(0,122,255,0.08); color: var(--color-accent); }
+  .meta-chip.due-date.overdue { background: rgba(255,59,48,0.08); color: var(--color-danger); }
+  .meta-chip.label-pill { background: var(--color-bg-tertiary); color: var(--color-text-secondary); }
+  .label-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .meta-chip.subtask-count { color: var(--color-text-secondary); }
+  .meta-chip.recurrence-icon { color: var(--color-text-tertiary); }
+  .meta-chip.list-badge {
+    background: var(--color-bg-tertiary); color: var(--color-text-secondary);
+    font-size: 11px; font-weight: 500;
+  }
+
+  .task-hover-actions {
+    display: none; align-items: center; gap: 4px; flex-shrink: 0; margin-top: 2px;
+  }
+  .task-item:hover .task-hover-actions { display: flex; }
+  .hover-action-btn {
+    width: 32px; height: 32px; border-radius: var(--radius-sm); border: none;
+    background: var(--color-bg-secondary); color: var(--color-text-secondary);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.15s;
+  }
+  .hover-action-btn:hover { background: var(--color-bg-tertiary); color: var(--color-accent); }
+  .hover-action-btn.danger:hover { color: var(--color-danger); }
+
+  .swipe-indicator {
+    display: none; position: absolute; top: 0; bottom: 0; width: 80px;
+    align-items: center; justify-content: center; font-size: 20px; color: #fff;
+  }
+  .swipe-indicator.left { left: -80px; background: var(--color-success); }
+  .swipe-indicator.right { right: -80px; background: var(--color-danger); }
+
+  /* Empty state */
+  .empty-state {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: 80px 20px; text-align: center;
+  }
+  .empty-state .illustration {
+    width: 120px; height: 120px; background: var(--color-bg-secondary);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 48px; margin-bottom: 20px;
+  }
+  .empty-state h3 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .empty-state p { font-size: 15px; color: var(--color-text-secondary); max-width: 280px; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    display: none; position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--color-bg); border-top: 1px solid var(--color-border);
+    padding: 4px 0 env(safe-area-inset-bottom, 8px); z-index: 100;
+  }
+  .bottom-nav-items { display: flex; justify-content: space-around; align-items: center; }
+  .bottom-nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 6px 12px; font-size: 10px; color: var(--color-text-secondary);
+    cursor: pointer; min-width: 44px; min-height: 44px; justify-content: center;
+  }
+  .bottom-nav-item.active { color: var(--color-accent); }
+  .bottom-nav-item .nav-icon { display: inline-flex; align-items: center; justify-content: center; }
+
+  .mobile-header {
+    display: none; align-items: center; gap: 12px; padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .mobile-back-btn {
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    border: none; background: none; font-size: 20px; color: var(--color-accent); cursor: pointer;
+  }
+  .mobile-header h2 { font-size: 18px; font-weight: 600; flex: 1; }
+
+  .fab {
+    display: none; position: fixed; bottom: 80px; right: 20px; z-index: 99;
+    width: 56px; height: 56px; border-radius: 50%; background: var(--color-accent);
+    color: #fff; border: none; font-size: 28px; cursor: pointer;
+    box-shadow: var(--shadow-popover); align-items: center; justify-content: center;
+  }
+
+  /* Mobile */
+  .app-wrapper.mobile .sidebar { display: none; }
+  .app-wrapper.mobile .main-content { margin-left: 0; padding: 0 16px 160px; }
+  .app-wrapper.mobile .mobile-header { display: flex; }
+  .app-wrapper.mobile .label-header { padding-top: 16px; }
+  .app-wrapper.mobile .label-header h1 { font-size: 24px; }
+  .app-wrapper.mobile .bottom-nav { display: block; }
+  .app-wrapper.mobile .fab { display: flex; }
+  .app-wrapper.mobile .task-hover-actions { display: none !important; }
+  .app-wrapper.mobile .swipe-indicator { display: flex; }
+  .app-wrapper.mobile .filter-bar { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .task-item { animation: fadeIn 0.2s ease-out; }
+  @keyframes checkmark { 0% { transform: scale(0.8); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  .completion-circle.animating { animation: checkmark 0.3s ease-out; }
+</style>
+</head>
+<body>
+<div class="wf-controls">
+  <span class="wf-title">DoIt Wireframe</span>
+  <span>|</span>
+  <span>Label View</span>
+  <span class="spacer"></span>
+  <button class="active" onclick="setViewport('desktop')">Desktop</button>
+  <button onclick="setViewport('mobile')">Mobile</button>
+  <span>|</span>
+  <button onclick="toggleTheme()">Toggle Dark Mode</button>
+</div>
+
+<div class="app-wrapper" id="appWrapper">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-item"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span> Inbox <span class="badge">7</span></div>
+      <div class="sidebar-item"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></span> Today <span class="badge">5</span></div>
+      <div class="sidebar-item"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg></span> Upcoming</div>
+      <div class="sidebar-item"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span> Eisenhower</div>
+      <div class="sidebar-item"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Calendar</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Lists</div>
+      <div class="sidebar-item"><span class="icon" style="color:#007aff">&#9679;</span> Work <span class="badge">12</span></div>
+      <div class="sidebar-item"><span class="icon" style="color:#4cd964">&#9679;</span> Personal <span class="badge">5</span></div>
+      <div class="sidebar-item"><span class="icon" style="color:#ff9500">&#9679;</span> Shopping <span class="badge">3</span></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Labels</div>
+      <div class="sidebar-item active"><span class="icon" style="color:#ff3b30">&#9679;</span> Urgent <span class="badge">5</span></div>
+      <div class="sidebar-item"><span class="icon" style="color:#5856d6">&#9679;</span> Focus</div>
+      <div class="sidebar-item"><span class="icon" style="color:#4cd964">&#9679;</span> Home</div>
+      <div class="sidebar-item"><span class="icon" style="color:#ff9500">&#9679;</span> Shopping</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" style="color: var(--color-text-secondary)"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg></span> Completed</div>
+      <div class="sidebar-item" style="color: var(--color-text-secondary)"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></span> Trash</div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <!-- Mobile header -->
+    <div class="mobile-header">
+      <button class="mobile-back-btn" aria-label="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <h2>Urgent</h2>
+    </div>
+
+    <!-- Label header -->
+    <div class="label-header">
+      <span class="label-chip-large" style="background: rgba(255,59,48,0.1);">
+        <span class="label-dot-large" style="background: var(--label-color);"></span>
+      </span>
+      <h1>Urgent</h1>
+      <span class="count">5 tasks</span>
+    </div>
+
+    <div class="label-info">
+      Tasks tagged <strong>Urgent</strong> across all lists. These need attention soon.
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="filter-chip" onclick="this.classList.toggle('active')">Sort: Due date <span class="chevron"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></div>
+      <div class="filter-chip" onclick="this.classList.toggle('active')">Priority <span class="chevron"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></div>
+      <div class="filter-chip" onclick="this.classList.toggle('active')">List <span class="chevron"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></div>
+      <div class="filter-chip" onclick="this.classList.toggle('active')">Has due date</div>
+    </div>
+
+    <!-- Task list — cross-list, showing list badge on each task -->
+    <ul class="task-list">
+      <li class="task-item">
+        <div class="swipe-indicator left"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="completion-circle priority-high" onclick="toggleComplete(this)" aria-label="Mark complete"></div>
+        <div class="task-content">
+          <div class="task-title">Review Q2 budget proposal</div>
+          <div class="task-description-preview">Need to review the updated figures from finance before the board meeting</div>
+          <div class="task-meta">
+            <span class="meta-chip due-date overdue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Apr 4 (overdue)</span>
+            <span class="meta-chip subtask-count"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>2/5</span>
+            <span class="meta-chip list-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg> Work</span>
+          </div>
+        </div>
+        <div class="task-hover-actions">
+          <button class="hover-action-btn" aria-label="Set date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+          <button class="hover-action-btn" aria-label="Priority"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>
+          <button class="hover-action-btn" aria-label="Move to list"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></button>
+          <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+        </div>
+        <div class="swipe-indicator right"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></div>
+      </li>
+
+      <li class="task-item">
+        <div class="swipe-indicator left"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="completion-circle priority-high" onclick="toggleComplete(this)" aria-label="Mark complete"></div>
+        <div class="task-content">
+          <div class="task-title">Final review of Q2 budget proposal</div>
+          <div class="task-meta">
+            <span class="meta-chip due-date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Apr 7</span>
+            <span class="meta-chip subtask-count"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>3/5</span>
+            <span class="meta-chip list-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg> Work</span>
+          </div>
+        </div>
+        <div class="task-hover-actions">
+          <button class="hover-action-btn" aria-label="Set date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+          <button class="hover-action-btn" aria-label="Priority"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>
+          <button class="hover-action-btn" aria-label="Move to list"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></button>
+          <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+        </div>
+        <div class="swipe-indicator right"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></div>
+      </li>
+
+      <li class="task-item">
+        <div class="swipe-indicator left"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="completion-circle priority-medium" onclick="toggleComplete(this)" aria-label="Mark complete"></div>
+        <div class="task-content">
+          <div class="task-title">Fix production alert for payment service</div>
+          <div class="task-description-preview">Timeout errors spiking since last deploy</div>
+          <div class="task-meta">
+            <span class="meta-chip due-date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Today</span>
+            <span class="meta-chip label-pill"><span class="label-dot" style="background:#5856d6"></span> Focus</span>
+            <span class="meta-chip list-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg> Work</span>
+          </div>
+        </div>
+        <div class="task-hover-actions">
+          <button class="hover-action-btn" aria-label="Set date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+          <button class="hover-action-btn" aria-label="Priority"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>
+          <button class="hover-action-btn" aria-label="Move to list"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></button>
+          <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+        </div>
+        <div class="swipe-indicator right"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></div>
+      </li>
+
+      <li class="task-item">
+        <div class="swipe-indicator left"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="completion-circle" onclick="toggleComplete(this)" aria-label="Mark complete"></div>
+        <div class="task-content">
+          <div class="task-title">Call insurance about claim #4821</div>
+          <div class="task-meta">
+            <span class="meta-chip due-date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Apr 8</span>
+            <span class="meta-chip list-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Personal</span>
+          </div>
+        </div>
+        <div class="task-hover-actions">
+          <button class="hover-action-btn" aria-label="Set date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+          <button class="hover-action-btn" aria-label="Priority"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>
+          <button class="hover-action-btn" aria-label="Move to list"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></button>
+          <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+        </div>
+        <div class="swipe-indicator right"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></div>
+      </li>
+
+      <li class="task-item">
+        <div class="swipe-indicator left"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="completion-circle priority-high" onclick="toggleComplete(this)" aria-label="Mark complete"></div>
+        <div class="task-content">
+          <div class="task-title">Renew car registration before deadline</div>
+          <div class="task-meta">
+            <span class="meta-chip due-date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Apr 10</span>
+            <span class="meta-chip list-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Personal</span>
+          </div>
+        </div>
+        <div class="task-hover-actions">
+          <button class="hover-action-btn" aria-label="Set date"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+          <button class="hover-action-btn" aria-label="Priority"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>
+          <button class="hover-action-btn" aria-label="Move to list"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></button>
+          <button class="hover-action-btn danger" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></button>
+        </div>
+        <div class="swipe-indicator right"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg></div>
+      </li>
+    </ul>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="illustration"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
+      <h3>No urgent tasks</h3>
+      <p>Tasks tagged Urgent will appear here. Add the label to any task to track it.</p>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <div class="bottom-nav-items">
+      <div class="bottom-nav-item"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span><span>Inbox</span></div>
+      <div class="bottom-nav-item"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></span><span>Today</span></div>
+      <div class="bottom-nav-item"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg></span><span>Upcoming</span></div>
+      <div class="bottom-nav-item"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span><span>Matrix</span></div>
+      <div class="bottom-nav-item"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></span><span>Lists</span></div>
+    </div>
+  </nav>
+  <button class="fab" aria-label="Add new task">+</button>
+</div>
+
+<script>
+  function setViewport(mode) {
+    const wrapper = document.getElementById('appWrapper');
+    const btns = document.querySelectorAll('.wf-controls button');
+    btns.forEach(b => b.classList.remove('active'));
+    if (mode === 'mobile') {
+      wrapper.classList.add('mobile');
+      btns[1].classList.add('active');
+    } else {
+      wrapper.classList.remove('mobile');
+      btns[0].classList.add('active');
+    }
+  }
+
+  function toggleTheme() {
+    document.documentElement.toggleAttribute('data-theme');
+    if (document.documentElement.hasAttribute('data-theme')) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  }
+
+  function toggleComplete(circle) {
+    const item = circle.closest('.task-item');
+    circle.classList.add('animating');
+    setTimeout(() => circle.classList.remove('animating'), 300);
+    if (circle.classList.contains('done')) {
+      circle.classList.remove('done');
+      item.classList.remove('completed');
+    } else {
+      circle.classList.add('done');
+      item.classList.add('completed');
+    }
+  }
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.task-item')) touchStartX = e.touches[0].clientX;
+  });
+  document.addEventListener('touchmove', (e) => {
+    const item = e.target.closest('.task-item');
+    if (!item) return;
+    const diff = e.touches[0].clientX - touchStartX;
+    if (Math.abs(diff) > 40) {
+      item.style.transform = `translateX(${diff * 0.5}px)`;
+      item.style.transition = 'none';
+    }
+  });
+  document.addEventListener('touchend', (e) => {
+    const item = e.target.closest('.task-item');
+    if (!item) return;
+    item.style.transform = '';
+    item.style.transition = 'transform 0.3s ease';
+  });
+</script>
+</body>
+</html>

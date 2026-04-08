@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoIt — Completed Tasks Wireframe</title>
+<style>
+  :root {
+    --color-accent: #007aff;
+    --color-danger: #ff3b30;
+    --color-success: #34c759;
+    --color-warning: #ff9500;
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f7;
+    --color-bg-tertiary: #e8e8ed;
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #86868b;
+    --color-text-tertiary: #c7c7cc;
+    --color-border: #e5e5ea;
+    --font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-popover: 0 4px 16px rgba(0,0,0,0.12);
+    --shadow-modal: 0 8px 32px rgba(0,0,0,0.16);
+  }
+
+  [data-theme="dark"] {
+    --color-bg: #1c1c1e;
+    --color-bg-secondary: #2c2c2e;
+    --color-bg-tertiary: #3a3a3c;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #98989d;
+    --color-text-tertiary: #636366;
+    --color-border: #38383a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-family);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── Controls Bar ── */
+  .controls-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+  }
+  .controls-bar label { font-size: 13px; color: var(--color-text-secondary); font-weight: 500; }
+  .controls-bar select, .controls-bar button {
+    font-family: var(--font-family); font-size: 13px;
+    padding: 6px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    color: var(--color-text-primary); cursor: pointer; min-height: 32px;
+  }
+  .controls-bar button:hover { background: var(--color-bg-tertiary); }
+  .controls-bar .spacer { flex: 1; }
+
+  /* ── Wireframe Container ── */
+  .wireframe-wrap {
+    margin-top: 56px;
+    display: flex; justify-content: center;
+    padding: 24px 16px 48px;
+  }
+  .phone-frame {
+    width: 390px; min-height: 844px;
+    border: 1px solid var(--color-border); border-radius: 20px;
+    overflow: hidden; background: var(--color-bg);
+    box-shadow: var(--shadow-modal);
+    display: none; flex-direction: column;
+  }
+  .desktop-frame {
+    width: 100%; max-width: 720px; min-height: 800px;
+    border: 1px solid var(--color-border); border-radius: 12px;
+    overflow: hidden; background: var(--color-bg);
+    box-shadow: var(--shadow-modal);
+    display: flex; flex-direction: column;
+  }
+  .wireframe-wrap[data-viewport="mobile"] .phone-frame { display: flex; }
+  .wireframe-wrap[data-viewport="mobile"] .desktop-frame { display: none; }
+  .wireframe-wrap[data-viewport="desktop"] .phone-frame { display: none; }
+  .wireframe-wrap[data-viewport="desktop"] .desktop-frame { display: flex; }
+
+  /* ── Page Header ── */
+  .page-header {
+    padding: 20px 20px 8px; flex-shrink: 0;
+  }
+  .page-header h1 {
+    font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
+  }
+
+  /* ── Stats Card ── */
+  .stats-card {
+    margin: 12px 20px;
+    padding: 16px 20px;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    display: flex; align-items: center; gap: 16px;
+  }
+  .stats-number {
+    font-size: 36px; font-weight: 800;
+    color: var(--color-success);
+    line-height: 1;
+  }
+  .stats-detail {
+    flex: 1;
+  }
+  .stats-label {
+    font-size: 14px; font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .stats-sublabel {
+    font-size: 12px; color: var(--color-text-secondary);
+    margin-top: 2px;
+  }
+  .stats-icon {
+    width: 44px; height: 44px;
+    border-radius: var(--radius-full);
+    background: rgba(52,199,89,0.12);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── Search Bar ── */
+  .search-bar {
+    margin: 0 20px 12px;
+    position: relative;
+  }
+  .search-bar input {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 16px 10px 40px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+    font-size: 16px;
+    font-family: var(--font-family);
+    color: var(--color-text-primary);
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .search-bar input:focus {
+    border-color: var(--color-accent);
+    background: var(--color-bg);
+  }
+  .search-bar input::placeholder {
+    color: var(--color-text-tertiary);
+  }
+  .search-bar .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-tertiary);
+  }
+
+  /* ── Section Groups ── */
+  .section-group {
+    margin-bottom: 8px;
+  }
+  .section-header {
+    padding: 12px 20px 6px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+    min-height: 44px;
+  }
+  .section-title {
+    font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--color-text-secondary);
+  }
+  .section-count {
+    font-size: 12px; color: var(--color-text-tertiary);
+    font-weight: 500;
+  }
+  .section-chevron {
+    color: var(--color-text-tertiary);
+    transition: transform 0.2s;
+    margin-left: 8px;
+  }
+  .section-header.collapsed .section-chevron {
+    transform: rotate(-90deg);
+  }
+
+  /* ── Task Items ── */
+  .task-list { padding: 0 12px; }
+
+  .completed-task {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    min-height: 52px;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .completed-task:hover {
+    background: var(--color-bg-secondary);
+  }
+
+  .check-circle {
+    width: 22px; height: 22px;
+    border-radius: var(--radius-full);
+    background: var(--color-success);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .check-circle svg { color: #fff; }
+
+  .task-content { flex: 1; min-width: 0; }
+  .task-name {
+    font-size: 15px;
+    color: var(--color-text-secondary);
+    text-decoration: line-through;
+    text-decoration-color: var(--color-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .task-meta {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    margin-top: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .task-meta .list-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* Uncomplete button (hover) */
+  .uncomplete-btn {
+    opacity: 0;
+    min-height: 44px; min-width: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none;
+    color: var(--color-accent);
+    font-size: 12px; font-weight: 600;
+    font-family: var(--font-family);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    transition: opacity 0.15s, background 0.15s;
+    flex-shrink: 0;
+  }
+  .completed-task:hover .uncomplete-btn { opacity: 1; }
+  .uncomplete-btn:hover { background: rgba(0,122,255,0.08); }
+
+  /* ── Mobile swipe hint ── */
+  .swipe-hint {
+    display: none;
+    text-align: center;
+    padding: 8px 16px;
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+  }
+  .wireframe-wrap[data-viewport="mobile"] .swipe-hint { display: block; }
+
+  /* ── Scroll area ── */
+  .scroll-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 24px;
+  }
+
+  /* ── Filter chips ── */
+  .filter-row {
+    display: flex; gap: 6px; padding: 0 20px 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-size: 13px; font-weight: 500;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-family: var(--font-family);
+    min-height: 32px;
+    transition: all 0.15s;
+  }
+  .filter-chip.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+  }
+  .filter-chip:hover:not(.active) {
+    background: var(--color-bg-secondary);
+  }
+</style>
+</head>
+<body>
+
+<div class="controls-bar">
+  <label>Viewport:</label>
+  <select id="viewport-select">
+    <option value="desktop">Desktop</option>
+    <option value="mobile">Mobile</option>
+  </select>
+  <label style="margin-left:12px">Theme:</label>
+  <button id="theme-toggle">Toggle Dark Mode</button>
+  <span class="spacer"></span>
+  <span style="font-size:12px;color:var(--color-text-secondary)">DoIt Completed Tasks Wireframe</span>
+</div>
+
+<div class="wireframe-wrap" id="wireframe-wrap" data-viewport="desktop">
+
+  <!-- ═══════════════════ DESKTOP ═══════════════════ -->
+  <div class="desktop-frame">
+    <div class="page-header">
+      <h1>Completed</h1>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-card">
+      <div class="stats-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="2.5" stroke-linecap="round"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+      </div>
+      <div class="stats-detail">
+        <div class="stats-label">127 tasks completed this month</div>
+        <div class="stats-sublabel">23% more than last month &middot; 8 today</div>
+      </div>
+      <div class="stats-number">127</div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-bar">
+      <span class="search-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </span>
+      <input type="text" placeholder="Search completed tasks..." aria-label="Search completed tasks">
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-row">
+      <button class="filter-chip active">All</button>
+      <button class="filter-chip">Work</button>
+      <button class="filter-chip">Personal</button>
+      <button class="filter-chip">Shopping</button>
+      <button class="filter-chip">Learning</button>
+    </div>
+
+    <!-- Task list -->
+    <div class="scroll-content">
+      <!-- Today -->
+      <div class="section-group">
+        <div class="section-header">
+          <span class="section-title">Today</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span class="section-count">8 tasks</span>
+            <span class="section-chevron">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </span>
+          </div>
+        </div>
+        <div class="task-list">
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Review pull request #142</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Completed 2:34 PM
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Ship calendar wireframes</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Completed 1:15 PM
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Daily standup</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Completed 10:05 AM &middot; &#x21bb;
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Buy groceries</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#34c759"></span>
+                Personal &middot; Completed 9:30 AM
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Reply to Sarah's email</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Completed 9:12 AM
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Yesterday -->
+      <div class="section-group">
+        <div class="section-header">
+          <span class="section-title">Yesterday</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span class="section-count">5 tasks</span>
+            <span class="section-chevron">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </span>
+          </div>
+        </div>
+        <div class="task-list">
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Write DDIA chapter notes</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#5856d6"></span>
+                Learning &middot; Completed 8:45 PM
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Fix CRDT merge edge case</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Completed 4:20 PM
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Meal prep for the week</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#34c759"></span>
+                Personal &middot; Completed 1:00 PM
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- This Week -->
+      <div class="section-group">
+        <div class="section-header">
+          <span class="section-title">This Week</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span class="section-count">22 tasks</span>
+            <span class="section-chevron">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </span>
+          </div>
+        </div>
+        <div class="task-list">
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Deploy projection worker</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Completed Apr 4
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Update OpenAPI spec for sync</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Completed Apr 3
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Run visual regression tests</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Completed Apr 2
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Renew domain registration</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#ff9500"></span>
+                Admin &middot; Completed Apr 1
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Earlier -->
+      <div class="section-group">
+        <div class="section-header collapsed">
+          <span class="section-title">Earlier</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span class="section-count">92 tasks</span>
+            <span class="section-chevron">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </span>
+          </div>
+        </div>
+        <!-- Collapsed by default, content hidden -->
+        <div class="task-list" style="display:none">
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Initial sync engine implementation</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Completed Mar 25
+              </div>
+            </div>
+            <button class="uncomplete-btn">Undo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ MOBILE ═══════════════════ -->
+  <div class="phone-frame">
+    <div class="page-header" style="padding:16px 16px 4px">
+      <h1 style="font-size:24px">Completed</h1>
+    </div>
+
+    <!-- Stats (compact mobile) -->
+    <div class="stats-card" style="margin:8px 16px;padding:12px 16px">
+      <div class="stats-icon" style="width:36px;height:36px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="2.5" stroke-linecap="round"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+      </div>
+      <div class="stats-detail">
+        <div class="stats-label" style="font-size:13px">127 completed this month</div>
+        <div class="stats-sublabel" style="font-size:11px">23% more &middot; 8 today</div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-bar" style="margin:0 16px 8px">
+      <span class="search-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </span>
+      <input type="text" placeholder="Search completed..." aria-label="Search completed tasks">
+    </div>
+
+    <!-- Swipe hint -->
+    <div class="swipe-hint">Swipe left on a task to uncomplete</div>
+
+    <div class="scroll-content">
+      <!-- Today -->
+      <div class="section-group">
+        <div class="section-header">
+          <span class="section-title">Today</span>
+          <span class="section-count">8 tasks</span>
+        </div>
+        <div class="task-list" style="padding:0 8px">
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Review pull request #142</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; 2:34 PM
+              </div>
+            </div>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Ship calendar wireframes</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; 1:15 PM
+              </div>
+            </div>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Daily standup</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; 10:05 AM &middot; &#x21bb;
+              </div>
+            </div>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Buy groceries</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#34c759"></span>
+                Personal &middot; 9:30 AM
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Yesterday -->
+      <div class="section-group">
+        <div class="section-header">
+          <span class="section-title">Yesterday</span>
+          <span class="section-count">5 tasks</span>
+        </div>
+        <div class="task-list" style="padding:0 8px">
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Write DDIA chapter notes</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#5856d6"></span>
+                Learning &middot; 8:45 PM
+              </div>
+            </div>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Fix CRDT merge edge case</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; 4:20 PM
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- This Week -->
+      <div class="section-group">
+        <div class="section-header">
+          <span class="section-title">This Week</span>
+          <span class="section-count">22 tasks</span>
+        </div>
+        <div class="task-list" style="padding:0 8px">
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Deploy projection worker</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Apr 4
+              </div>
+            </div>
+          </div>
+          <div class="completed-task">
+            <div class="check-circle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>
+            </div>
+            <div class="task-content">
+              <div class="task-name">Update OpenAPI spec for sync</div>
+              <div class="task-meta">
+                <span class="list-dot" style="background:#007aff"></span>
+                Work &middot; Apr 3
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Earlier (collapsed) -->
+      <div class="section-group">
+        <div class="section-header">
+          <span class="section-title">Earlier</span>
+          <span class="section-count">92 tasks</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:34px;flex-shrink:0;background:var(--color-bg)"></div>
+  </div>
+</div>
+
+<script>
+  // Viewport toggle
+  document.getElementById('viewport-select').addEventListener('change', function() {
+    document.getElementById('wireframe-wrap').dataset.viewport = this.value;
+  });
+
+  // Theme toggle
+  let dark = false;
+  document.getElementById('theme-toggle').addEventListener('click', function() {
+    dark = !dark;
+    if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  });
+
+  // Section collapse toggle
+  document.querySelectorAll('.section-header').forEach(header => {
+    header.addEventListener('click', function() {
+      this.classList.toggle('collapsed');
+      const list = this.nextElementSibling;
+      if (list && list.classList.contains('task-list')) {
+        list.style.display = list.style.display === 'none' ? '' : 'none';
+      }
+    });
+  });
+
+  // Filter chips
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
