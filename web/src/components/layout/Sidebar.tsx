@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { NavLink, useNavigate } from 'react-router'
-import { motion, AnimatePresence, LayoutGroup, useMotionValue, useTransform } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { ConfirmDialog } from '../common/ConfirmDialog'
@@ -80,7 +80,7 @@ function NotificationToggle() {
         type="button"
         onClick={handleToggle}
         disabled={loading}
-        className="flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[13px] text-text-secondary hover:bg-black/[0.03] w-full transition-colors"
+        className="flex items-center gap-3 px-3 min-h-[44px] rounded-[10px] text-[13px] text-text-secondary hover:bg-black/[0.04] w-full transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -93,7 +93,7 @@ function NotificationToggle() {
           width: 44,
           height: 26,
           borderRadius: 13,
-          backgroundColor: subscribed ? '#007aff' : '#d1d5db',
+          backgroundColor: subscribed ? 'var(--color-accent)' : 'var(--color-bg-tertiary)',
           position: 'relative',
           transition: 'background-color 0.2s',
         }}>
@@ -114,33 +114,55 @@ function NotificationToggle() {
   )
 }
 
-function NavItem({ to, label, icon, count, layoutId = 'sidebar-active' }: { to: string; label: string; icon: string; count?: number; layoutId?: string }) {
+function NavItem({ to, label, icon, count, badgeTone = 'default' }: {
+  to: string
+  label: string
+  icon: string
+  count?: number
+  badgeTone?: 'default' | 'danger'
+}) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `relative flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[14px] transition-colors ${
+        `relative flex items-center gap-3 px-3 min-h-[44px] rounded-[10px] text-[15px] transition-colors ${
           isActive
             ? 'text-accent font-medium'
-            : 'text-text-primary hover:bg-black/[0.03]'
+            : 'text-text-primary hover:bg-black/[0.04]'
         }`
       }
     >
       {({ isActive }) => (
         <>
           {isActive && (
-            <motion.div
-              layoutId={layoutId}
-              className="absolute inset-0 bg-accent/10 rounded-xl"
-              transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-[10px] bg-accent-light"
+              style={{ animation: 'nav-active-in 0.25s var(--ease-nav-bounce)' }}
             />
           )}
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 relative z-[1]">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`shrink-0 relative z-[1] ${isActive ? '' : 'text-text-secondary'}`}
+          >
             <path d={icon} />
           </svg>
           <span className="flex-1 relative z-[1]">{label}</span>
           {count !== undefined && count > 0 && (
-            <span className="text-[11px] text-text-secondary font-medium relative z-[1]">{count}</span>
+            badgeTone === 'danger' ? (
+              <span className="relative z-[1] inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-semibold bg-danger text-white">
+                {count}
+              </span>
+            ) : (
+              <span className={`text-[12px] font-medium relative z-[1] ${isActive ? 'text-accent/70' : 'text-text-tertiary'}`}>{count}</span>
+            )
           )}
         </>
       )}
@@ -205,6 +227,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
   const [newListName, setNewListName] = useState('')
   const [newListColour, setNewListColour] = useState(PRESET_COLORS[0])
   const [pendingDelete, setPendingDelete] = useState<{ type: 'list' | 'label'; id: string; name: string } | null>(null)
+  const [labelsCollapsed, setLabelsCollapsed] = useState(false)
 
   const confirmDelete = useCallback(async () => {
     if (!pendingDelete) return
@@ -241,32 +264,40 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
   }
 
   return (
-    <aside className="w-[280px] h-screen bg-[#f5f5f7] border-r border-gray-200 flex flex-col shrink-0 overflow-y-auto pb-[60px] md:pb-0">
+    <aside
+      className="frosted-sidebar h-screen border-r border-separator flex flex-col shrink-0 overflow-y-auto pb-[60px] md:pb-0"
+      style={{ width: 'var(--sidebar-width)' }}
+    >
       {/* App title */}
-      <div className="px-4 pt-4 pb-2">
-        <h1 className="text-lg font-semibold text-text-primary">DoIt</h1>
+      <div className="px-5 pt-5 pb-2 flex items-center gap-3">
+        <div
+          className="w-7 h-7 rounded-[6px] bg-accent flex items-center justify-center text-white font-bold text-[14px]"
+          aria-hidden="true"
+        >
+          D
+        </div>
+        <h1 className="text-[20px] font-semibold text-text-primary tracking-tight">DoIt</h1>
       </div>
 
       {/* Search */}
       {onSearchOpen && (
-        <div className="px-2 mb-1">
+        <div className="px-3 mt-3 mb-2">
           <button
             type="button"
             onClick={onSearchOpen}
-            className="flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[14px] text-text-secondary hover:bg-black/[0.03] w-full transition-colors"
+            className="flex items-center gap-2 px-3 min-h-[36px] w-full rounded-[6px] bg-bg-tertiary hover:bg-separator-opaque text-[13px] text-text-tertiary transition-colors"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <span className="flex-1 text-left">Search</span>
-            <kbd className="hidden md:inline-block text-[11px] text-text-tertiary border border-gray-200 rounded px-1.5 py-0.5">⌘K</kbd>
+            <kbd className="hidden md:inline-block font-mono text-[11px] text-text-quaternary bg-bg border border-separator rounded px-1.5 py-px">⌘K</kbd>
           </button>
         </div>
       )}
 
       {/* Smart lists */}
-      <LayoutGroup>
       <nav className="px-2 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const countMap: Record<string, number> = {
@@ -274,21 +305,29 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
             '/today': taskCounts.today,
             '/upcoming': taskCounts.upcoming,
           }
-          return <NavItem key={item.to} {...item} count={countMap[item.to]} />
+          return (
+            <NavItem
+              key={item.to}
+              {...item}
+              count={countMap[item.to]}
+              badgeTone={item.to === '/today' && taskCounts.today > 0 ? 'danger' : 'default'}
+            />
+          )
         })}
       </nav>
 
       {/* Divider */}
-      <div className="mx-4 my-3 border-t border-gray-300" />
+      <div className="mx-5 my-3 border-t border-separator" />
 
       {/* User lists */}
       <div className="px-2 flex-1">
         <div className="flex items-center justify-between px-3 mb-1">
-          <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Lists</p>
+          <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Lists</p>
           <button
             type="button"
             onClick={() => setAddingList(!addingList)}
-            className="text-text-secondary hover:text-accent transition-colors"
+            className="w-6 h-6 flex items-center justify-center rounded-[6px] text-text-tertiary hover:text-accent hover:bg-accent-light transition-colors"
+            aria-label={addingList ? 'Cancel new list' : 'New list'}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M12 5v14M5 12h14" />
@@ -299,7 +338,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
         {addingList && (
           <motion.form
             onSubmit={handleCreateList}
-            className="mx-1 mb-2 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden"
+            className="mx-1 mb-2 rounded-[14px] bg-bg-elevated border border-separator shadow-card overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -328,18 +367,18 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 />
               ))}
             </div>
-            <div className="flex border-t border-gray-100">
+            <div className="flex border-t border-separator">
               <button
                 type="button"
                 onClick={() => { setNewListName(''); setAddingList(false) }}
-                className="flex-1 text-sm text-text-secondary font-medium py-2.5 hover:bg-gray-50 transition-colors min-h-[44px]"
+                className="flex-1 text-sm text-text-secondary font-medium py-2.5 hover:bg-bg-secondary transition-colors min-h-[44px]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!newListName.trim()}
-                className="flex-1 text-sm text-accent font-semibold py-2.5 hover:bg-accent/5 transition-colors border-l border-gray-100 min-h-[44px] disabled:opacity-30"
+                className="flex-1 text-sm text-accent font-semibold py-2.5 hover:bg-accent-light transition-colors border-l border-separator min-h-[44px] disabled:opacity-30"
               >
                 Create
               </button>
@@ -372,29 +411,29 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 <NavLink
                   to={`/lists/${list.id}`}
                   className={({ isActive }) =>
-                    `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-lg text-[14px] transition-colors ${
+                    `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-[10px] text-[15px] transition-colors ${
                       isActive
                         ? 'text-accent font-medium'
-                        : 'text-text-primary hover:bg-black/5'
+                        : 'text-text-primary hover:bg-black/[0.04]'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
                       {isActive && (
-                        <motion.div
-                          layoutId="sidebar-active"
-                          className="absolute inset-0 bg-accent/10 rounded-lg"
-                          transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                        <span
+                          aria-hidden="true"
+                          className="absolute inset-0 rounded-[10px] bg-accent-light"
+                          style={{ animation: 'nav-active-in 0.25s var(--ease-nav-bounce)' }}
                         />
                       )}
                       <span
-                        className="w-3 h-3 rounded-full shrink-0 relative z-[1]"
-                        style={{ backgroundColor: list.colour || '#86868b' }}
+                        className="w-[10px] h-[10px] rounded-full shrink-0 relative z-[1]"
+                        style={{ backgroundColor: list.colour || 'var(--color-gray)' }}
                       />
-                      <span className="flex-1 relative z-[1]">{list.name}</span>
+                      <span className="flex-1 relative z-[1] truncate">{list.name}</span>
                       {(taskCounts.byList[list.id] || 0) > 0 && (
-                        <span className="text-[11px] text-text-secondary font-medium relative z-[1]">{taskCounts.byList[list.id]}</span>
+                        <span className={`text-[12px] font-medium relative z-[1] ${isActive ? 'text-accent/70' : 'text-text-tertiary'}`}>{taskCounts.byList[list.id]}</span>
                       )}
                     </>
                   )}
@@ -408,72 +447,104 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
       {/* Labels */}
       {labels.length > 0 && (
         <div className="px-2 mt-2">
-          <div className="mx-2 mb-2 border-t border-gray-300" />
-          <p className="px-3 text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Labels</p>
-          <div className="space-y-0.5">
-            {labels.map((label) => {
-              const deleteLabel = () => {
-                setPendingDelete({ type: 'label', id: label.id, name: label.name })
-              }
-              return (
-                <SwipeableRow
-                  key={label.id}
-                  onDelete={deleteLabel}
-                  desktopDeleteButton={
-                    <button
-                      type="button"
-                      onClick={async (e) => { e.stopPropagation(); await deleteLabel() }}
-                      className="hidden md:flex opacity-0 group-hover:opacity-100 text-text-secondary hover:text-danger items-center justify-center w-[44px] h-[44px] mr-1 transition-opacity"
-                      aria-label="Delete label"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <path d="M18 6 6 18M6 6l12 12" />
-                      </svg>
-                    </button>
+          <div className="mx-3 mb-2 border-t border-separator" />
+          <button
+            type="button"
+            onClick={() => setLabelsCollapsed((v) => !v)}
+            className="flex items-center gap-1.5 w-full px-3 py-1 text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1 hover:text-text-secondary transition-colors"
+            aria-expanded={!labelsCollapsed}
+            aria-controls="sidebar-labels-list"
+          >
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`shrink-0 transition-transform ${labelsCollapsed ? '-rotate-90' : ''}`}
+              aria-hidden="true"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+            <span>Labels</span>
+          </button>
+          <AnimatePresence initial={false}>
+            {!labelsCollapsed && (
+              <motion.div
+                id="sidebar-labels-list"
+                className="space-y-0.5 overflow-hidden"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                {labels.map((label) => {
+                  const deleteLabel = () => {
+                    setPendingDelete({ type: 'label', id: label.id, name: label.name })
                   }
-                >
-                  <NavLink
-                    to={`/labels/${label.id}`}
-                    className={({ isActive }) =>
-                      `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-lg text-[14px] transition-colors ${
-                        isActive
-                          ? 'text-accent font-medium'
-                          : 'text-text-primary hover:bg-black/5'
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        {isActive && (
-                          <motion.div
-                            layoutId="sidebar-active"
-                            className="absolute inset-0 bg-accent/10 rounded-lg"
-                            transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                          />
+                  return (
+                    <SwipeableRow
+                      key={label.id}
+                      onDelete={deleteLabel}
+                      desktopDeleteButton={
+                        <button
+                          type="button"
+                          onClick={async (e) => { e.stopPropagation(); await deleteLabel() }}
+                          className="hidden md:flex opacity-0 group-hover:opacity-100 text-text-secondary hover:text-danger items-center justify-center w-[44px] h-[44px] mr-1 transition-opacity"
+                          aria-label="Delete label"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <path d="M18 6 6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                      }
+                    >
+                      <NavLink
+                        to={`/labels/${label.id}`}
+                        className={({ isActive }) =>
+                          `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-[10px] text-[15px] transition-colors ${
+                            isActive
+                              ? 'text-accent font-medium'
+                              : 'text-text-primary hover:bg-black/[0.04]'
+                          }`
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            {isActive && (
+                              <span
+                                aria-hidden="true"
+                                className="absolute inset-0 rounded-[10px] bg-accent-light"
+                                style={{ animation: 'nav-active-in 0.25s var(--ease-nav-bounce)' }}
+                              />
+                            )}
+                            <span
+                              className="w-[10px] h-[10px] rounded-[3px] shrink-0 relative z-[1]"
+                              style={{ backgroundColor: label.colour || 'var(--color-gray)' }}
+                            />
+                            <span className="relative z-[1] truncate">{label.name}</span>
+                          </>
                         )}
-                        <span
-                          className="w-3 h-3 rounded-sm shrink-0 relative z-[1]"
-                          style={{ backgroundColor: label.colour || '#86868b' }}
-                        />
-                        <span className="relative z-[1]">{label.name}</span>
-                      </>
-                    )}
-                  </NavLink>
-                </SwipeableRow>
-              )
-            })}
-          </div>
+                      </NavLink>
+                    </SwipeableRow>
+                  )
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
       {/* Bottom section */}
       <nav className="px-2 pb-2 space-y-0.5">
-        <div className="mx-2 mb-2 border-t border-gray-300" />
+        <div className="mx-3 mb-2 border-t border-separator" />
         {BOTTOM_ITEMS.map((item) => (
           <NavItem key={item.to} {...item} />
         ))}
       </nav>
-      </LayoutGroup>
 
       {/* Sync status */}
       <SyncStatus />
@@ -496,7 +567,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
               toast(err instanceof Error ? err.message : 'Failed to sign out', 'error')
             }
           }}
-          className="flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-[13px] text-text-secondary hover:bg-black/[0.03] w-full transition-colors"
+          className="flex items-center gap-3 px-3 min-h-[44px] rounded-[10px] text-[13px] text-text-secondary hover:bg-black/[0.04] w-full transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

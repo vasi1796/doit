@@ -206,19 +206,26 @@ export function AppLayout() {
           <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} onSearchOpen={() => setSearchOpen(true)} />
         </div>
 
-        {/* Mobile drawer */}
+        {/* Mobile drawer — iOS-style spring easing */}
         <div
-          className={`fixed inset-0 z-50 md:hidden transition-opacity duration-200 ${
-            drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          className={`fixed inset-0 z-50 md:hidden ${
+            drawerOpen ? 'pointer-events-auto' : 'pointer-events-none'
           }`}
+          aria-hidden={!drawerOpen}
         >
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-          <div className="absolute inset-0 bg-black/30" onClick={closeDrawer} />
+          <div
+            className={`absolute inset-0 bg-[rgba(0,0,0,0.35)] transition-opacity duration-[350ms] ease-out ${
+              drawerOpen ? 'opacity-100' : 'opacity-0'
+            }`}
+            onClick={closeDrawer}
+          />
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
-            className={`absolute left-0 top-0 h-full transition-transform duration-200 ${
+            className={`absolute left-0 top-0 h-full will-change-transform ${
               drawerOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
+            style={{ transition: 'transform 0.35s var(--ease-ios-spring)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} onSearchOpen={() => setSearchOpen(true)} />
@@ -239,12 +246,12 @@ export function AppLayout() {
 
         <BottomNav taskCounts={taskCounts} onMenuToggle={toggleDrawer} />
 
-        {/* Global quick-add FAB */}
+        {/* Global quick-add FAB — accent-tinted shadow */}
         <button
           type="button"
           onClick={() => setQuickAddOpen(true)}
           aria-label="New task"
-          className="fixed right-5 bottom-[calc(70px+env(safe-area-inset-bottom,0px))] md:bottom-6 w-[56px] h-[56px] rounded-full bg-accent text-white shadow-lg flex items-center justify-center z-40 hover:bg-accent/90 active:scale-95 transition-transform"
+          className="fixed right-5 bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px)+16px)] md:bottom-6 w-[56px] h-[56px] rounded-full bg-accent text-white shadow-fab flex items-center justify-center z-50 hover:bg-accent-hover hover:scale-105 active:scale-95 transition-all"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
