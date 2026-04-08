@@ -206,12 +206,14 @@ export function AppLayout() {
           <Sidebar lists={lists} labels={labels} taskCounts={taskCounts} onSearchOpen={() => setSearchOpen(true)} />
         </div>
 
-        {/* Mobile drawer — iOS-style spring easing */}
+        {/* Mobile drawer — iOS-style spring easing.
+            `inert` when closed: removes drawer children from tab order and
+            the a11y tree without tripping axe's aria-hidden-focus rule. */}
         <div
           className={`fixed inset-0 z-50 md:hidden ${
             drawerOpen ? 'pointer-events-auto' : 'pointer-events-none'
           }`}
-          aria-hidden={!drawerOpen}
+          inert={!drawerOpen}
         >
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
