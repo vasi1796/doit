@@ -49,7 +49,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 ? 'bg-danger text-white'
                 : t.type === 'info'
                   ? 'bg-bg-elevated text-text-primary border border-separator'
-                  : 'bg-text-primary text-white'
+                  : 'bg-text-primary text-bg'
             }`}
           >
             {t.message}
