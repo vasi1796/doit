@@ -47,9 +47,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             className={`px-4 py-2.5 rounded-[14px] text-sm font-medium shadow-modal animate-[toast-in_0.2s_ease-out] pointer-events-auto flex items-center gap-3 ${
               t.type === 'error'
                 ? 'bg-danger text-white'
-                : t.type === 'info'
-                  ? 'bg-bg-elevated text-text-primary border border-separator'
-                  : 'bg-text-primary text-bg'
+                : 'bg-bg-elevated text-text-primary border border-separator'
             }`}
           >
             {t.message}

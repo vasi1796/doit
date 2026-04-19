@@ -71,7 +71,7 @@ export function LoginPage() {
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 min-h-[50px] px-4 bg-text-primary text-white rounded-[14px] font-semibold text-[15px] hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-70"
+          className="w-full flex items-center justify-center gap-3 min-h-[50px] px-4 bg-bg-elevated text-text-primary border border-separator rounded-[14px] font-semibold text-[15px] hover:bg-bg-secondary transition-all active:scale-[0.98] disabled:opacity-70"
         >
           <svg width="18" height="18" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
