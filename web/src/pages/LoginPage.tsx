@@ -67,14 +67,7 @@ export function LoginPage() {
       </div>
 
       {/* Glass-morphism card */}
-      <div
-        className="rounded-[20px] p-8 w-full max-w-sm border border-separator shadow-modal"
-        style={{
-          background: 'rgba(255, 255, 255, 0.75)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        }}
-      >
+      <div className="frosted-card rounded-[20px] p-8 w-full max-w-sm border border-separator shadow-modal">
         <button
           onClick={handleGoogleLogin}
           disabled={loading}

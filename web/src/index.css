@@ -98,6 +98,7 @@
      activation paths that drive the rest of the tokens. */
   --frosted-sidebar-bg: rgba(255, 255, 255, 0.92);
   --frosted-bottom-nav-bg: rgba(255, 255, 255, 0.92);
+  --frosted-card-bg: rgba(255, 255, 255, 0.75);
 
   /* Tell the browser to render its own chrome (Safari URL bar tint,
      iOS status-bar area behind the notch, scrollbars, form controls)
@@ -168,6 +169,7 @@
 
     --frosted-sidebar-bg: rgba(44, 44, 46, 0.92);
     --frosted-bottom-nav-bg: rgba(44, 44, 46, 0.92);
+    --frosted-card-bg: rgba(44, 44, 46, 0.75);
 
     color-scheme: dark;
   }
@@ -219,6 +221,7 @@
 
   --frosted-sidebar-bg: rgba(44, 44, 46, 0.92);
   --frosted-bottom-nav-bg: rgba(44, 44, 46, 0.92);
+  --frosted-card-bg: rgba(44, 44, 46, 0.75);
 
   color-scheme: dark;
 }
@@ -253,6 +256,12 @@ body {
 
 .frosted-bottom-nav {
   background: var(--frosted-bottom-nav-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+.frosted-card {
+  background: var(--frosted-card-bg);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   backdrop-filter: blur(20px) saturate(180%);
 }
