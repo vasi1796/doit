@@ -3,7 +3,22 @@ import { mockApi, mockApiEmpty } from './helpers/mock-api'
 
 async function waitForPage(page: import('@playwright/test').Page) {
   await page.locator('main h1').first().waitFor({ state: 'visible', timeout: 10_000 })
-  await page.waitForTimeout(300)
+  // Wait for Framer Motion entrance animation + useLiveQuery hydration to settle.
+  // useLiveQuery on Dexie.js is async; the page mounts with undefined data,
+  // then rerenders once IndexedDB resolves. Wait for the route wrapper's
+  // entrance opacity animation to finish AND its final paint to stabilize.
+  await page.waitForFunction(
+    () => {
+      const wrapper = document.querySelector('main > div[style*="opacity"]')
+      if (!wrapper) return true
+      return parseFloat(getComputedStyle(wrapper).opacity) === 1
+    },
+    { timeout: 5_000 },
+  )
+  // One more paint tick so post-hydration list renders complete.
+  await page.evaluate(
+    () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))),
+  )
 }
 
 test.describe('Visual regression — pages with data', () => {
