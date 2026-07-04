@@ -86,14 +86,13 @@ type SyncHandler struct {
 	cmds      SyncCommander
 	store     SyncEventLoader
 	clock     SyncClock
-	hub       *Hub
 	snapshots SyncSnapshotWriter
 	pool      *pgxpool.Pool
 	logger    zerolog.Logger
 }
 
-func NewSyncHandler(cmds SyncCommander, store SyncEventLoader, clock SyncClock, hub *Hub, snapshots SyncSnapshotWriter, pool *pgxpool.Pool, logger zerolog.Logger) *SyncHandler {
-	return &SyncHandler{cmds: cmds, store: store, clock: clock, hub: hub, snapshots: snapshots, pool: pool, logger: logger}
+func NewSyncHandler(cmds SyncCommander, store SyncEventLoader, clock SyncClock, snapshots SyncSnapshotWriter, pool *pgxpool.Pool, logger zerolog.Logger) *SyncHandler {
+	return &SyncHandler{cmds: cmds, store: store, clock: clock, snapshots: snapshots, pool: pool, logger: logger}
 }
 
 type syncRequest struct {
@@ -179,7 +178,6 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 			h.logger.Error().Err(err).Msg("sync: failed to load events for pull")
 		} else {
 			resp.Events = events
-			h.hub.Broadcast(userID, events, nil)
 		}
 	}
 

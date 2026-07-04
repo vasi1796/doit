@@ -1,15 +1,12 @@
 package handler
 
 import (
-	"encoding/json"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog"
-
-	"github.com/vasi1796/doit/internal/eventstore"
 )
 
 const (
@@ -63,29 +60,23 @@ func (h *Hub) Unregister(userID uuid.UUID, client *Client) {
 	close(client.send)
 }
 
-// Broadcast sends events to all connected clients of a user except the sender.
-func (h *Hub) Broadcast(userID uuid.UUID, events []eventstore.Event, sender *Client) {
-	if len(events) == 0 {
-		return
-	}
-	data, err := json.Marshal(events)
-	if err != nil {
-		h.logger.Error().Err(err).Msg("ws: failed to marshal events for broadcast")
-		return
-	}
+// syncPing is the constant notification payload. It carries no state — clients
+// respond by pulling through POST /api/v1/sync, the single state-transfer path.
+var syncPing = []byte(`{"type":"sync"}`)
 
+// Notify sends a sync ping to all connected clients of a user. Delivery is
+// best-effort: a dropped ping is recovered by the next ping or the client's
+// periodic poll.
+func (h *Hub) Notify(userID uuid.UUID) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
 	for client := range h.clients[userID] {
-		if client == sender {
-			continue
-		}
 		select {
-		case client.send <- data:
+		case client.send <- syncPing:
 		default:
 			// Client buffer full — drop message (client will catch up via sync)
-			h.logger.Warn().Str("user_id", userID.String()).Msg("ws: dropping message, client buffer full")
+			h.logger.Warn().Str("user_id", userID.String()).Msg("ws: dropping ping, client buffer full")
 		}
 	}
 }

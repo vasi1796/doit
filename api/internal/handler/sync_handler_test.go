@@ -160,7 +160,6 @@ func newTestSyncHandler(cmds SyncCommander) *SyncHandler {
 		cmds,
 		&mockSyncEventLoader{},
 		&mockSyncClock{},
-		NewHub(logger),
 		&mockSyncSnapshotWriter{},
 		nil, // pool not needed for sync tests
 		logger,

@@ -62,9 +62,8 @@ func TestReorderTaskSyncsPosition(t *testing.T) {
 	}
 
 	// Sync a position-only update for task1 (reorder it after task2)
-	hub := handler.NewHub(h.logger)
 	snapWriter := projection.NewSnapshotWriter(h.pool, h.logger)
-	syncHandler := handler.NewSyncHandler(h.cmdHandler, h.store, h.clock, hub, snapWriter, h.pool, h.logger)
+	syncHandler := handler.NewSyncHandler(h.cmdHandler, h.store, h.clock, snapWriter, h.pool, h.logger)
 
 	reqBody := map[string]any{
 		"operations": []map[string]any{

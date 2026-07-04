@@ -25,9 +25,8 @@ func TestSyncPushFlow(t *testing.T) {
 	h := setupHarness(t)
 	ctx := context.Background()
 
-	hub := handler.NewHub(h.logger)
 	snapWriter := projection.NewSnapshotWriter(h.pool, h.logger)
-	syncHandler := handler.NewSyncHandler(h.cmdHandler, h.store, h.clock, hub, snapWriter, h.pool, h.logger)
+	syncHandler := handler.NewSyncHandler(h.cmdHandler, h.store, h.clock, snapWriter, h.pool, h.logger)
 
 	taskID := uuid.New()
 	dueDate := "2026-05-15"
