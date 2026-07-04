@@ -30,13 +30,16 @@ HTTP Request → Handler → CommandHandler(HLC) → Aggregate (validates + prod
 Outbox Poller → RabbitMQ (topic exchange: doit.events, broker auto-reconnects with backoff)
     → Projection Worker (doit.projections queue) → updates read model tables
     → Recurring Worker (doit.recurring queue) → creates next occurrence on task completion
+    → WS Relay (API-side, exclusive auto-delete queue, binding "#")
+        → Hub sends {"type":"sync"} ping to the event's user → clients pull via /sync
 ```
 
 ### Write Path (offline-first — sync engine)
 ```
 User action → db/operations.ts → IndexedDB write (instant)
     → SyncOp queued in syncQueue table
-    → SyncEngine flushes on foreground/30s poll (failed ops retry up to 5 times)
+    → SyncEngine flushes on foreground/30s poll/WS sync ping (failed ops retry up to 5 times;
+      a sync requested mid-flight runs one trailing sync — never dropped)
     → POST /api/v1/sync (batched operations)
     → Server: CommandHandler processes batch → events appended
     → Response: confirmation + remote events
@@ -58,6 +61,9 @@ All reads come from local IndexedDB. The API is never queried directly for reads
 - **Transactional Outbox**: Events and outbox rows written in a single Postgres transaction.
   Outbox poller publishes to RabbitMQ. Projections are async via workers.
 - **Offline-first**: Writes go to IndexedDB immediately, sync to server when online.
+- **Realtime as optimisation, polling as guarantee**: the WS channel carries only thin
+  `{"type":"sync"}` pings (no event payloads); clients respond by pulling through
+  /sync — the single state-transfer path. Missed pings are covered by the 30s poll.
 - **HLC timestamps**: Hybrid Logical Clocks provide causal ordering for CRDT merge. Tracked per field so concurrent edits to different fields are both preserved.
 - **CRDTs**: LWW-Register (scalars, per-field HLC), OR-Set (labels), Fractional Indexing (ordering).
 - **Consumer-side interfaces**: Each package defines the interfaces it needs from its dependencies.

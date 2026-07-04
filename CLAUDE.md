@@ -30,7 +30,8 @@ api/              Go backend
     domain/        Aggregates, commands, payloads, CommandHandler (outbox-aware),
                    generic loadAggregate[T] for aggregate loading
     eventstore/    Event store (append/load/query, HLC counter, outbox)
-    handler/       HTTP handlers (task, list, label, auth, sync, iCal feed, response utils)
+    handler/       HTTP handlers (task, list, label, auth, sync, iCal feed, response utils),
+                   WS hub + relay (consumes doit.events, sends thin sync pings to clients)
     hlc/           Hybrid Logical Clock (causal ordering for sync)
     middleware/     JWT auth middleware
     outbox/        Outbox poller (publishes events to RabbitMQ)
@@ -297,6 +298,6 @@ Events: `TaskCreated`, `TaskCompleted`, `TaskUncompleted`, `TaskDeleted`,
 ## Useful Context Files
 
 - `AGENTS.md` — full architecture overview, package guide, API endpoints
-- `docs/adr/` — Architecture Decision Records (8 total)
+- `docs/adr/` — Architecture Decision Records (12 total)
 - `docs/adr/008-phase1-migration-risks.md` — known refactor points for Phase 2-4
 - `docs/design-document.md` — complete design specification
