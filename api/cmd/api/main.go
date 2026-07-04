@@ -62,7 +62,8 @@ func main() {
 	}
 
 	store := eventstore.New(pool, logger)
-	r := newRouter(pool, store, logger, cfg)
+	hub := handler.NewHub(logger)
+	r := newRouter(pool, store, hub, logger, cfg)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
@@ -83,6 +84,9 @@ func main() {
 		poller := outbox.NewPoller(pool, store, b, logger)
 		go poller.Run(ctx, 200*time.Millisecond)
 		logger.Info().Msg("outbox poller started")
+
+		relay := handler.NewRelay(b, hub, logger)
+		go relay.Run(ctx)
 	}
 
 	go func() {
@@ -165,7 +169,7 @@ func connectDB(ctx context.Context, cfg *config.Config, logger zerolog.Logger) (
 	return pool, nil
 }
 
-func newRouter(pool *pgxpool.Pool, store *eventstore.Store, logger zerolog.Logger, cfg *config.Config) *chi.Mux {
+func newRouter(pool *pgxpool.Pool, store *eventstore.Store, hub *handler.Hub, logger zerolog.Logger, cfg *config.Config) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
 	r.Use(requestLogger(logger))
@@ -245,9 +249,8 @@ func newRouter(pool *pgxpool.Pool, store *eventstore.Store, logger zerolog.Logge
 			r.Delete("/{id}", labelHandler.Delete)
 		})
 
-		hub := handler.NewHub(logger)
 		snapWriter := projection.NewSnapshotWriter(pool, logger)
-		syncHandler := handler.NewSyncHandler(cmdHandler, store, clock, hub, snapWriter, pool, logger)
+		syncHandler := handler.NewSyncHandler(cmdHandler, store, clock, snapWriter, pool, logger)
 		r.Post("/sync", syncHandler.Sync)
 
 		wsHandler := handler.NewWSHandler(hub, logger)

@@ -277,6 +277,37 @@ func (b *Broker) Consume(queue string, prefetch int) (<-chan amqp.Delivery, erro
 	return ch.Consume(queue, "", false, false, false, false, nil)
 }
 
+// ConsumeBroadcast declares a server-named, exclusive, auto-delete queue bound
+// to the events exchange with routing key "#" and returns a delivery channel.
+// The queue exists only for the lifetime of this connection — messages are not
+// retained while disconnected. Deliveries are auto-acked: this is a best-effort
+// notification channel, and clients converge via HTTP polling regardless.
+// After a reconnect (see Reconnected), callers must call ConsumeBroadcast again
+// to declare a fresh queue on the new channel.
+func (b *Broker) ConsumeBroadcast() (<-chan amqp.Delivery, error) {
+	b.mu.RLock()
+	ch := b.channel
+	b.mu.RUnlock()
+
+	if ch == nil {
+		return nil, fmt.Errorf("broker: channel not available (reconnecting)")
+	}
+
+	q, err := ch.QueueDeclare("", false, true, true, false, nil)
+	if err != nil {
+		return nil, fmt.Errorf("broker: declare broadcast queue: %w", err)
+	}
+	if err := ch.QueueBind(q.Name, "#", ExchangeName, false, nil); err != nil {
+		return nil, fmt.Errorf("broker: bind broadcast queue: %w", err)
+	}
+
+	deliveries, err := ch.Consume(q.Name, "", true, true, false, false, nil)
+	if err != nil {
+		return nil, fmt.Errorf("broker: consume broadcast queue: %w", err)
+	}
+	return deliveries, nil
+}
+
 // PurgeQueue removes all messages from a queue. Useful for test isolation.
 func (b *Broker) PurgeQueue(queue string) error {
 	b.mu.RLock()
