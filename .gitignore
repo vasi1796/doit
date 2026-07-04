@@ -140,3 +140,8 @@ vite.config.ts.timestamp-*
 api/bin/
 .desloppify/
 api/api
+
+_bmad
+_bmad-output
+.superset
+.claude
