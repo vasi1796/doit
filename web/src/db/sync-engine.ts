@@ -17,6 +17,7 @@ export class SyncEngine {
   private timerId: ReturnType<typeof setTimeout> | null = null
   private interval = BASE_INTERVAL
   private syncing = false
+  private pendingSync = false
 
   // WebSocket
   private ws: WebSocket | null = null
@@ -57,7 +58,12 @@ export class SyncEngine {
   }
 
   async sync(): Promise<void> {
-    if (this.syncing) return
+    if (this.syncing) {
+      // A sync is in flight — remember the request and run one trailing sync
+      // when it finishes, so pings arriving mid-sync are never lost.
+      this.pendingSync = true
+      return
+    }
     this.syncing = true
     window.dispatchEvent(new Event('sync:start'))
 
@@ -155,6 +161,10 @@ export class SyncEngine {
     } finally {
       this.syncing = false
       window.dispatchEvent(new Event('sync:end'))
+      if (this.pendingSync) {
+        this.pendingSync = false
+        void this.sync()
+      }
     }
   }
 
@@ -185,11 +195,13 @@ export class SyncEngine {
       return
     }
 
-    this.ws.onmessage = async (event) => {
+    this.ws.onmessage = (event) => {
       try {
-        const events = JSON.parse(event.data)
-        if (Array.isArray(events) && events.length > 0) {
-          await mergeRemoteEvents(events)
+        // The server sends thin {"type":"sync"} pings — no event payloads.
+        // State transfer happens exclusively through the /sync pull.
+        const msg = JSON.parse(event.data)
+        if (msg && msg.type === 'sync') {
+          void this.sync()
         }
       } catch (err) {
         console.warn('sync: WebSocket message parse failed', err)
