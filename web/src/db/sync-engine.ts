@@ -163,7 +163,7 @@ export class SyncEngine {
       window.dispatchEvent(new Event('sync:end'))
       if (this.pendingSync) {
         this.pendingSync = false
-        void this.sync()
+        if (!this.stopped) void this.sync()
       }
     }
   }
