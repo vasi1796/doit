@@ -105,6 +105,22 @@ type ListDeletedPayload struct {
 	DeletedAt time.Time `json:"deleted_at"`
 }
 
+type ListNameUpdatedPayload struct {
+	Name string `json:"name"`
+}
+
+type ListColourUpdatedPayload struct {
+	Colour string `json:"colour"`
+}
+
+type LabelNameUpdatedPayload struct {
+	Name string `json:"name"`
+}
+
+type LabelColourUpdatedPayload struct {
+	Colour string `json:"colour"`
+}
+
 type LabelDeletedPayload struct {
 	DeletedAt time.Time `json:"deleted_at"`
 }

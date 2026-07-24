@@ -78,6 +78,47 @@ func (a *ListAggregate) HandleDelete(cmd DeleteList, now hlc.Timestamp) ([]event
 	return []eventstore.Event{e}, nil
 }
 
+func (a *ListAggregate) HandleUpdateName(cmd UpdateListName, now hlc.Timestamp) ([]eventstore.Event, error) {
+	if err := a.requireActive(); err != nil {
+		return nil, err
+	}
+	if cmd.Name == "" {
+		return nil, ErrEmptyName
+	}
+
+	e, err := a.newEvent(eventstore.EventListNameUpdated, ListNameUpdatedPayload{
+		Name: cmd.Name,
+	}, now)
+	if err != nil {
+		return nil, err
+	}
+	return []eventstore.Event{e}, nil
+}
+
+func (a *ListAggregate) HandleUpdateColour(cmd UpdateListColour, now hlc.Timestamp) ([]eventstore.Event, error) {
+	if err := a.requireActive(); err != nil {
+		return nil, err
+	}
+
+	e, err := a.newEvent(eventstore.EventListColourUpdated, ListColourUpdatedPayload{
+		Colour: cmd.Colour,
+	}, now)
+	if err != nil {
+		return nil, err
+	}
+	return []eventstore.Event{e}, nil
+}
+
+func (a *ListAggregate) requireActive() error {
+	if !a.created {
+		return ErrListNotFound
+	}
+	if a.deleted {
+		return ErrListAlreadyDeleted
+	}
+	return nil
+}
+
 func (a *ListAggregate) newEvent(eventType eventstore.EventType, payload any, now hlc.Timestamp) (eventstore.Event, error) {
 	return buildEvent(a.id, eventstore.AggregateTypeList, a.userID, &a.version, eventType, payload, now)
 }

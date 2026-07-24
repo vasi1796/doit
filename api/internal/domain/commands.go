@@ -108,6 +108,14 @@ type DeleteList struct {
 	DeletedAt time.Time
 }
 
+type UpdateListName struct {
+	Name string
+}
+
+type UpdateListColour struct {
+	Colour string
+}
+
 // Label commands
 
 type CreateLabel struct {
@@ -119,4 +127,12 @@ type CreateLabel struct {
 
 type DeleteLabel struct {
 	DeletedAt time.Time
+}
+
+type UpdateLabelName struct {
+	Name string
+}
+
+type UpdateLabelColour struct {
+	Colour string
 }

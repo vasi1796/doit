@@ -110,6 +110,22 @@ func (m *mockSyncCommander) DeleteList(_ context.Context, _ uuid.UUID, _ uuid.UU
 	m.calls = append(m.calls, "DeleteList")
 	return m.err
 }
+func (m *mockSyncCommander) UpdateListName(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateListName) error {
+	m.calls = append(m.calls, "UpdateListName:"+cmd.Name)
+	return m.err
+}
+func (m *mockSyncCommander) UpdateListColour(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateListColour) error {
+	m.calls = append(m.calls, "UpdateListColour:"+cmd.Colour)
+	return m.err
+}
+func (m *mockSyncCommander) UpdateLabelName(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateLabelName) error {
+	m.calls = append(m.calls, "UpdateLabelName:"+cmd.Name)
+	return m.err
+}
+func (m *mockSyncCommander) UpdateLabelColour(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateLabelColour) error {
+	m.calls = append(m.calls, "UpdateLabelColour:"+cmd.Colour)
+	return m.err
+}
 func (m *mockSyncCommander) CreateLabel(_ context.Context, cmd domain.CreateLabel) error {
 	m.calls = append(m.calls, "CreateLabel:"+cmd.Name)
 	return m.err
@@ -459,10 +475,40 @@ func TestSyncDispatchOpAllTypes(t *testing.T) {
 			wantCalls: []string{"DeleteList"},
 		},
 		{
+			name:      "UpdateList with name and colour dispatches both commands",
+			opType:    "UpdateList",
+			data:      map[string]any{"name": "Renamed", "colour": "#00ff00"},
+			wantCalls: []string{"UpdateListName:Renamed", "UpdateListColour:#00ff00"},
+		},
+		{
+			name:      "UpdateList with name only dispatches name command",
+			opType:    "UpdateList",
+			data:      map[string]any{"name": "Renamed"},
+			wantCalls: []string{"UpdateListName:Renamed"},
+		},
+		{
+			name:      "UpdateList with empty name skips name command",
+			opType:    "UpdateList",
+			data:      map[string]any{"name": "", "colour": "#00ff00"},
+			wantCalls: []string{"UpdateListColour:#00ff00"},
+		},
+		{
 			name:      "CreateLabel dispatches with name, colour",
 			opType:    "CreateLabel",
 			data:      map[string]any{"name": "Urgent", "colour": "#ff0000"},
 			wantCalls: []string{"CreateLabel:Urgent"},
+		},
+		{
+			name:      "UpdateLabel with name and colour dispatches both commands",
+			opType:    "UpdateLabel",
+			data:      map[string]any{"name": "Important", "colour": "#0000ff"},
+			wantCalls: []string{"UpdateLabelName:Important", "UpdateLabelColour:#0000ff"},
+		},
+		{
+			name:      "UpdateLabel with colour only dispatches colour command",
+			opType:    "UpdateLabel",
+			data:      map[string]any{"colour": "#0000ff"},
+			wantCalls: []string{"UpdateLabelColour:#0000ff"},
 		},
 		{
 			name:      "DeleteLabel dispatches DeleteLabel",

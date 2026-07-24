@@ -303,6 +303,30 @@ func (h *CommandHandler) DeleteList(ctx context.Context, aggregateID uuid.UUID, 
 	return h.appendWithOutbox(ctx, events)
 }
 
+func (h *CommandHandler) UpdateListName(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateListName) error {
+	agg, err := h.loadListAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleUpdateName(cmd, h.clock.Now())
+	if err != nil {
+		return err
+	}
+	return h.appendWithOutbox(ctx, events)
+}
+
+func (h *CommandHandler) UpdateListColour(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateListColour) error {
+	agg, err := h.loadListAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleUpdateColour(cmd, h.clock.Now())
+	if err != nil {
+		return err
+	}
+	return h.appendWithOutbox(ctx, events)
+}
+
 func (h *CommandHandler) CreateLabel(ctx context.Context, cmd CreateLabel) error {
 	agg := NewLabelAggregate()
 	events, err := agg.HandleCreate(cmd, h.clock.Now())
@@ -318,6 +342,30 @@ func (h *CommandHandler) DeleteLabel(ctx context.Context, aggregateID uuid.UUID,
 		return err
 	}
 	events, err := agg.HandleDelete(cmd, h.clock.Now())
+	if err != nil {
+		return err
+	}
+	return h.appendWithOutbox(ctx, events)
+}
+
+func (h *CommandHandler) UpdateLabelName(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateLabelName) error {
+	agg, err := h.loadLabelAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleUpdateName(cmd, h.clock.Now())
+	if err != nil {
+		return err
+	}
+	return h.appendWithOutbox(ctx, events)
+}
+
+func (h *CommandHandler) UpdateLabelColour(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateLabelColour) error {
+	agg, err := h.loadLabelAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	events, err := agg.HandleUpdateColour(cmd, h.clock.Now())
 	if err != nil {
 		return err
 	}
