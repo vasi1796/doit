@@ -4,6 +4,9 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { ConfirmDialog } from '../common/ConfirmDialog'
+import { ContextMenu } from '../common/ContextMenu'
+import { EditNameColourDialog } from '../common/EditNameColourDialog'
+import { useLongPress } from '../../hooks/useLongPress'
 import { SyncStatus } from '../common/SyncStatus'
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '../../push'
 import { CalendarFeedLink } from '../common/CalendarFeedLink'
@@ -176,9 +179,9 @@ function useIsTouchDevice() {
   return isTouch
 }
 
-function SwipeableRow({ onDelete, desktopDeleteButton, children }: {
+function SwipeableRow({ onDelete, desktopActionButton, children }: {
   onDelete: () => void
-  desktopDeleteButton: React.ReactNode
+  desktopActionButton: React.ReactNode
   children: React.ReactNode
 }) {
   const isTouch = useIsTouchDevice()
@@ -216,8 +219,92 @@ function SwipeableRow({ onDelete, desktopDeleteButton, children }: {
       >
         {children}
       </motion.div>
-      {desktopDeleteButton}
+      {desktopActionButton}
     </div>
+  )
+}
+
+/**
+ * A list/label row in the sidebar: swipe-to-delete on touch, plus a
+ * context menu (Edit / Delete) opened by long-press on touch or by
+ * right-click / the hover … button on desktop.
+ */
+function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelete, onOpenMenu }: {
+  to: string
+  name: string
+  colour?: string
+  shape: 'circle' | 'square'
+  count?: number
+  entityLabel: 'list' | 'label'
+  onDelete: () => void
+  onOpenMenu: (point: { x: number; y: number }) => void
+}) {
+  const longPress = useLongPress(onOpenMenu)
+
+  return (
+    <SwipeableRow
+      onDelete={onDelete}
+      desktopActionButton={
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            const rect = e.currentTarget.getBoundingClientRect()
+            onOpenMenu({ x: rect.left, y: rect.bottom + 4 })
+          }}
+          className="hidden md:flex opacity-0 group-hover:opacity-100 focus:opacity-100 text-text-secondary hover:text-text-primary items-center justify-center w-[44px] h-[44px] mr-1 transition-opacity"
+          aria-label={`${name} ${entityLabel} options`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <circle cx="5" cy="12" r="1.8" />
+            <circle cx="12" cy="12" r="1.8" />
+            <circle cx="19" cy="12" r="1.8" />
+          </svg>
+        </button>
+      }
+    >
+      <div
+        {...longPress}
+        onContextMenu={(e) => {
+          // Shift+right-click falls through to the browser's native link
+          // menu (Open in New Tab, Copy Link)
+          if (e.shiftKey) return
+          e.preventDefault()
+          onOpenMenu({ x: e.clientX, y: e.clientY })
+        }}
+        className="flex-1 select-none [-webkit-touch-callout:none]"
+      >
+        <NavLink
+          to={to}
+          className={({ isActive }) =>
+            `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-[10px] text-[15px] transition-colors ${
+              isActive
+                ? 'text-accent font-medium'
+                : 'text-text-primary hover:bg-black/[0.04]'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 rounded-[10px] bg-accent-light animate-nav-active-in"
+                />
+              )}
+              <span
+                className={`w-[10px] h-[10px] shrink-0 relative z-[1] ${shape === 'circle' ? 'rounded-full' : 'rounded-[3px]'}`}
+                style={{ backgroundColor: colour || 'var(--color-gray)' }}
+              />
+              <span className="flex-1 relative z-[1] truncate">{name}</span>
+              {(count ?? 0) > 0 && (
+                <span className={`text-[12px] font-medium relative z-[1] ${isActive ? 'text-accent/70' : 'text-text-tertiary'}`}>{count}</span>
+              )}
+            </>
+          )}
+        </NavLink>
+      </div>
+    </SwipeableRow>
   )
 }
 
@@ -229,6 +316,24 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
   const [newListColour, setNewListColour] = useState<string>(PRESET_COLORS[0])
   const [pendingDelete, setPendingDelete] = useState<{ type: 'list' | 'label'; id: string; name: string } | null>(null)
   const [labelsCollapsed, setLabelsCollapsed] = useState(false)
+  const [entityMenu, setEntityMenu] = useState<{ type: 'list' | 'label'; id: string; name: string; colour: string; x: number; y: number } | null>(null)
+  const [editTarget, setEditTarget] = useState<{ type: 'list' | 'label'; id: string; name: string; colour: string } | null>(null)
+
+  const handleEditSave = useCallback(async (changes: { name?: string; colour?: string }) => {
+    if (!editTarget) return
+    setEditTarget(null)
+    if (Object.keys(changes).length === 0) return
+    try {
+      if (editTarget.type === 'list') {
+        await operations.updateList(editTarget.id, changes)
+      } else {
+        await operations.updateLabel(editTarget.id, changes)
+      }
+      toast(editTarget.type === 'list' ? 'List updated' : 'Label updated', 'success')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to update', 'error')
+    }
+  }, [editTarget, toast])
 
   const confirmDelete = useCallback(async () => {
     if (!pendingDelete) return
@@ -379,59 +484,22 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
         )}
         </AnimatePresence>
         <div className="space-y-0.5">
-          {lists.map((list) => {
-            const deleteList = () => {
-              setPendingDelete({ type: 'list', id: list.id, name: list.name })
-            }
-            return (
-              <SwipeableRow
-                key={list.id}
-                onDelete={deleteList}
-                desktopDeleteButton={
-                  <button
-                    type="button"
-                    onClick={async (e) => { e.stopPropagation(); await deleteList() }}
-                    className="hidden md:flex opacity-0 group-hover:opacity-100 text-text-secondary hover:text-danger items-center justify-center w-[44px] h-[44px] mr-1 transition-opacity"
-                    aria-label="Delete list"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M18 6 6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                }
-              >
-                <NavLink
-                  to={`/lists/${list.id}`}
-                  className={({ isActive }) =>
-                    `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-[10px] text-[15px] transition-colors ${
-                      isActive
-                        ? 'text-accent font-medium'
-                        : 'text-text-primary hover:bg-black/[0.04]'
-                    }`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {isActive && (
-                        <span
-                          aria-hidden="true"
-                          className="absolute inset-0 rounded-[10px] bg-accent-light animate-nav-active-in"
-                        />
-                      )}
-                      <span
-                        className="w-[10px] h-[10px] rounded-full shrink-0 relative z-[1]"
-                        style={{ backgroundColor: list.colour || 'var(--color-gray)' }}
-                      />
-                      <span className="flex-1 relative z-[1] truncate">{list.name}</span>
-                      {(taskCounts.byList[list.id] || 0) > 0 && (
-                        <span className={`text-[12px] font-medium relative z-[1] ${isActive ? 'text-accent/70' : 'text-text-tertiary'}`}>{taskCounts.byList[list.id]}</span>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              </SwipeableRow>
-            )
-          })}
+          {lists.map((list) => (
+            <SidebarEntityRow
+              key={list.id}
+              to={`/lists/${list.id}`}
+              name={list.name}
+              colour={list.colour}
+              shape="circle"
+              count={taskCounts.byList[list.id] || 0}
+              entityLabel="list"
+              onDelete={() => setPendingDelete({ type: 'list', id: list.id, name: list.name })}
+              onOpenMenu={(point) => setEntityMenu({
+                type: 'list', id: list.id, name: list.name,
+                colour: list.colour || '', x: point.x, y: point.y,
+              })}
+            />
+          ))}
         </div>
       </div>
 
@@ -472,56 +540,21 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
               >
-                {labels.map((label) => {
-                  const deleteLabel = () => {
-                    setPendingDelete({ type: 'label', id: label.id, name: label.name })
-                  }
-                  return (
-                    <SwipeableRow
-                      key={label.id}
-                      onDelete={deleteLabel}
-                      desktopDeleteButton={
-                        <button
-                          type="button"
-                          onClick={async (e) => { e.stopPropagation(); await deleteLabel() }}
-                          className="hidden md:flex opacity-0 group-hover:opacity-100 text-text-secondary hover:text-danger items-center justify-center w-[44px] h-[44px] mr-1 transition-opacity"
-                          aria-label="Delete label"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <path d="M18 6 6 18M6 6l12 12" />
-                          </svg>
-                        </button>
-                      }
-                    >
-                      <NavLink
-                        to={`/labels/${label.id}`}
-                        className={({ isActive }) =>
-                          `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-[10px] text-[15px] transition-colors ${
-                            isActive
-                              ? 'text-accent font-medium'
-                              : 'text-text-primary hover:bg-black/[0.04]'
-                          }`
-                        }
-                      >
-                        {({ isActive }) => (
-                          <>
-                            {isActive && (
-                              <span
-                                aria-hidden="true"
-                                className="absolute inset-0 rounded-[10px] bg-accent-light animate-nav-active-in"
-                              />
-                            )}
-                            <span
-                              className="w-[10px] h-[10px] rounded-[3px] shrink-0 relative z-[1]"
-                              style={{ backgroundColor: label.colour || 'var(--color-gray)' }}
-                            />
-                            <span className="relative z-[1] truncate">{label.name}</span>
-                          </>
-                        )}
-                      </NavLink>
-                    </SwipeableRow>
-                  )
-                })}
+                {labels.map((label) => (
+                  <SidebarEntityRow
+                    key={label.id}
+                    to={`/labels/${label.id}`}
+                    name={label.name}
+                    colour={label.colour}
+                    shape="square"
+                    entityLabel="label"
+                    onDelete={() => setPendingDelete({ type: 'label', id: label.id, name: label.name })}
+                    onOpenMenu={(point) => setEntityMenu({
+                      type: 'label', id: label.id, name: label.name,
+                      colour: label.colour || '', x: point.x, y: point.y,
+                    })}
+                  />
+                ))}
               </motion.div>
             )}
           </AnimatePresence>
@@ -580,6 +613,41 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
         }
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}
+      />
+      <ContextMenu
+        open={!!entityMenu}
+        position={{ x: entityMenu?.x ?? 0, y: entityMenu?.y ?? 0 }}
+        items={[
+          {
+            label: 'Edit',
+            onSelect: () => {
+              if (entityMenu) {
+                setEditTarget({ type: entityMenu.type, id: entityMenu.id, name: entityMenu.name, colour: entityMenu.colour })
+              }
+            },
+          },
+          {
+            label: 'Delete',
+            danger: true,
+            onSelect: () => {
+              if (entityMenu) {
+                setPendingDelete({ type: entityMenu.type, id: entityMenu.id, name: entityMenu.name })
+              }
+            },
+          },
+        ]}
+        onClose={() => setEntityMenu(null)}
+      />
+      <EditNameColourDialog
+        key={editTarget ? `${editTarget.type}-${editTarget.id}` : 'closed'}
+        open={!!editTarget}
+        title={editTarget?.type === 'list' ? 'Edit List' : 'Edit Label'}
+        initialName={editTarget?.name ?? ''}
+        // Empty string for an unset colour: picking any swatch — including the
+        // first preset — then registers as a real change
+        initialColour={editTarget?.colour ?? ''}
+        onSave={handleEditSave}
+        onCancel={() => setEditTarget(null)}
       />
     </aside>
   )
