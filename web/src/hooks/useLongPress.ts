@@ -2,6 +2,33 @@ import { useCallback, useRef } from 'react'
 
 const LONG_PRESS_MS = 500
 const MOVE_TOLERANCE_PX = 10
+const CLICK_SUPPRESS_WINDOW_MS = 3000
+
+/**
+ * The synthetic click Safari fires on finger lift after a long-press lands
+ * wherever the finger is released — usually the menu backdrop that has just
+ * rendered under it, not the pressed row. Swallow exactly one click,
+ * document-wide in the capture phase, so neither the row navigates nor the
+ * freshly opened menu dismisses. A new pointerdown disarms the suppressor:
+ * the next gesture's click must go through even if the synthetic click
+ * never arrived.
+ */
+function suppressNextClick() {
+  const suppress = (e: MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    cleanup()
+  }
+  const disarm = () => cleanup()
+  const cleanup = () => {
+    document.removeEventListener('click', suppress, true)
+    document.removeEventListener('pointerdown', disarm, true)
+    window.clearTimeout(timeout)
+  }
+  document.addEventListener('click', suppress, true)
+  document.addEventListener('pointerdown', disarm, true)
+  const timeout = window.setTimeout(cleanup, CLICK_SUPPRESS_WINDOW_MS)
+}
 
 /**
  * Long-press detection for touch pointers only — mouse users get
@@ -12,7 +39,6 @@ const MOVE_TOLERANCE_PX = 10
 export function useLongPress(onLongPress: (point: { x: number; y: number }) => void) {
   const timer = useRef<number | null>(null)
   const origin = useRef<{ x: number; y: number } | null>(null)
-  const fired = useRef(false)
 
   const clear = useCallback(() => {
     if (timer.current !== null) {
@@ -25,11 +51,10 @@ export function useLongPress(onLongPress: (point: { x: number; y: number }) => v
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.pointerType !== 'touch') return
     const point = { x: e.clientX, y: e.clientY }
-    fired.current = false
     origin.current = point
     timer.current = window.setTimeout(() => {
       timer.current = null
-      fired.current = true
+      suppressNextClick()
       onLongPress(point)
     }, LONG_PRESS_MS)
   }, [onLongPress])
@@ -43,21 +68,10 @@ export function useLongPress(onLongPress: (point: { x: number; y: number }) => v
     }
   }, [clear])
 
-  const onClickCapture = useCallback((e: React.MouseEvent) => {
-    // Swallow the synthetic click that follows a completed long-press so
-    // the row underneath doesn't also navigate.
-    if (fired.current) {
-      e.preventDefault()
-      e.stopPropagation()
-      fired.current = false
-    }
-  }, [])
-
   return {
     onPointerDown,
     onPointerMove,
     onPointerUp: clear,
     onPointerCancel: clear,
-    onClickCapture,
   }
 }

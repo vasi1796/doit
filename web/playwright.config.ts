@@ -14,6 +14,14 @@ export default defineConfig({
     },
   },
 
+  use: {
+    // The app's service worker (sw.js) passes /api/ fetches through its own
+    // fetch handler; Playwright cannot intercept SW-mediated requests in
+    // WebKit, so whether page.route mocks apply would depend on an
+    // activation race. Block SWs so mocked APIs are deterministic.
+    serviceWorkers: 'block',
+  },
+
   projects: [
     {
       name: 'webkit-desktop',

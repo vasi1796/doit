@@ -31,10 +31,16 @@ export function ContextMenu({ open, position, items, onClose }: ContextMenuProps
     y: Math.max(8, Math.min(position.y, window.innerHeight - estimatedHeight - 8)),
   }
 
+  // Focus depends only on `open` — keeping it out of the listener effect so
+  // a parent re-render (new onClose identity) can't yank focus back to the
+  // first item mid-keyboard-navigation.
   useEffect(() => {
     if (!open) return
     menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
+  }, [open])
 
+  useEffect(() => {
+    if (!open) return
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose()

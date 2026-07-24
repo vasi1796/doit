@@ -266,6 +266,9 @@ function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelet
       <div
         {...longPress}
         onContextMenu={(e) => {
+          // Shift+right-click falls through to the browser's native link
+          // menu (Open in New Tab, Copy Link)
+          if (e.shiftKey) return
           e.preventDefault()
           onOpenMenu({ x: e.clientX, y: e.clientY })
         }}
@@ -493,7 +496,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
               onDelete={() => setPendingDelete({ type: 'list', id: list.id, name: list.name })}
               onOpenMenu={(point) => setEntityMenu({
                 type: 'list', id: list.id, name: list.name,
-                colour: list.colour || PRESET_COLORS[0], x: point.x, y: point.y,
+                colour: list.colour || '', x: point.x, y: point.y,
               })}
             />
           ))}
@@ -548,7 +551,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                     onDelete={() => setPendingDelete({ type: 'label', id: label.id, name: label.name })}
                     onOpenMenu={(point) => setEntityMenu({
                       type: 'label', id: label.id, name: label.name,
-                      colour: label.colour || PRESET_COLORS[0], x: point.x, y: point.y,
+                      colour: label.colour || '', x: point.x, y: point.y,
                     })}
                   />
                 ))}
@@ -640,7 +643,9 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
         open={!!editTarget}
         title={editTarget?.type === 'list' ? 'Edit List' : 'Edit Label'}
         initialName={editTarget?.name ?? ''}
-        initialColour={editTarget?.colour ?? PRESET_COLORS[0]}
+        // Empty string for an unset colour: picking any swatch — including the
+        // first preset — then registers as a real change
+        initialColour={editTarget?.colour ?? ''}
         onSave={handleEditSave}
         onCancel={() => setEditTarget(null)}
       />

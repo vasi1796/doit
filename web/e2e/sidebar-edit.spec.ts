@@ -53,7 +53,7 @@ test.describe('Sidebar list/label context menu', () => {
     const listLink = page.getByRole('link', { name: 'Project Alpha' })
     await listLink.waitFor({ state: 'visible' })
 
-    // Synthesize a touch long-press: pointerdown with pointerType 'touch',
+    // Synthesise a touch long-press: pointerdown with pointerType 'touch',
     // held past the 500ms threshold with no movement.
     await listLink.dispatchEvent('pointerdown', {
       pointerType: 'touch',
@@ -63,6 +63,17 @@ test.describe('Sidebar list/label context menu', () => {
     })
     const menu = page.getByRole('menu')
     await expect(menu).toBeVisible({ timeout: 5000 })
-    await expect(menu.getByRole('menuitem', { name: 'Edit' })).toBeVisible()
+
+    // Release the finger: Safari fires a synthetic click at the release
+    // coordinates, which now hit the menu backdrop — the menu must survive it.
+    await listLink.dispatchEvent('pointerup', { pointerType: 'touch', bubbles: true })
+    await page.evaluate(() => {
+      document.elementFromPoint(100, 300)?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true, clientX: 100, clientY: 300 })
+      )
+    })
+    await expect(menu).toBeVisible()
+    await menu.getByRole('menuitem', { name: 'Edit' }).click()
+    await expect(page.getByRole('dialog', { name: 'Edit List' })).toBeVisible()
   })
 })
