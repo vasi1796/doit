@@ -45,7 +45,9 @@ web/              React frontend
     components/    Common pickers, layout (sidebar/bottom nav, global FAB), task components
                    MarkdownEditor (CodeMirror 6 live preview), InlineMarkdown (lightweight title renderer),
                    SearchOverlay (Cmd+K global search with keyboard navigation),
-                   CalendarFeedLink (iCal subscription copy-to-clipboard)
+                   CalendarFeedLink (iCal subscription copy-to-clipboard),
+                   ContextMenu + EditNameColourDialog (sidebar list/label edit via
+                   long-press, right-click, or hover options button)
     db/            Dexie.js database, operations, sync engine, event merger
     hlc/           Hybrid Logical Clock (TypeScript, mirrors Go)
     hooks/         Dexie.js useLiveQuery hooks (useTasks, useLists, useLabels, useTaskDetail)
