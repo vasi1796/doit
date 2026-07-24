@@ -30,7 +30,7 @@ export function LoginPage() {
         setLoading(false)
         return
       }
-      navigate('/inbox')
+      navigate('/today')
     } catch {
       setError('Connection failed')
       setLoading(false)

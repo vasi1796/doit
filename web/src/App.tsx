@@ -21,7 +21,7 @@ function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<AppLayout />}>
-        <Route index element={<Navigate to="/inbox" replace />} />
+        <Route index element={<Navigate to="/today" replace />} />
         <Route path="inbox" element={<InboxPage />} />
         <Route path="today" element={<TodayPage />} />
         <Route path="upcoming" element={<UpcomingPage />} />
@@ -31,7 +31,7 @@ function App() {
         <Route path="labels/:id" element={<LabelPage />} />
         <Route path="completed" element={<CompletedPage />} />
         <Route path="trash" element={<TrashPage />} />
-        <Route path="*" element={<Navigate to="/inbox" replace />} />
+        <Route path="*" element={<Navigate to="/today" replace />} />
       </Route>
     </Routes>
   )
