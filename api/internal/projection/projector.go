@@ -64,6 +64,11 @@ const updateSubtaskTitleSQL = `UPDATE subtasks SET title = $2 WHERE id = $1`
 const updateSubtaskCompletedSQL = `UPDATE subtasks SET is_completed = true WHERE id = $1`
 const updateSubtaskUncompletedSQL = `UPDATE subtasks SET is_completed = false WHERE id = $1`
 
+const updateListNameSQL = `UPDATE lists SET name = $2, updated_at = $3 WHERE id = $1`
+const updateListColourSQL = `UPDATE lists SET colour = $2, updated_at = $3 WHERE id = $1`
+const updateLabelNameSQL = `UPDATE labels SET name = $2 WHERE id = $1`
+const updateLabelColourSQL = `UPDATE labels SET colour = $2 WHERE id = $1`
+
 const deleteListSQL = `DELETE FROM lists WHERE id = $1`
 const moveTasksToInboxSQL = `UPDATE tasks SET list_id = NULL WHERE list_id = $1`
 const deleteLabelSQL = `DELETE FROM labels WHERE id = $1`
@@ -180,6 +185,22 @@ func (p *Projector) handleEvent(ctx context.Context, tx pgx.Tx, e eventstore.Eve
 		return p.handleListCreated(ctx, tx, e)
 	case eventstore.EventListDeleted:
 		return p.handleListDeleted(ctx, tx, e)
+	case eventstore.EventListNameUpdated:
+		return execProjection(ctx, tx, p.logger, e, updateListNameSQL, func(pl domain.ListNameUpdatedPayload) []any {
+			return []any{e.AggregateID, pl.Name, e.Timestamp}
+		}, "ListNameUpdated")
+	case eventstore.EventListColourUpdated:
+		return execProjection(ctx, tx, p.logger, e, updateListColourSQL, func(pl domain.ListColourUpdatedPayload) []any {
+			return []any{e.AggregateID, pl.Colour, e.Timestamp}
+		}, "ListColourUpdated")
+	case eventstore.EventLabelNameUpdated:
+		return execProjection(ctx, tx, p.logger, e, updateLabelNameSQL, func(pl domain.LabelNameUpdatedPayload) []any {
+			return []any{e.AggregateID, pl.Name}
+		}, "LabelNameUpdated")
+	case eventstore.EventLabelColourUpdated:
+		return execProjection(ctx, tx, p.logger, e, updateLabelColourSQL, func(pl domain.LabelColourUpdatedPayload) []any {
+			return []any{e.AggregateID, pl.Colour}
+		}, "LabelColourUpdated")
 	case eventstore.EventLabelCreated:
 		return p.handleLabelCreated(ctx, tx, e)
 	case eventstore.EventLabelDeleted:

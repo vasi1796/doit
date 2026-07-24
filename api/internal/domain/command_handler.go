@@ -303,6 +303,35 @@ func (h *CommandHandler) DeleteList(ctx context.Context, aggregateID uuid.UUID, 
 	return h.appendWithOutbox(ctx, events)
 }
 
+// UpdateList validates every changed field before appending any events, and
+// appends them in one transaction — a partially-applied edit can never be
+// retried into duplicate events.
+func (h *CommandHandler) UpdateList(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateList) error {
+	agg, err := h.loadListAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	var events []eventstore.Event
+	if cmd.Name != nil {
+		evs, err := agg.HandleUpdateName(UpdateListName{Name: *cmd.Name}, h.clock.Now())
+		if err != nil {
+			return err
+		}
+		events = append(events, evs...)
+	}
+	if cmd.Colour != nil {
+		evs, err := agg.HandleUpdateColour(UpdateListColour{Colour: *cmd.Colour}, h.clock.Now())
+		if err != nil {
+			return err
+		}
+		events = append(events, evs...)
+	}
+	if len(events) == 0 {
+		return nil
+	}
+	return h.appendWithOutbox(ctx, events)
+}
+
 func (h *CommandHandler) CreateLabel(ctx context.Context, cmd CreateLabel) error {
 	agg := NewLabelAggregate()
 	events, err := agg.HandleCreate(cmd, h.clock.Now())
@@ -320,6 +349,33 @@ func (h *CommandHandler) DeleteLabel(ctx context.Context, aggregateID uuid.UUID,
 	events, err := agg.HandleDelete(cmd, h.clock.Now())
 	if err != nil {
 		return err
+	}
+	return h.appendWithOutbox(ctx, events)
+}
+
+// UpdateLabel mirrors UpdateList: all-or-nothing across the changed fields.
+func (h *CommandHandler) UpdateLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd UpdateLabel) error {
+	agg, err := h.loadLabelAggregate(ctx, aggregateID, userID)
+	if err != nil {
+		return err
+	}
+	var events []eventstore.Event
+	if cmd.Name != nil {
+		evs, err := agg.HandleUpdateName(UpdateLabelName{Name: *cmd.Name}, h.clock.Now())
+		if err != nil {
+			return err
+		}
+		events = append(events, evs...)
+	}
+	if cmd.Colour != nil {
+		evs, err := agg.HandleUpdateColour(UpdateLabelColour{Colour: *cmd.Colour}, h.clock.Now())
+		if err != nil {
+			return err
+		}
+		events = append(events, evs...)
+	}
+	if len(events) == 0 {
+		return nil
 	}
 	return h.appendWithOutbox(ctx, events)
 }

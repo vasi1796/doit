@@ -284,8 +284,8 @@ GET /healthz    → DB connectivity check (supports HEAD for Docker health check
 TaskCreated, TaskCompleted, TaskUncompleted, TaskDeleted, TaskRestored,
 TaskMoved, TaskTitleUpdated, TaskDescriptionUpdated, TaskPriorityUpdated,
 TaskDueDateUpdated, TaskDueTimeUpdated, TaskRecurrenceUpdated, TaskReordered,
-LabelAdded, LabelRemoved, LabelCreated, LabelDeleted,
-ListCreated, ListDeleted,
+LabelAdded, LabelRemoved, LabelCreated, LabelDeleted, LabelNameUpdated, LabelColourUpdated,
+ListCreated, ListDeleted, ListNameUpdated, ListColourUpdated,
 SubtaskCreated, SubtaskCompleted, SubtaskUncompleted, SubtaskTitleUpdated
 ```
 

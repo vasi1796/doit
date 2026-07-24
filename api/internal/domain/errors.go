@@ -5,6 +5,7 @@ import "errors"
 var (
 	ErrEmptyTitle              = errors.New("domain: title cannot be empty")
 	ErrEmptyName               = errors.New("domain: name cannot be empty")
+	ErrEmptyColour             = errors.New("domain: colour cannot be empty")
 	ErrInvalidPriority         = errors.New("domain: priority must be 0-3")
 	ErrTaskAlreadyCreated      = errors.New("domain: task already exists")
 	ErrTaskAlreadyCompleted    = errors.New("domain: task is already completed")

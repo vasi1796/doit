@@ -290,7 +290,8 @@ Events: `TaskCreated`, `TaskCompleted`, `TaskUncompleted`, `TaskDeleted`,
 `TaskRestored`, `TaskMoved`, `TaskTitleUpdated`, `TaskDescriptionUpdated`,
 `TaskPriorityUpdated`, `TaskDueDateUpdated`, `TaskDueTimeUpdated`,
 `TaskRecurrenceUpdated`, `TaskReordered`, `LabelAdded`, `LabelRemoved`, `LabelCreated`,
-`LabelDeleted`, `ListCreated`, `ListDeleted`, `SubtaskCreated`,
+`LabelDeleted`, `LabelNameUpdated`, `LabelColourUpdated`, `ListCreated`,
+`ListDeleted`, `ListNameUpdated`, `ListColourUpdated`, `SubtaskCreated`,
 `SubtaskCompleted`, `SubtaskUncompleted`, `SubtaskTitleUpdated`
 
 ---

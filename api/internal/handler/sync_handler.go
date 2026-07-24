@@ -39,8 +39,10 @@ type SyncCommander interface {
 	UpdateSubtaskTitle(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateSubtaskTitle) error
 	CreateList(ctx context.Context, cmd domain.CreateList) error
 	DeleteList(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.DeleteList) error
+	UpdateList(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateList) error
 	CreateLabel(ctx context.Context, cmd domain.CreateLabel) error
 	DeleteLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.DeleteLabel) error
+	UpdateLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateLabel) error
 }
 
 // SyncEventLoader is the interface the sync handler needs from the event store.
@@ -77,8 +79,10 @@ const (
 	OpUpdateSubtaskTitle = "UpdateSubtaskTitle"
 	OpCreateList        = "CreateList"
 	OpDeleteList        = "DeleteList"
+	OpUpdateList        = "UpdateList"
 	OpCreateLabel       = "CreateLabel"
 	OpDeleteLabel       = "DeleteLabel"
+	OpUpdateLabel       = "UpdateLabel"
 )
 
 // SyncHandler processes batched sync operations from clients.
@@ -297,6 +301,20 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 	case OpDeleteList:
 		return h.cmds.DeleteList(ctx, aggID, userID, domain.DeleteList{DeletedAt: time.Now().UTC()})
 
+	case OpUpdateList:
+		// Field validation (empty name/colour) happens in the domain so an
+		// invalid edit fails the op rather than being silently dropped.
+		cmd := domain.UpdateList{}
+		if _, ok := data["name"]; ok {
+			name := strVal(data, "name")
+			cmd.Name = &name
+		}
+		if _, ok := data["colour"]; ok {
+			colour := strVal(data, "colour")
+			cmd.Colour = &colour
+		}
+		return h.cmds.UpdateList(ctx, aggID, userID, cmd)
+
 	case OpCreateLabel:
 		return h.cmds.CreateLabel(ctx, domain.CreateLabel{
 			LabelID: aggID,
@@ -307,6 +325,18 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 
 	case OpDeleteLabel:
 		return h.cmds.DeleteLabel(ctx, aggID, userID, domain.DeleteLabel{DeletedAt: time.Now().UTC()})
+
+	case OpUpdateLabel:
+		cmd := domain.UpdateLabel{}
+		if _, ok := data["name"]; ok {
+			name := strVal(data, "name")
+			cmd.Name = &name
+		}
+		if _, ok := data["colour"]; ok {
+			colour := strVal(data, "colour")
+			cmd.Colour = &colour
+		}
+		return h.cmds.UpdateLabel(ctx, aggID, userID, cmd)
 
 	default:
 		return fmt.Errorf("sync: unknown operation type %q", op.Type)
@@ -408,9 +438,9 @@ func intVal(data map[string]any, key string) int {
 func (h *SyncHandler) saveSnapshot(ctx context.Context, opType string, aggID, userID uuid.UUID) {
 	var err error
 	switch opType {
-	case OpCreateList, OpDeleteList:
+	case OpCreateList, OpDeleteList, OpUpdateList:
 		err = h.snapshots.SaveListSnapshot(ctx, aggID, userID)
-	case OpCreateLabel, OpDeleteLabel:
+	case OpCreateLabel, OpDeleteLabel, OpUpdateLabel:
 		err = h.snapshots.SaveLabelSnapshot(ctx, aggID, userID)
 	case OpCreateTask, OpUpdateTask, OpCompleteTask, OpUncompleteTask,
 		OpDeleteTask, OpRestoreTask, OpAddLabel, OpRemoveLabel,

@@ -50,10 +50,16 @@ export type StoredTask = Omit<Task, 'subtasks' | 'labels'> & {
   field_hlcs?: FieldHLC  // per-field HLC tracking
 }
 
+/** List/label records carry per-field HLCs so concurrent rename/recolour
+ * edits from different devices are both preserved. Absent on rows that
+ * have never been edited — any remote update then wins. */
+export type StoredList = List & { field_hlcs?: FieldHLC }
+export type StoredLabel = Label & { field_hlcs?: FieldHLC }
+
 class DoItDB extends Dexie {
   tasks!: Table<StoredTask>
-  lists!: Table<List>
-  labels!: Table<Label>
+  lists!: Table<StoredList>
+  labels!: Table<StoredLabel>
   taskLabels!: Table<TaskLabel>
   subtasks!: Table<StoredSubtask>
   syncQueue!: Table<SyncOp>

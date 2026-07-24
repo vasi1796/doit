@@ -76,6 +76,50 @@ func (a *LabelAggregate) HandleDelete(cmd DeleteLabel, now hlc.Timestamp) ([]eve
 	return []eventstore.Event{e}, nil
 }
 
+func (a *LabelAggregate) HandleUpdateName(cmd UpdateLabelName, now hlc.Timestamp) ([]eventstore.Event, error) {
+	if err := a.requireActive(); err != nil {
+		return nil, err
+	}
+	if cmd.Name == "" {
+		return nil, ErrEmptyName
+	}
+
+	e, err := a.newEvent(eventstore.EventLabelNameUpdated, LabelNameUpdatedPayload{
+		Name: cmd.Name,
+	}, now)
+	if err != nil {
+		return nil, err
+	}
+	return []eventstore.Event{e}, nil
+}
+
+func (a *LabelAggregate) HandleUpdateColour(cmd UpdateLabelColour, now hlc.Timestamp) ([]eventstore.Event, error) {
+	if err := a.requireActive(); err != nil {
+		return nil, err
+	}
+	if cmd.Colour == "" {
+		return nil, ErrEmptyColour
+	}
+
+	e, err := a.newEvent(eventstore.EventLabelColourUpdated, LabelColourUpdatedPayload{
+		Colour: cmd.Colour,
+	}, now)
+	if err != nil {
+		return nil, err
+	}
+	return []eventstore.Event{e}, nil
+}
+
+func (a *LabelAggregate) requireActive() error {
+	if !a.created {
+		return ErrLabelNotFound
+	}
+	if a.deleted {
+		return ErrLabelAlreadyDeleted
+	}
+	return nil
+}
+
 func (a *LabelAggregate) newEvent(eventType eventstore.EventType, payload any, now hlc.Timestamp) (eventstore.Event, error) {
 	return buildEvent(a.id, eventstore.AggregateTypeLabel, a.userID, &a.version, eventType, payload, now)
 }

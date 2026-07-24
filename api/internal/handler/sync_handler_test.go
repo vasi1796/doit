@@ -110,6 +110,24 @@ func (m *mockSyncCommander) DeleteList(_ context.Context, _ uuid.UUID, _ uuid.UU
 	m.calls = append(m.calls, "DeleteList")
 	return m.err
 }
+func describeEntityUpdate(op string, name, colour *string) string {
+	s := op
+	if name != nil {
+		s += ":name=" + *name
+	}
+	if colour != nil {
+		s += ":colour=" + *colour
+	}
+	return s
+}
+func (m *mockSyncCommander) UpdateList(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateList) error {
+	m.calls = append(m.calls, describeEntityUpdate("UpdateList", cmd.Name, cmd.Colour))
+	return m.err
+}
+func (m *mockSyncCommander) UpdateLabel(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateLabel) error {
+	m.calls = append(m.calls, describeEntityUpdate("UpdateLabel", cmd.Name, cmd.Colour))
+	return m.err
+}
 func (m *mockSyncCommander) CreateLabel(_ context.Context, cmd domain.CreateLabel) error {
 	m.calls = append(m.calls, "CreateLabel:"+cmd.Name)
 	return m.err
@@ -459,10 +477,40 @@ func TestSyncDispatchOpAllTypes(t *testing.T) {
 			wantCalls: []string{"DeleteList"},
 		},
 		{
+			name:      "UpdateList with name and colour dispatches one atomic command",
+			opType:    "UpdateList",
+			data:      map[string]any{"name": "Renamed", "colour": "#00ff00"},
+			wantCalls: []string{"UpdateList:name=Renamed:colour=#00ff00"},
+		},
+		{
+			name:      "UpdateList with name only omits colour from the command",
+			opType:    "UpdateList",
+			data:      map[string]any{"name": "Renamed"},
+			wantCalls: []string{"UpdateList:name=Renamed"},
+		},
+		{
+			name:      "UpdateList passes empty name through for domain validation",
+			opType:    "UpdateList",
+			data:      map[string]any{"name": "", "colour": "#00ff00"},
+			wantCalls: []string{"UpdateList:name=:colour=#00ff00"},
+		},
+		{
 			name:      "CreateLabel dispatches with name, colour",
 			opType:    "CreateLabel",
 			data:      map[string]any{"name": "Urgent", "colour": "#ff0000"},
 			wantCalls: []string{"CreateLabel:Urgent"},
+		},
+		{
+			name:      "UpdateLabel with name and colour dispatches one atomic command",
+			opType:    "UpdateLabel",
+			data:      map[string]any{"name": "Important", "colour": "#0000ff"},
+			wantCalls: []string{"UpdateLabel:name=Important:colour=#0000ff"},
+		},
+		{
+			name:      "UpdateLabel with colour only omits name from the command",
+			opType:    "UpdateLabel",
+			data:      map[string]any{"colour": "#0000ff"},
+			wantCalls: []string{"UpdateLabel:colour=#0000ff"},
 		},
 		{
 			name:      "DeleteLabel dispatches DeleteLabel",
