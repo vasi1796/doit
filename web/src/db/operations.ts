@@ -18,8 +18,10 @@ export const SyncOpType = {
   UPDATE_SUBTASK_TITLE: 'UpdateSubtaskTitle',
   CREATE_LIST: 'CreateList',
   DELETE_LIST: 'DeleteList',
+  UPDATE_LIST: 'UpdateList',
   CREATE_LABEL: 'CreateLabel',
   DELETE_LABEL: 'DeleteLabel',
+  UPDATE_LABEL: 'UpdateLabel',
 } as const
 
 /** Generate a UUID v4. Falls back to manual generation on insecure contexts (HTTP). */
@@ -225,6 +227,21 @@ export async function deleteList(id: string): Promise<void> {
   await queueOp(SyncOpType.DELETE_LIST, id, hlc)
 }
 
+export async function updateList(id: string, data: { name?: string; colour?: string }): Promise<void> {
+  const list = await db.lists.get(id)
+  if (!list) {
+    throw new Error(`updateList: list ${id} not found`)
+  }
+  const changed = pickDefined(data)
+  const fieldNames = Object.keys(changed)
+  if (fieldNames.length === 0) return
+
+  const { hlc } = hlcFields()
+  const field_hlcs = { ...list.field_hlcs, ...buildFieldHlcs(fieldNames, hlc) }
+  await db.lists.update(id, { ...changed, field_hlcs, updated_at: new Date().toISOString() })
+  await queueOp(SyncOpType.UPDATE_LIST, id, hlc, changed)
+}
+
 // ---------------------------------------------------------------------------
 // Label operations
 // ---------------------------------------------------------------------------
@@ -241,6 +258,30 @@ export async function deleteLabel(id: string): Promise<void> {
   const { hlc } = hlcFields()
   await db.labels.delete(id)
   await queueOp(SyncOpType.DELETE_LABEL, id, hlc)
+}
+
+export async function updateLabel(id: string, data: { name?: string; colour?: string }): Promise<void> {
+  const label = await db.labels.get(id)
+  if (!label) {
+    throw new Error(`updateLabel: label ${id} not found`)
+  }
+  const changed = pickDefined(data)
+  const fieldNames = Object.keys(changed)
+  if (fieldNames.length === 0) return
+
+  const { hlc } = hlcFields()
+  const field_hlcs = { ...label.field_hlcs, ...buildFieldHlcs(fieldNames, hlc) }
+  await db.labels.update(id, { ...changed, field_hlcs })
+  await queueOp(SyncOpType.UPDATE_LABEL, id, hlc, changed)
+}
+
+/** Strip undefined values so only explicitly provided fields are written and synced. */
+function pickDefined(data: Record<string, string | undefined>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(data)) {
+    if (v !== undefined) out[k] = v
+  }
+  return out
 }
 
 // ---------------------------------------------------------------------------

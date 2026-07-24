@@ -82,6 +82,22 @@ interface ListCreatedPayload {
   position: string
 }
 
+interface ListNameUpdatedPayload {
+  name: string
+}
+
+interface ListColourUpdatedPayload {
+  colour: string
+}
+
+interface LabelNameUpdatedPayload {
+  name: string
+}
+
+interface LabelColourUpdatedPayload {
+  colour: string
+}
+
 interface LabelCreatedPayload {
   name: string
   colour?: string
@@ -309,6 +325,18 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
       await db.lists.delete(aggId)
       break
 
+    case 'ListNameUpdated': {
+      const p = data as unknown as ListNameUpdatedPayload
+      await mergeListField(aggId, eventHLC, 'name', p.name, updatedAt)
+      break
+    }
+
+    case 'ListColourUpdated': {
+      const p = data as unknown as ListColourUpdatedPayload
+      await mergeListField(aggId, eventHLC, 'colour', p.colour, updatedAt)
+      break
+    }
+
     // ---- Label events ----
     case 'LabelCreated': {
       const p = data as unknown as LabelCreatedPayload
@@ -323,6 +351,79 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
     case 'LabelDeleted':
       await db.labels.delete(aggId)
       break
+
+    case 'LabelNameUpdated': {
+      const p = data as unknown as LabelNameUpdatedPayload
+      await mergeLabelField(aggId, eventHLC, 'name', p.name)
+      break
+    }
+
+    case 'LabelColourUpdated': {
+      const p = data as unknown as LabelColourUpdatedPayload
+      await mergeLabelField(aggId, eventHLC, 'colour', p.colour)
+      break
+    }
+  }
+}
+
+/**
+ * Decide whether an incoming event wins the LWW race for a single field,
+ * returning the per-field HLC map to store. Rows without tracking for the
+ * field treat the remote event as newer; ties go to the remote for
+ * deterministic convergence across devices (matches mergeLWW).
+ */
+export function applyFieldLWW(
+  fieldHlcs: FieldHLC | undefined,
+  field: string,
+  eventHLC: HLCTimestamp,
+): { wins: boolean; fieldHlcs: FieldHLC } {
+  const local = fieldHlcs?.[field]
+  const localHLC: HLCTimestamp = local
+    ? { time: local.time, counter: local.counter }
+    : { time: 0, counter: 0 }
+
+  if (compare(eventHLC, localHLC) >= 0) {
+    return {
+      wins: true,
+      fieldHlcs: { ...fieldHlcs, [field]: { time: eventHLC.time, counter: eventHLC.counter } },
+    }
+  }
+  return { wins: false, fieldHlcs: fieldHlcs ?? {} }
+}
+
+async function mergeListField(
+  listId: string,
+  eventHLC: HLCTimestamp,
+  field: 'name' | 'colour',
+  value: string,
+  updatedAt: string,
+): Promise<void> {
+  const local = await db.lists.get(listId)
+  if (!local) {
+    // List doesn't exist locally — skip (ListCreated event should arrive first)
+    return
+  }
+  const { wins, fieldHlcs } = applyFieldLWW(local.field_hlcs, field, eventHLC)
+  if (wins) {
+    const change = field === 'name' ? { name: value } : { colour: value }
+    await db.lists.update(listId, { ...change, field_hlcs: fieldHlcs, updated_at: updatedAt })
+  }
+}
+
+async function mergeLabelField(
+  labelId: string,
+  eventHLC: HLCTimestamp,
+  field: 'name' | 'colour',
+  value: string,
+): Promise<void> {
+  const local = await db.labels.get(labelId)
+  if (!local) {
+    return
+  }
+  const { wins, fieldHlcs } = applyFieldLWW(local.field_hlcs, field, eventHLC)
+  if (wins) {
+    const change = field === 'name' ? { name: value } : { colour: value }
+    await db.labels.update(labelId, { ...change, field_hlcs: fieldHlcs })
   }
 }
 
