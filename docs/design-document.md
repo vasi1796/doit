@@ -55,6 +55,7 @@ Features are prioritised as P0 (MVP -- must ship in Phase 1), P1 (core -- Phase 
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- |
 | Lists          | Group tasks into named lists (e.g. Work, Personal, Shopping). Each list has a colour and icon. Tasks belong to exactly one list.      | P0       |
 | Labels / Tags  | Cross-cutting tags applied to tasks across any list. Many-to-many relationship. Filterable in all views.                              | P0       |
+| List & Label Editing | Rename and recolour lists/labels from the sidebar context menu — long-press on touch, right-click or hover options button on desktop. Offline-first via sync ops with per-field LWW merge. | P1       |
 | Smart Lists    | System-generated views: Inbox (no list assigned), Today, Upcoming (next 7 days), Someday (no date).                                  | P0       |
 | ~~List Folders~~   | ~~Group related lists into collapsible folders for sidebar organisation.~~                                                            | Dropped  |
 | Task Ordering  | Manual drag-and-drop reordering within lists. Position tracked via fractional indexing CRDT.                                          | P1       |
@@ -231,11 +232,11 @@ RESTful API with JSON payloads. All `/api/*` endpoints require JWT authenticatio
 | DELETE | `/api/v1/tasks/:id`                 | Soft-delete to trash (generates `TaskDeleted` event)                 |
 | GET    | `/api/v1/lists`                     | List all user lists                                                  |
 | POST   | `/api/v1/lists`                     | Create list                                                          |
-| PATCH  | `/api/v1/lists/:id`                 | Update list                                                          |
+| PATCH  | `/api/v1/lists/:id`                 | ~~Update list~~ Superseded: edits go through `/api/v1/sync` `UpdateList` ops (offline-first; see ADR-002 addendum) |
 | DELETE | `/api/v1/lists/:id`                 | Delete list (moves contained tasks to Inbox)                         |
 | GET    | `/api/v1/labels`                    | List all user labels                                                 |
 | POST   | `/api/v1/labels`                    | Create label                                                         |
-| PATCH  | `/api/v1/labels/:id`                | Update label (rename, recolour)                                      |
+| PATCH  | `/api/v1/labels/:id`                | ~~Update label (rename, recolour)~~ Superseded: edits go through `/api/v1/sync` `UpdateLabel` ops (offline-first; see ADR-002 addendum) |
 | DELETE | `/api/v1/labels/:id`                | Delete label (removes from all tasks via OR-Set)                     |
 | GET    | `/api/v1/tasks/:id/subtasks`        | List subtasks for a task                                             |
 | POST   | `/api/v1/tasks/:id/subtasks`        | Create subtask (generates `SubtaskCreated` event)                    |

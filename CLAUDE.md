@@ -51,6 +51,7 @@ web/              React frontend
     db/            Dexie.js database, operations, sync engine, event merger
     hlc/           Hybrid Logical Clock (TypeScript, mirrors Go)
     hooks/         Dexie.js useLiveQuery hooks (useTasks, useLists, useLabels, useTaskDetail)
+                   plus useLongPress (touch gesture for context menus)
     pages/         Route pages (Inbox, Today (includes Overdue section), Upcoming, Matrix, Calendar, List, Label, Completed, Trash, Login)
     push.ts        Web Push subscription management (PushManager API)
     constants.ts   Shared color palette + UI semantic colors
