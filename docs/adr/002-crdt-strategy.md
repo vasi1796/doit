@@ -60,3 +60,26 @@ Beyond CRDT mechanics, we define these application-level policies:
   two items (mitigated by periodic rebalancing).
 - HLC adds clock management complexity compared to simple wall-clock timestamps.
 - OR-Set metadata (tombstones, observed set) adds storage overhead for labels.
+
+## Addendum (2026-07-24): per-field LWW extended to lists and labels
+
+Per-field LWW-Register was originally applied only to task scalar fields.
+With the list/label edit feature (PRs #23-#25) the same mechanism now covers
+list and label `name` and `colour`:
+
+- Client rows for lists/labels carry a `field_hlcs` map (as tasks do), so a
+  rename on one device and a recolour on another both survive sync.
+- Granular events (`ListNameUpdated`, `ListColourUpdated`, `LabelNameUpdated`,
+  `LabelColourUpdated`) mirror the task field-event pattern.
+- The `UpdateList`/`UpdateLabel` sync ops are dispatched as **one atomic
+  command**: every changed field is validated before any event is appended,
+  and all resulting events are appended in a single transaction. This
+  prevents a partially-applied edit from being retried into duplicate
+  events or silently dropping one field.
+- Redelivered `ListCreated`/`LabelCreated` events merge through the same
+  per-field LWW path instead of overwriting the whole record, so at-least-once
+  event delivery cannot revert local unsynced edits.
+
+Rejected alternative: a single combined `ListUpdated` event carrying
+name+colour — simpler, but a concurrent rename and recolour would resolve to
+one winner, violating the per-field preservation principle above.

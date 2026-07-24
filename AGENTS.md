@@ -124,12 +124,15 @@ doit/
                                # ListSelect, LabelPicker, Toast, EmptyState,
                                # MarkdownEditor, InlineMarkdown, InstallBanner,
                                # SearchOverlay (Cmd+K global search),
-                               # CalendarFeedLink (iCal subscription)
+                               # CalendarFeedLink (iCal subscription),
+                               # ContextMenu + EditNameColourDialog (sidebar list/label
+                               # edit via long-press, right-click, or hover options)
         layout/                # AppLayout (extracted hooks: useTaskCounts, useKeyboardShortcuts,
                                # useMobileDrawer), Sidebar, BottomNav
         tasks/                 # QuickAdd, TaskItem, TaskDetail, TaskList, TaskProperties,
                                # SubtaskSection, LabelsSection
-      hooks/                   # useTasks, useLists, useLabels, useTaskDetail
+      hooks/                   # useTasks, useLists, useLabels, useTaskDetail (Dexie liveQuery),
+                               # useLongPress (touch gesture for context menus)
       pages/                   # Inbox, Today (with Overdue section), Upcoming, Matrix, Calendar, List, Label, Completed, Trash, Login
       constants.ts             # Shared color palette, PRIORITY_COLORS
     public/                    # PWA manifest, app icons
@@ -205,7 +208,7 @@ doit/
 ### `domain` — Business rules (no DB dependency)
 - **Aggregates** (`TaskAggregate`, `ListAggregate`, `LabelAggregate`): pure objects that replay events via `Apply()` and validate commands via `Handle*()` methods
 - **CommandHandler**: orchestrates load → replay → handle → append → project. Verifies user ownership on load.
-- **Commands**: `CreateTask`, `CompleteTask`, `DeleteTask`, `RestoreTask`, `MoveTask`, `AddLabel`, `RemoveLabel`, `CreateSubtask`, `CompleteSubtask`, `UncompleteSubtask`, `UpdateTaskTitle`, `UpdateTaskPriority`, `UpdateTaskDueDate`, `UpdateTaskDueTime`, `UpdateTaskRecurrence`, `UpdateSubtaskTitle`, etc.
+- **Commands**: `CreateTask`, `CompleteTask`, `DeleteTask`, `RestoreTask`, `MoveTask`, `AddLabel`, `RemoveLabel`, `CreateSubtask`, `CompleteSubtask`, `UncompleteSubtask`, `UpdateTaskTitle`, `UpdateTaskPriority`, `UpdateTaskDueDate`, `UpdateTaskDueTime`, `UpdateTaskRecurrence`, `UpdateSubtaskTitle`, `UpdateList`, `UpdateLabel` (composite: nil-able Name/Colour fields, all events appended atomically), etc.
 - **Payloads**: typed structs for `Event.Data` JSON
 - **EventLoader interface** (consumer-defined): `LoadByAggregate` + `Append`
 - **EventProjector interface** (consumer-defined): `Project`
