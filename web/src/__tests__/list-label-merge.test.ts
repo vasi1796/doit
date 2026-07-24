@@ -144,6 +144,32 @@ describe('mergeRemoteEvents — list/label field LWW', () => {
     expect(label.colour).toBe('#0000ff')
   })
 
+  it('ListCreated inserts a new list when none exists locally', async () => {
+    await mergeRemoteEvents([
+      remoteEvent('ListCreated', 'l1', { name: 'Work', colour: '#ff0000', position: 'a' }, T0),
+    ])
+    expect(lists.get('l1')!.name).toBe('Work')
+  })
+
+  it('a redelivered ListCreated does not clobber a newer local rename', async () => {
+    lists.set('l1', {
+      id: 'l1',
+      name: 'Renamed locally',
+      colour: '#ff0000',
+      field_hlcs: { name: { time: T0 + 60_000, counter: 0 } },
+    })
+
+    await mergeRemoteEvents([
+      remoteEvent('ListCreated', 'l1', { name: 'Original', colour: '#123456', position: 'a' }, T0),
+    ])
+
+    const list = lists.get('l1')!
+    // Tracked rename (newer HLC) survives; untracked colour takes the payload value
+    expect(list.name).toBe('Renamed locally')
+    expect(list.colour).toBe('#123456')
+    expect((list.field_hlcs as FieldHLC).name).toEqual({ time: T0 + 60_000, counter: 0 })
+  })
+
   it('skips update events for lists that do not exist locally', async () => {
     await mergeRemoteEvents([
       remoteEvent('ListNameUpdated', 'ghost', { name: 'Nope' }, T0),

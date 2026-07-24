@@ -122,6 +122,12 @@ func TestLabelHandleUpdate(t *testing.T) {
 			update:   func(a *LabelAggregate) ([]eventstore.Event, error) { return a.HandleUpdateColour(UpdateLabelColour{Colour: "#00ff00"}, testHLC) },
 			wantType: eventstore.EventLabelColourUpdated,
 		},
+		{
+			name:    "recolour to empty colour",
+			agg:     newActive,
+			update:  func(a *LabelAggregate) ([]eventstore.Event, error) { return a.HandleUpdateColour(UpdateLabelColour{Colour: ""}, testHLC) },
+			wantErr: ErrEmptyColour,
+		},
 	}
 
 	for _, tc := range tests {

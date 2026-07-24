@@ -99,6 +99,9 @@ func (a *ListAggregate) HandleUpdateColour(cmd UpdateListColour, now hlc.Timesta
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
+	if cmd.Colour == "" {
+		return nil, ErrEmptyColour
+	}
 
 	e, err := a.newEvent(eventstore.EventListColourUpdated, ListColourUpdatedPayload{
 		Colour: cmd.Colour,

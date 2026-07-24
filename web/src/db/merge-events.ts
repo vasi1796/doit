@@ -1,5 +1,6 @@
 import { db } from './database'
 import type { FieldHLC } from './database'
+import type { Table, UpdateSpec } from 'dexie'
 import { clock } from './clock'
 import { compare, type HLCTimestamp } from '../hlc/hlc'
 import { mergeLWW } from '../crdt/lww'
@@ -309,15 +310,26 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
     // ---- List events ----
     case 'ListCreated': {
       const p = data as unknown as ListCreatedPayload
-      await db.lists.put({
-        id: aggId,
-        name: p.name,
-        colour: p.colour,
-        icon: p.icon,
-        position: p.position,
-        created_at: updatedAt,
-        updated_at: updatedAt,
-      })
+      const existingList = await db.lists.get(aggId)
+      if (!existingList) {
+        await db.lists.put({
+          id: aggId,
+          name: p.name,
+          colour: p.colour,
+          icon: p.icon,
+          position: p.position,
+          created_at: updatedAt,
+          updated_at: updatedAt,
+        })
+        break
+      }
+      // Redelivered create (merge is at-least-once): route the payload
+      // through per-field LWW so tracked local edits with newer HLCs survive
+      // instead of being clobbered by a whole-record put.
+      await mergeEntityField(db.lists, aggId, eventHLC, 'name', p.name, { updated_at: updatedAt })
+      if (p.colour !== undefined) {
+        await mergeEntityField(db.lists, aggId, eventHLC, 'colour', p.colour, { updated_at: updatedAt })
+      }
       break
     }
 
@@ -327,24 +339,32 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
 
     case 'ListNameUpdated': {
       const p = data as unknown as ListNameUpdatedPayload
-      await mergeListField(aggId, eventHLC, 'name', p.name, updatedAt)
+      await mergeEntityField(db.lists, aggId, eventHLC, 'name', p.name, { updated_at: updatedAt })
       break
     }
 
     case 'ListColourUpdated': {
       const p = data as unknown as ListColourUpdatedPayload
-      await mergeListField(aggId, eventHLC, 'colour', p.colour, updatedAt)
+      await mergeEntityField(db.lists, aggId, eventHLC, 'colour', p.colour, { updated_at: updatedAt })
       break
     }
 
     // ---- Label events ----
     case 'LabelCreated': {
       const p = data as unknown as LabelCreatedPayload
-      await db.labels.put({
-        id: aggId,
-        name: p.name,
-        colour: p.colour,
-      })
+      const existingLabel = await db.labels.get(aggId)
+      if (!existingLabel) {
+        await db.labels.put({
+          id: aggId,
+          name: p.name,
+          colour: p.colour,
+        })
+        break
+      }
+      await mergeEntityField(db.labels, aggId, eventHLC, 'name', p.name)
+      if (p.colour !== undefined) {
+        await mergeEntityField(db.labels, aggId, eventHLC, 'colour', p.colour)
+      }
       break
     }
 
@@ -354,13 +374,13 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
 
     case 'LabelNameUpdated': {
       const p = data as unknown as LabelNameUpdatedPayload
-      await mergeLabelField(aggId, eventHLC, 'name', p.name)
+      await mergeEntityField(db.labels, aggId, eventHLC, 'name', p.name)
       break
     }
 
     case 'LabelColourUpdated': {
       const p = data as unknown as LabelColourUpdatedPayload
-      await mergeLabelField(aggId, eventHLC, 'colour', p.colour)
+      await mergeEntityField(db.labels, aggId, eventHLC, 'colour', p.colour)
       break
     }
   }
@@ -369,8 +389,8 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
 /**
  * Decide whether an incoming event wins the LWW race for a single field,
  * returning the per-field HLC map to store. Rows without tracking for the
- * field treat the remote event as newer; ties go to the remote for
- * deterministic convergence across devices (matches mergeLWW).
+ * field treat the remote event as newer; tie-breaking is delegated to
+ * mergeLWW so lists/labels and tasks share one conflict rule.
  */
 export function applyFieldLWW(
   fieldHlcs: FieldHLC | undefined,
@@ -382,7 +402,8 @@ export function applyFieldLWW(
     ? { time: local.time, counter: local.counter }
     : { time: 0, counter: 0 }
 
-  if (compare(eventHLC, localHLC) >= 0) {
+  const [remoteWins] = mergeLWW(false, localHLC, true, eventHLC)
+  if (remoteWins) {
     return {
       wins: true,
       fieldHlcs: { ...fieldHlcs, [field]: { time: eventHLC.time, counter: eventHLC.counter } },
@@ -391,39 +412,25 @@ export function applyFieldLWW(
   return { wins: false, fieldHlcs: fieldHlcs ?? {} }
 }
 
-async function mergeListField(
-  listId: string,
+/** Per-field LWW merge for list/label rows (one helper for both tables). */
+async function mergeEntityField<T extends { field_hlcs?: FieldHLC }>(
+  table: Table<T>,
+  id: string,
   eventHLC: HLCTimestamp,
   field: 'name' | 'colour',
   value: string,
-  updatedAt: string,
+  extraChanges: Record<string, string> = {},
 ): Promise<void> {
-  const local = await db.lists.get(listId)
+  const local = await table.get(id)
   if (!local) {
-    // List doesn't exist locally — skip (ListCreated event should arrive first)
+    // Entity doesn't exist locally — skip (its create event should arrive first)
     return
   }
   const { wins, fieldHlcs } = applyFieldLWW(local.field_hlcs, field, eventHLC)
   if (wins) {
     const change = field === 'name' ? { name: value } : { colour: value }
-    await db.lists.update(listId, { ...change, field_hlcs: fieldHlcs, updated_at: updatedAt })
-  }
-}
-
-async function mergeLabelField(
-  labelId: string,
-  eventHLC: HLCTimestamp,
-  field: 'name' | 'colour',
-  value: string,
-): Promise<void> {
-  const local = await db.labels.get(labelId)
-  if (!local) {
-    return
-  }
-  const { wins, fieldHlcs } = applyFieldLWW(local.field_hlcs, field, eventHLC)
-  if (wins) {
-    const change = field === 'name' ? { name: value } : { colour: value }
-    await db.labels.update(labelId, { ...change, field_hlcs: fieldHlcs })
+    // UpdateSpec<T> cannot be checked structurally against a generic T
+    await table.update(id, { ...change, ...extraChanges, field_hlcs: fieldHlcs } as unknown as UpdateSpec<T>)
   }
 }
 

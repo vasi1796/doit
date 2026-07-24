@@ -97,6 +97,9 @@ func (a *LabelAggregate) HandleUpdateColour(cmd UpdateLabelColour, now hlc.Times
 	if err := a.requireActive(); err != nil {
 		return nil, err
 	}
+	if cmd.Colour == "" {
+		return nil, ErrEmptyColour
+	}
 
 	e, err := a.newEvent(eventstore.EventLabelColourUpdated, LabelColourUpdatedPayload{
 		Colour: cmd.Colour,

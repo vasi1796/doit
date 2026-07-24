@@ -1,5 +1,6 @@
 import { db } from './database'
 import type { FieldHLC } from './database'
+import type { Table, UpdateSpec } from 'dexie'
 import { clock } from './clock'
 import type { CreateTaskRequest, UpdateTaskRequest, CreateListRequest, CreateLabelRequest } from '../api/types'
 
@@ -228,18 +229,7 @@ export async function deleteList(id: string): Promise<void> {
 }
 
 export async function updateList(id: string, data: { name?: string; colour?: string }): Promise<void> {
-  const list = await db.lists.get(id)
-  if (!list) {
-    throw new Error(`updateList: list ${id} not found`)
-  }
-  const changed = pickDefined(data)
-  const fieldNames = Object.keys(changed)
-  if (fieldNames.length === 0) return
-
-  const { hlc } = hlcFields()
-  const field_hlcs = { ...list.field_hlcs, ...buildFieldHlcs(fieldNames, hlc) }
-  await db.lists.update(id, { ...changed, field_hlcs, updated_at: new Date().toISOString() })
-  await queueOp(SyncOpType.UPDATE_LIST, id, hlc, changed)
+  await updateEntity(db.lists, SyncOpType.UPDATE_LIST, id, data, { updated_at: new Date().toISOString() })
 }
 
 // ---------------------------------------------------------------------------
@@ -261,18 +251,31 @@ export async function deleteLabel(id: string): Promise<void> {
 }
 
 export async function updateLabel(id: string, data: { name?: string; colour?: string }): Promise<void> {
-  const label = await db.labels.get(id)
-  if (!label) {
-    throw new Error(`updateLabel: label ${id} not found`)
+  await updateEntity(db.labels, SyncOpType.UPDATE_LABEL, id, data)
+}
+
+/** Shared optimistic-write path for list/label edits: write only the
+ * explicitly provided fields, stamp their per-field HLCs, queue one sync op. */
+async function updateEntity<T extends { field_hlcs?: FieldHLC }>(
+  table: Table<T>,
+  opType: string,
+  id: string,
+  data: { name?: string; colour?: string },
+  extraChanges: Record<string, string> = {},
+): Promise<void> {
+  const entity = await table.get(id)
+  if (!entity) {
+    throw new Error(`${opType}: entity ${id} not found`)
   }
   const changed = pickDefined(data)
   const fieldNames = Object.keys(changed)
   if (fieldNames.length === 0) return
 
   const { hlc } = hlcFields()
-  const field_hlcs = { ...label.field_hlcs, ...buildFieldHlcs(fieldNames, hlc) }
-  await db.labels.update(id, { ...changed, field_hlcs })
-  await queueOp(SyncOpType.UPDATE_LABEL, id, hlc, changed)
+  const field_hlcs = { ...entity.field_hlcs, ...buildFieldHlcs(fieldNames, hlc) }
+  // UpdateSpec<T> cannot be checked structurally against a generic T
+  await table.update(id, { ...changed, ...extraChanges, field_hlcs } as unknown as UpdateSpec<T>)
+  await queueOp(opType, id, hlc, changed)
 }
 
 /** Strip undefined values so only explicitly provided fields are written and synced. */

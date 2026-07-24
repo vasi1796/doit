@@ -39,12 +39,10 @@ type SyncCommander interface {
 	UpdateSubtaskTitle(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateSubtaskTitle) error
 	CreateList(ctx context.Context, cmd domain.CreateList) error
 	DeleteList(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.DeleteList) error
-	UpdateListName(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateListName) error
-	UpdateListColour(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateListColour) error
+	UpdateList(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateList) error
 	CreateLabel(ctx context.Context, cmd domain.CreateLabel) error
 	DeleteLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.DeleteLabel) error
-	UpdateLabelName(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateLabelName) error
-	UpdateLabelColour(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateLabelColour) error
+	UpdateLabel(ctx context.Context, aggregateID uuid.UUID, userID uuid.UUID, cmd domain.UpdateLabel) error
 }
 
 // SyncEventLoader is the interface the sync handler needs from the event store.
@@ -304,20 +302,18 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 		return h.cmds.DeleteList(ctx, aggID, userID, domain.DeleteList{DeletedAt: time.Now().UTC()})
 
 	case OpUpdateList:
+		// Field validation (empty name/colour) happens in the domain so an
+		// invalid edit fails the op rather than being silently dropped.
+		cmd := domain.UpdateList{}
 		if _, ok := data["name"]; ok {
 			name := strVal(data, "name")
-			if name != "" {
-				if err := h.cmds.UpdateListName(ctx, aggID, userID, domain.UpdateListName{Name: name}); err != nil {
-					return err
-				}
-			}
+			cmd.Name = &name
 		}
 		if _, ok := data["colour"]; ok {
-			if err := h.cmds.UpdateListColour(ctx, aggID, userID, domain.UpdateListColour{Colour: strVal(data, "colour")}); err != nil {
-				return err
-			}
+			colour := strVal(data, "colour")
+			cmd.Colour = &colour
 		}
-		return nil
+		return h.cmds.UpdateList(ctx, aggID, userID, cmd)
 
 	case OpCreateLabel:
 		return h.cmds.CreateLabel(ctx, domain.CreateLabel{
@@ -331,20 +327,16 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 		return h.cmds.DeleteLabel(ctx, aggID, userID, domain.DeleteLabel{DeletedAt: time.Now().UTC()})
 
 	case OpUpdateLabel:
+		cmd := domain.UpdateLabel{}
 		if _, ok := data["name"]; ok {
 			name := strVal(data, "name")
-			if name != "" {
-				if err := h.cmds.UpdateLabelName(ctx, aggID, userID, domain.UpdateLabelName{Name: name}); err != nil {
-					return err
-				}
-			}
+			cmd.Name = &name
 		}
 		if _, ok := data["colour"]; ok {
-			if err := h.cmds.UpdateLabelColour(ctx, aggID, userID, domain.UpdateLabelColour{Colour: strVal(data, "colour")}); err != nil {
-				return err
-			}
+			colour := strVal(data, "colour")
+			cmd.Colour = &colour
 		}
-		return nil
+		return h.cmds.UpdateLabel(ctx, aggID, userID, cmd)
 
 	default:
 		return fmt.Errorf("sync: unknown operation type %q", op.Type)

@@ -140,6 +140,12 @@ func TestListHandleUpdate(t *testing.T) {
 			update:  func(a *ListAggregate) ([]eventstore.Event, error) { return a.HandleUpdateColour(UpdateListColour{Colour: "#00ff00"}, testHLC) },
 			wantErr: ErrListAlreadyDeleted,
 		},
+		{
+			name:    "recolour to empty colour",
+			setup:   active,
+			update:  func(a *ListAggregate) ([]eventstore.Event, error) { return a.HandleUpdateColour(UpdateListColour{Colour: ""}, testHLC) },
+			wantErr: ErrEmptyColour,
+		},
 	}
 
 	for _, tc := range tests {
