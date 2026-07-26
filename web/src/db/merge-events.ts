@@ -164,6 +164,24 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
     // ---- Task events ----
     case 'TaskCreated': {
       const p = data as unknown as TaskCreatedPayload
+      const existingTask = await db.tasks.get(aggId)
+      if (existingTask) {
+        // Redelivered create (merge is at-least-once): route the payload
+        // through per-field LWW so tracked local edits with newer HLCs
+        // survive instead of being clobbered by a whole-record put.
+        await mergeTaskField(aggId, eventHLC, {
+          title: p.title,
+          description: p.description,
+          priority: (p.priority ?? 0) as Priority,
+          due_date: p.due_date ? p.due_date.split('T')[0] : undefined,
+          due_time: p.due_time,
+          list_id: p.list_id,
+          position: p.position,
+          is_completed: false,
+          is_deleted: false,
+        }, ['title', 'description', 'priority', 'due_date', 'due_time', 'list_id', 'position', 'is_completed', 'is_deleted'])
+        break
+      }
       const hlcEntry = { time: eventHLC.time, counter: eventHLC.counter }
       const field_hlcs: FieldHLC = {
         title: hlcEntry,
