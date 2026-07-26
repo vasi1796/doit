@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useToast } from './Toast'
+import { authAwareFetch } from '../../api/http'
 
 export function CalendarFeedLink() {
   const { toast } = useToast()
@@ -7,7 +8,7 @@ export function CalendarFeedLink() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/v1/ical/token', { credentials: 'include' })
+    authAwareFetch('/api/v1/ical/token')
       .then(async (res) => {
         if (res.ok) {
           const data = await res.json() as { enabled: boolean; url?: string }
@@ -23,7 +24,7 @@ export function CalendarFeedLink() {
     try {
       let url = feedUrl
       if (!url) {
-        const res = await fetch('/api/v1/ical/token', { method: 'POST', credentials: 'include' })
+        const res = await authAwareFetch('/api/v1/ical/token', { method: 'POST' })
         if (!res.ok) throw new Error('Failed to enable calendar feed')
         const data = await res.json() as { url: string }
         url = data.url

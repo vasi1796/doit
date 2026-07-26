@@ -204,7 +204,8 @@ export function AppLayout() {
       .then(() => engine.start())
       .catch(() => engine.start()) // Start sync even if initial load fails (may be offline)
 
-    // Expose for testing — allows Playwright to trigger sync on demand
+    // Load-bearing global: operations.queueOp nudges it after every local
+    // write, and session.signOut flushes/stops it before wiping the device
     window.__syncEngine = engine
 
     return () => {

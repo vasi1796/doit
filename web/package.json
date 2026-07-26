@@ -12,7 +12,7 @@
     "test:e2e": "playwright test",
     "test:visual": "playwright test visual-regression",
     "test:a11y": "playwright test accessibility",
-    "test:functional": "playwright test navigation sidebar-edit sidebar-reorder",
+    "test:functional": "playwright test navigation sidebar-edit sidebar-reorder signout task-reorder",
     "test:visual:update": "playwright test visual-regression --update-snapshots",
     "generate:types": "npx openapi-typescript ../api/openapi.yaml -o src/api/types.gen.ts",
     "check:types": "npx openapi-typescript ../api/openapi.yaml -o src/api/types.gen.ts && git diff --exit-code src/api/types.gen.ts"
