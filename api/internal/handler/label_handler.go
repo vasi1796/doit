@@ -72,7 +72,7 @@ func (h *LabelHandler) List(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.pool.Query(r.Context(),
 		`SELECT id, name, colour, position, created_at, updated_at
 		FROM labels WHERE user_id = $1
-		ORDER BY position ASC NULLS LAST, name ASC`,
+		ORDER BY position COLLATE "C" ASC NULLS LAST, name COLLATE "C" ASC`,
 		userID,
 	)
 	if err != nil {

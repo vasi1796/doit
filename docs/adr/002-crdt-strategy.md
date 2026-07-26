@@ -102,7 +102,9 @@ covers the user-defined order of lists and labels in the sidebar:
 - Existing labels are backfilled in alphabetical order twice with one
   deterministic formula — SQL in migration 009 for the server, a Dexie v5
   upgrade for already-installed clients — because no events exist for the
-  backfill; the two sides converge without sync. Rows that predate the
+  backfill; the two sides converge without sync. Both sides compare by raw
+  code units (`COLLATE "C"` in SQL via migration 010, code-unit `<` in JS)
+  so the order does not depend on the database locale. Rows that predate the
   backfill (e.g. a projection rebuild replaying historical `LabelCreated`
   events) have NULL positions, so label read paths order by position with a
   name fallback rather than requiring NOT NULL.

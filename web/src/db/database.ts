@@ -91,9 +91,9 @@ class DoItDB extends Dexie {
       userPreferences: '&key',
     })
 
-    // v5: user-orderable labels. Backfill mirrors migration 009 exactly
-    // (alphabetical order, same key formula) so devices that never sync the
-    // backfill still agree with the server's positions.
+    // v5: user-orderable labels. Backfill mirrors migrations 009/010 exactly
+    // (alphabetical by code units, same key formula) so devices that never
+    // sync the backfill still agree with the server's positions.
     this.version(5)
       .stores({
         labels: 'id, name, position',
@@ -112,7 +112,7 @@ class DoItDB extends Dexie {
   }
 }
 
-/** Mirrors the SQL backfill in api/migrations/009_label_position.sql. */
+/** Mirrors the SQL backfill in api/migrations/010_label_position_collate.sql. */
 export function backfillPosition(n: number): string {
   return String.fromCharCode(35 + Math.floor(n / 90)) + String.fromCharCode(33 + (n % 90))
 }
