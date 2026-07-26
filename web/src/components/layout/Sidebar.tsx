@@ -242,7 +242,7 @@ function SwipeableRow({ onDelete, desktopActionButton, children }: {
  * context menu (Edit / Delete) opened by long-press on touch or by
  * right-click / the hover … button on desktop.
  */
-function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelete, onOpenMenu }: {
+function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelete, onOpenMenu, dragHandleProps }: {
   to: string
   name: string
   colour?: string
@@ -251,6 +251,7 @@ function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelet
   entityLabel: 'list' | 'label'
   onDelete: () => void
   onOpenMenu: (point: { x: number; y: number }) => void
+  dragHandleProps?: Record<string, unknown>
 }) {
   const longPress = useLongPress(onOpenMenu)
 
@@ -285,10 +286,38 @@ function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelet
           e.preventDefault()
           onOpenMenu({ x: e.clientX, y: e.clientY })
         }}
-        className="flex-1 select-none [-webkit-touch-callout:none]"
+        className="flex-1 flex items-center select-none [-webkit-touch-callout:none]"
       >
+        {dragHandleProps && (
+          <button
+            type="button"
+            aria-label={`Drag to reorder ${name}`}
+            className="w-[44px] min-h-[44px] -mr-2 self-stretch flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-quaternary hover:text-text-secondary"
+            {...dragHandleProps}
+            // Run the dnd-kit activator first, then stop propagation so the
+            // row's long-press/swipe handlers never see handle presses. A
+            // capture-phase stopPropagation would skip the activator itself.
+            onPointerDown={(e) => {
+              ;(dragHandleProps.onPointerDown as ((e: React.PointerEvent) => void) | undefined)?.(e)
+              e.stopPropagation()
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="9" cy="6" r="1.5" />
+              <circle cx="15" cy="6" r="1.5" />
+              <circle cx="9" cy="12" r="1.5" />
+              <circle cx="15" cy="12" r="1.5" />
+              <circle cx="9" cy="18" r="1.5" />
+              <circle cx="15" cy="18" r="1.5" />
+            </svg>
+          </button>
+        )}
         <NavLink
           to={to}
+          // Anchors are natively draggable — WebKit's native drag would steal
+          // the pointer stream before the sort sensor can activate
+          draggable={false}
           className={({ isActive }) =>
             `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-[10px] text-[15px] transition-colors ${
               isActive
@@ -332,8 +361,8 @@ function SortableEntityRow({ id, ...rowProps }: { id: string } & Parameters<type
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <SidebarEntityRow {...rowProps} />
+    <div ref={setNodeRef} style={style}>
+      <SidebarEntityRow {...rowProps} dragHandleProps={{ ...attributes, ...listeners }} />
     </div>
   )
 }
@@ -348,10 +377,11 @@ function computeDropPosition(
   const newIndex = items.findIndex((i) => i.id === overId)
   if (oldIndex === -1 || newIndex === -1) return null
 
+  // Matches dnd-kit's arrayMove semantics: the dragged item ends up at
+  // newIndex in the final array, i.e. inserted at newIndex after removal.
   const reordered = items.filter((_, i) => i !== oldIndex)
-  const insertAt = newIndex > oldIndex ? newIndex - 1 : newIndex
-  const prevPos = insertAt > 0 ? (reordered[insertAt - 1].position ?? '') : ''
-  const nextPos = insertAt < reordered.length ? (reordered[insertAt].position ?? '') : ''
+  const prevPos = newIndex > 0 ? (reordered[newIndex - 1].position ?? '') : ''
+  const nextPos = newIndex < reordered.length ? (reordered[newIndex].position ?? '') : ''
   return between(prevPos, nextPos)
 }
 
@@ -374,10 +404,6 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
   })
   const keyboardSensor = useSensor(KeyboardSensor)
   const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor)
-
-  // Touch long-press opens the context menu at the same 500ms the drag sensor
-  // activates; actually moving the row disambiguates in favour of the drag.
-  const dismissMenuOnDragMove = useCallback(() => setEntityMenu(null), [])
 
   const handleListDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -572,7 +598,6 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragMove={dismissMenuOnDragMove}
           onDragEnd={handleListDragEnd}
         >
           <SortableContext items={lists.map((l) => l.id)} strategy={verticalListSortingStrategy}>
@@ -639,7 +664,6 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
-                  onDragMove={dismissMenuOnDragMove}
                   onDragEnd={handleLabelDragEnd}
                 >
                   <SortableContext items={labels.map((l) => l.id)} strategy={verticalListSortingStrategy}>
