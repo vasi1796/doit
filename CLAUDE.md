@@ -182,6 +182,11 @@ retries) instead of being permanently deleted on first failure.
   3. Sync push from client → events reach server and project correctly
 - **Visual regression tests** (Playwright + WebKit) compare page screenshots
   against committed baselines. Run with `cd web && npm run test:visual`.
+  Baselines are Linux-only, generated in the Playwright container (no host
+  toolchain); CI's auto-update step is the canonical source when container
+  and runner renderings differ. Regenerate deliberately in every PR that
+  intentionally changes visible UI — the 3% diff tolerance can silently
+  absorb small real changes.
 - **Accessibility tests** (Playwright + axe-core) scan all pages for WCAG 2.0
   AA violations and 16px input font sizes.
 - **ESLint jsx-a11y** plugin enforces accessibility rules at lint time.
