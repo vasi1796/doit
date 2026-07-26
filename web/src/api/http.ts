@@ -4,7 +4,7 @@
  * stay with the caller — only the auth outcome is centralised here.
  */
 export async function authAwareFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  const res = await fetch(input, { credentials: 'include', ...init })
+  const res = await fetch(input, { ...init, credentials: 'include' })
   if (res.status === 401) {
     window.location.href = '/login'
     throw new Error('Unauthorized')

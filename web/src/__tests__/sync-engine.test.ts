@@ -1,17 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SyncEngine } from '../db/sync-engine'
+import { mergeRemoteEvents } from '../db/merge-events'
+
+const { bulkDeleteSpy, cursorPutSpy } = vi.hoisted(() => ({
+  bulkDeleteSpy: vi.fn(),
+  cursorPutSpy: vi.fn(),
+}))
 
 vi.mock('../db/database', () => ({
   db: {
     syncQueue: {
       orderBy: () => ({ toArray: async () => [] }),
-      bulkDelete: async () => {},
+      bulkDelete: bulkDeleteSpy,
       get: async () => undefined,
       update: async () => {},
     },
     syncState: {
       get: async () => undefined,
-      put: async () => {},
+      put: cursorPutSpy,
     },
   },
 }))
@@ -40,6 +46,7 @@ let fetchResolvers: ((value: unknown) => void)[]
 let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
+  vi.clearAllMocks()
   fetchResolvers = []
   fetchMock = vi.fn(
     () => new Promise((resolve) => fetchResolvers.push(resolve)),
@@ -90,6 +97,57 @@ describe('sync coalescing', () => {
 
     await new Promise((r) => setTimeout(r, 10))
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('halt', () => {
+  it('a response landing after halt() cannot write to the database', async () => {
+    const engine = new SyncEngine()
+    const run = engine.sync()
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+
+    engine.halt()
+    fetchResolvers[0]({
+      ok: true,
+      status: 200,
+      json: async () => ({ cursor: { hlc_time: 1, hlc_counter: 0 }, events: [{ id: 'e1' }] }),
+    })
+    await run
+
+    expect(bulkDeleteSpy).not.toHaveBeenCalled()
+    expect(cursorPutSpy).not.toHaveBeenCalled()
+    expect(mergeRemoteEvents).not.toHaveBeenCalled()
+  })
+
+  it('sync() after halt() is a no-op', async () => {
+    const engine = new SyncEngine()
+    engine.halt()
+    await engine.sync()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('drain', () => {
+  it('awaits the in-flight run and flushes once more', async () => {
+    const engine = new SyncEngine()
+    const first = engine.sync()
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+
+    let drained = false
+    const drain = engine.drain().then(() => {
+      drained = true
+    })
+    await new Promise((r) => setTimeout(r, 10))
+    // Must not resolve while the first run is still in flight — a plain
+    // sync() here would have resolved without flushing anything
+    expect(drained).toBe(false)
+
+    fetchResolvers[0](okResponse)
+    await first
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    fetchResolvers[1](okResponse)
+    await drain
+    expect(drained).toBe(true)
   })
 })
 
