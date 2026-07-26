@@ -89,6 +89,41 @@ func TestGoogleCallbackStateMismatch(t *testing.T) {
 	}
 }
 
+func TestIsAllowedFailsClosedOnEmptyAllowlist(t *testing.T) {
+	tests := []struct {
+		name    string
+		emails  []string
+		devMode bool
+		email   string
+		want    bool
+	}{
+		{name: "empty allowlist rejects in production", emails: nil, devMode: false, email: "anyone@gmail.com", want: false},
+		{name: "empty allowlist permits in dev mode", emails: nil, devMode: true, email: "anyone@gmail.com", want: true},
+		{name: "listed email allowed", emails: []string{"me@example.com"}, devMode: false, email: "me@example.com", want: true},
+		{name: "listed email is case-insensitive", emails: []string{"me@example.com"}, devMode: false, email: "ME@Example.com", want: true},
+		{name: "unlisted email rejected", emails: []string{"me@example.com"}, devMode: false, email: "other@example.com", want: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := NewAuthHandler(
+				&mockOAuthExchanger{},
+				auth.NewTokenService("secret", 72),
+				nil,
+				tc.emails,
+				zerolog.Nop(),
+				"/",
+				tc.devMode,
+				false,
+			)
+
+			if got := h.isAllowed(tc.email); got != tc.want {
+				t.Errorf("isAllowed(%q) = %v, want %v", tc.email, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestGoogleCallbackEmailNotAllowed(t *testing.T) {
 	h := NewAuthHandler(
 		&mockOAuthExchanger{

@@ -26,8 +26,8 @@ type OAuthExchanger interface {
 	Exchange(ctx context.Context, code string) (*auth.GoogleUser, error)
 }
 
-const upsertUserByGoogleIDSQL = `INSERT INTO users (id, google_id, email, name, avatar_url, allowed, created_at)
-VALUES ($1, $2, $3, $4, $5, true, NOW())
+const upsertUserByGoogleIDSQL = `INSERT INTO users (id, google_id, email, name, avatar_url, created_at)
+VALUES ($1, $2, $3, $4, $5, NOW())
 ON CONFLICT (google_id) DO UPDATE SET
 	email = EXCLUDED.email, name = EXCLUDED.name, avatar_url = EXCLUDED.avatar_url
 RETURNING id`
@@ -184,7 +184,6 @@ func (h *AuthHandler) DevLogin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Check allowlist (if no allowlist is configured, all emails are allowed)
 	if !h.isAllowed(email) {
 		h.logger.Warn().Str("email", email).Msg("dev login email not in allowlist")
 		writeError(w, h.logger, http.StatusForbidden, "email not allowed")
@@ -234,9 +233,12 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// isAllowed fails closed: an empty allowlist admits nobody outside dev mode,
+// so a misconfigured instance rejects logins instead of accepting every
+// Google account. config.Load already refuses to start in that state.
 func (h *AuthHandler) isAllowed(email string) bool {
 	if len(h.allowedEmails) == 0 {
-		return true // no allowlist = allow all
+		return h.devMode
 	}
 	return h.allowedEmails[strings.ToLower(email)]
 }

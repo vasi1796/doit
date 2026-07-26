@@ -34,6 +34,17 @@ func TestLoad(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "missing ALLOWED_EMAILS without dev mode returns error",
+			env: map[string]string{
+				"DATABASE_URL":         "postgres://localhost/test",
+				"JWT_SECRET":           "test-secret-that-is-at-least-32chars!",
+				"GOOGLE_CLIENT_ID":     "client-id",
+				"GOOGLE_CLIENT_SECRET": "client-secret",
+				"GOOGLE_REDIRECT_URL":  "http://localhost/callback",
+			},
+			wantErr: true,
+		},
+		{
 			name: "JWT_SECRET too short without dev mode returns error",
 			env: map[string]string{
 				"DATABASE_URL": "postgres://localhost/test",
@@ -111,6 +122,7 @@ func TestLoad(t *testing.T) {
 				"GOOGLE_CLIENT_ID":    "client-id",
 				"GOOGLE_CLIENT_SECRET": "client-secret",
 				"GOOGLE_REDIRECT_URL": "http://localhost/callback",
+				"ALLOWED_EMAILS":      "me@example.com",
 				"METRICS_ENABLED":     "false",
 			},
 			validate: func(t *testing.T, cfg *Config) {
@@ -189,7 +201,7 @@ func TestLoad(t *testing.T) {
 		"DB_MAX_OPEN_CONNS", "DB_MAX_IDLE_CONNS", "DB_CONN_MAX_LIFETIME",
 		"JWT_SECRET", "JWT_EXPIRY_HOURS", "SHUTDOWN_TIMEOUT",
 		"GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URL",
-		"METRICS_ENABLED", "DEV_MODE", "REMINDER_HOUR",
+		"ALLOWED_EMAILS", "METRICS_ENABLED", "DEV_MODE", "REMINDER_HOUR",
 	}
 
 	for _, tc := range tests {

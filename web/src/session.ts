@@ -1,6 +1,8 @@
 import { db } from './db/database'
+import { unsubscribeFromPush } from './push'
 
 const FLUSH_TIMEOUT_MS = 3000
+const UNSUBSCRIBE_TIMEOUT_MS = 3000
 const WIPE_TIMEOUT_MS = 3000
 
 function bounded(work: Promise<unknown>, ms: number): Promise<unknown> {
@@ -27,6 +29,14 @@ export async function signOut(): Promise<void> {
   }
   // halt (not stop): forbids engine DB writes so an in-flight response
   // cannot recreate the database after the wipe below
+  try {
+    // Before the session cookie is expired: the DELETE is user-scoped, and a
+    // subscription left behind keeps pushing this user's task titles to a
+    // device the next person signs in on.
+    await bounded(unsubscribeFromPush(), UNSUBSCRIBE_TIMEOUT_MS)
+  } catch {
+    // best-effort only
+  }
   window.__syncEngine?.halt()
   try {
     // Server failure still expires the session locally: data is wiped and
