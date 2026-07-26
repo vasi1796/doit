@@ -11,15 +11,15 @@ import {
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { between } from '../../crdt/fracindex'
+import { computeDropPosition, healMissingPositions } from '../../utils/reorder'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { ConfirmDialog } from '../common/ConfirmDialog'
 import { ContextMenu } from '../common/ContextMenu'
 import { EditNameColourDialog } from '../common/EditNameColourDialog'
-import { useLongPress } from '../../hooks/useLongPress'
+import { useLongPress, LONG_PRESS_MS } from '../../hooks/useLongPress'
 import { SyncStatus } from '../common/SyncStatus'
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '../../push'
 import { CalendarFeedLink } from '../common/CalendarFeedLink'
@@ -295,8 +295,10 @@ function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelet
             className="w-[44px] min-h-[44px] -mr-2 self-stretch flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-quaternary hover:text-text-secondary"
             {...dragHandleProps}
             // Run the dnd-kit activator first, then stop propagation so the
-            // row's long-press/swipe handlers never see handle presses. A
-            // capture-phase stopPropagation would skip the activator itself.
+            // row's long-press handler never sees handle presses (framer's
+            // swipe listens natively and is instead constrained by its own
+            // direction lock). A capture-phase stopPropagation would skip
+            // the activator itself.
             onPointerDown={(e) => {
               ;(dragHandleProps.onPointerDown as ((e: React.PointerEvent) => void) | undefined)?.(e)
               e.stopPropagation()
@@ -367,24 +369,6 @@ function SortableEntityRow({ id, ...rowProps }: { id: string } & Parameters<type
   )
 }
 
-/** Fractional-index position for dropping `activeId` at `overId`'s slot. */
-function computeDropPosition(
-  items: ReadonlyArray<{ id: string; position?: string }>,
-  activeId: string,
-  overId: string,
-): string | null {
-  const oldIndex = items.findIndex((i) => i.id === activeId)
-  const newIndex = items.findIndex((i) => i.id === overId)
-  if (oldIndex === -1 || newIndex === -1) return null
-
-  // Matches dnd-kit's arrayMove semantics: the dragged item ends up at
-  // newIndex in the final array, i.e. inserted at newIndex after removal.
-  const reordered = items.filter((_, i) => i !== oldIndex)
-  const prevPos = newIndex > 0 ? (reordered[newIndex - 1].position ?? '') : ''
-  const nextPos = newIndex < reordered.length ? (reordered[newIndex].position ?? '') : ''
-  return between(prevPos, nextPos)
-}
-
 export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProps) {
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -400,9 +384,11 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
     activationConstraint: { distance: 8 },
   })
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: { delay: 500, tolerance: 5 },
+    activationConstraint: { delay: LONG_PRESS_MS, tolerance: 5 },
   })
-  const keyboardSensor = useSensor(KeyboardSensor)
+  const keyboardSensor = useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  })
   const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor)
 
   const handleListDragEnd = useCallback(
@@ -422,11 +408,22 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
     (event: DragEndEvent) => {
       const { active, over } = event
       if (!over || active.id === over.id) return
-      const position = computeDropPosition(labels, String(active.id), String(over.id))
-      if (!position) return
-      operations.updateLabel(String(active.id), { position }).catch((err: unknown) => {
+      const reportError = (err: unknown) => {
         toast(err instanceof Error ? err.message : 'Failed to reorder', 'error')
-      })
+      }
+      // Legacy rows (e.g. from a projection rebuild) may lack positions;
+      // give them keys matching their display order so the drop lands
+      // exactly where the user put it.
+      const healed = healMissingPositions(
+        labels,
+        (id, position) => {
+          operations.updateLabel(id, { position }).catch(reportError)
+        },
+        String(active.id),
+      )
+      const position = computeDropPosition(healed, String(active.id), String(over.id))
+      if (!position) return
+      operations.updateLabel(String(active.id), { position }).catch(reportError)
     },
     [labels, toast],
   )

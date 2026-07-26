@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react'
 
-const LONG_PRESS_MS = 500
+export const LONG_PRESS_MS = 500
 const MOVE_TOLERANCE_PX = 10
 const CLICK_SUPPRESS_WINDOW_MS = 3000
 
