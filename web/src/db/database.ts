@@ -90,7 +90,31 @@ class DoItDB extends Dexie {
     this.version(4).stores({
       userPreferences: '&key',
     })
+
+    // v5: user-orderable labels. Backfill mirrors migration 009 exactly
+    // (alphabetical order, same key formula) so devices that never sync the
+    // backfill still agree with the server's positions.
+    this.version(5)
+      .stores({
+        labels: 'id, name, position',
+      })
+      .upgrade(async (tx) => {
+        const labels = await tx.table('labels').toArray()
+        labels.sort((a, b) =>
+          a.name < b.name ? -1 : a.name > b.name ? 1 : a.id < b.id ? -1 : 1,
+        )
+        await Promise.all(
+          labels.map((label, i) =>
+            tx.table('labels').update(label.id, { position: backfillPosition(i) }),
+          ),
+        )
+      })
   }
+}
+
+/** Mirrors the SQL backfill in api/migrations/009_label_position.sql. */
+export function backfillPosition(n: number): string {
+  return String.fromCharCode(35 + Math.floor(n / 90)) + String.fromCharCode(33 + (n % 90))
 }
 
 export const db = new DoItDB()

@@ -102,6 +102,15 @@ interface LabelColourUpdatedPayload {
 interface LabelCreatedPayload {
   name: string
   colour?: string
+  position?: string
+}
+
+interface ListReorderedPayload {
+  position: string
+}
+
+interface LabelReorderedPayload {
+  position: string
 }
 
 /**
@@ -330,12 +339,19 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
       if (p.colour !== undefined) {
         await mergeEntityField(db.lists, aggId, eventHLC, 'colour', p.colour, { updated_at: updatedAt })
       }
+      await mergeEntityField(db.lists, aggId, eventHLC, 'position', p.position, { updated_at: updatedAt })
       break
     }
 
     case 'ListDeleted':
       await db.lists.delete(aggId)
       break
+
+    case 'ListReordered': {
+      const p = data as unknown as ListReorderedPayload
+      await mergeEntityField(db.lists, aggId, eventHLC, 'position', p.position, { updated_at: updatedAt })
+      break
+    }
 
     case 'ListNameUpdated': {
       const p = data as unknown as ListNameUpdatedPayload
@@ -358,6 +374,7 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
           id: aggId,
           name: p.name,
           colour: p.colour,
+          position: p.position,
         })
         break
       }
@@ -365,12 +382,21 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
       if (p.colour !== undefined) {
         await mergeEntityField(db.labels, aggId, eventHLC, 'colour', p.colour)
       }
+      if (p.position !== undefined) {
+        await mergeEntityField(db.labels, aggId, eventHLC, 'position', p.position)
+      }
       break
     }
 
     case 'LabelDeleted':
       await db.labels.delete(aggId)
       break
+
+    case 'LabelReordered': {
+      const p = data as unknown as LabelReorderedPayload
+      await mergeEntityField(db.labels, aggId, eventHLC, 'position', p.position)
+      break
+    }
 
     case 'LabelNameUpdated': {
       const p = data as unknown as LabelNameUpdatedPayload
@@ -417,7 +443,7 @@ async function mergeEntityField<T extends { field_hlcs?: FieldHLC }>(
   table: Table<T>,
   id: string,
   eventHLC: HLCTimestamp,
-  field: 'name' | 'colour',
+  field: 'name' | 'colour' | 'position',
   value: string,
   extraChanges: Record<string, string> = {},
 ): Promise<void> {
@@ -428,7 +454,7 @@ async function mergeEntityField<T extends { field_hlcs?: FieldHLC }>(
   }
   const { wins, fieldHlcs } = applyFieldLWW(local.field_hlcs, field, eventHLC)
   if (wins) {
-    const change = field === 'name' ? { name: value } : { colour: value }
+    const change = { [field]: value }
     // UpdateSpec<T> cannot be checked structurally against a generic T
     await table.update(id, { ...change, ...extraChanges, field_hlcs: fieldHlcs } as unknown as UpdateSpec<T>)
   }

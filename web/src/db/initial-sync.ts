@@ -132,6 +132,8 @@ async function rehydrateFromSnapshots(): Promise<void> {
             id: snap.data.id as string,
             name: snap.data.name as string,
             colour: snap.data.colour as string | undefined,
+            position: snap.data.position as string | undefined,
+            updated_at: snap.data.updated_at as string | undefined,
           })
           break
       }

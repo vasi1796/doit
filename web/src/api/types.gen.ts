@@ -312,8 +312,11 @@ export interface components {
             id: string;
             name: string;
             colour?: string;
+            position?: string;
             /** Format: date-time */
             created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
         };
         List: {
             /** Format: uuid */
@@ -370,6 +373,7 @@ export interface components {
         CreateLabelRequest: {
             name: string;
             colour: string;
+            position?: string;
         };
     };
     responses: {
