@@ -1,4 +1,5 @@
 import { api } from '../api/client'
+import { authAwareFetch } from '../api/http'
 import { db } from './database'
 import type { Task, Priority } from '../api/types'
 import type { StoredSubtask, TaskLabel } from './database'
@@ -88,7 +89,7 @@ export async function initialSync(): Promise<void> {
  * Used when REST endpoints fail (e.g., after Safari IndexedDB eviction).
  */
 async function rehydrateFromSnapshots(): Promise<void> {
-  const res = await fetch('/api/v1/snapshots', { credentials: 'include' })
+  const res = await authAwareFetch('/api/v1/snapshots')
   if (!res.ok) return
 
   const snapshots: { aggregate_id: string; aggregate_type: string; data: Record<string, unknown> }[] = await res.json()

@@ -63,21 +63,21 @@ flowchart LR
     D --> R2
     R2 -->|"Higher counter wins"| W2["title = 'Buy eggs'"]
 
-    subgraph ORSet["Label Conflicts"]
+    subgraph Labels["Label Conflicts"]
         E["Device A: Add 'Urgent'"]
-        F["Device B: Remove 'Urgent'<br/>(different tag)"]
+        F["Device B: Remove 'Urgent'"]
     end
 
-    E --> R3{OR-Set merge}
+    E --> R3{Apply in HLC order}
     F --> R3
-    R3 -->|"Add survives<br/>(different tags)"| W3["'Urgent' label present"]
+    R3 -->|"Last operation wins"| W3["'Urgent' label absent"]
 ```
 
 **Policies:**
 - **Edit vs Delete** → edit wins (task restored)
 - **Complete vs Delete** → complete wins (task restored as completed)
 - **Concurrent scalar edits** → Last-Writer-Wins by per-field HLC timestamp
-- **Concurrent label add/remove** → OR-Set semantics (add survives if different operation tags)
+- **Concurrent label add/remove** → plain membership rows applied in HLC order (see ADR-002 addendum)
 - **Concurrent list moves** → LWW by HLC timestamp
 
 ---

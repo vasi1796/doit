@@ -15,6 +15,7 @@ import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinat
 import { CSS } from '@dnd-kit/utilities'
 import { computeDropPosition, healMissingPositions } from '../../utils/reorder'
 import * as operations from '../../db/operations'
+import { signOut } from '../../session'
 import { useToast } from '../common/Toast'
 import { ConfirmDialog } from '../common/ConfirmDialog'
 import { ContextMenu } from '../common/ContextMenu'
@@ -294,12 +295,10 @@ function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelet
             aria-label={`Drag to reorder ${name}`}
             className="w-[44px] min-h-[44px] -mr-2 self-stretch flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-quaternary hover:text-text-secondary"
             {...dragHandleProps}
-            // Run the dnd-kit activator first, then stop propagation so the
-            // row's long-press handler never sees handle presses (framer's
-            // swipe listens natively and is instead constrained by its own
-            // direction lock). A capture-phase stopPropagation would skip
-            // the activator itself.
-            onPointerDown={(e) => {
+            // Capture phase: framer's native row listener fires before React
+            // bubble handlers, and a capture stop skips this element's own
+            // bubble onPointerDown — hence the manual activator call
+            onPointerDownCapture={(e) => {
               ;(dragHandleProps.onPointerDown as ((e: React.PointerEvent) => void) | undefined)?.(e)
               e.stopPropagation()
             }}
@@ -714,8 +713,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
           type="button"
           onClick={async () => {
             try {
-              await fetch('/auth/logout', { method: 'POST', credentials: 'include' })
-              window.location.href = '/login'
+              await signOut()
             } catch (err) {
               toast(err instanceof Error ? err.message : 'Failed to sign out', 'error')
             }

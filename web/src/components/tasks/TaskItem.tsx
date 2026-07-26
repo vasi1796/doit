@@ -148,7 +148,15 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
           role="button"
           tabIndex={0}
           onClick={() => { if (!swiping.current) onSelect(task.id) }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(task.id) }}
+          onKeyDown={(e) => {
+            // Only row-level keypresses select — Enter/Space on the inner
+            // checkbox or drag handle must not also open the detail panel
+            if (e.target !== e.currentTarget) return
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              onSelect(task.id)
+            }
+          }}
           className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-bg-secondary text-left transition-colors relative cursor-pointer ${
             isDragging ? 'bg-bg-elevated shadow-card rounded-[10px]' : ''
           }`}
@@ -159,7 +167,13 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
             aria-label="Drag to reorder"
             className="w-[44px] min-h-[44px] -ml-5 -my-3 self-stretch flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-tertiary hover:text-text-secondary"
             {...dragHandleProps}
-            onPointerDownCapture={(e) => e.stopPropagation()}
+            // Capture phase: framer's native row listener fires before React
+            // bubble handlers, and a capture stop skips this element's own
+            // bubble onPointerDown — hence the manual activator call
+            onPointerDownCapture={(e) => {
+              ;(dragHandleProps?.onPointerDown as ((e: React.PointerEvent) => void) | undefined)?.(e)
+              e.stopPropagation()
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

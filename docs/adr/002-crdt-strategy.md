@@ -113,3 +113,21 @@ Rejected alternative: dedicated `ReorderList`/`ReorderLabel` sync operations
 mirroring `ReorderTask` — behaviourally identical but duplicates dispatch,
 interface, and mock plumbing for no per-field-LWW gain; position as a third
 LWW field on the existing atomic update ops was chosen instead.
+
+## Addendum (2026-07-26): OR-Set was never integrated — labels on a task are plain add/remove
+
+The "Labels on a task → OR-Set" row above never shipped beyond a library:
+`crdt/orset` existed (tested) in both TypeScript and Go, but the actual
+pipeline stores plain membership rows with no tags or tombstones — client
+`taskLabels` add/delete, server aggregate set with duplicate/absence guards,
+projection `ON CONFLICT DO NOTHING`/`DELETE`.
+
+This is sound under the actual delivery model: sync pulls return events in
+HLC order and redelivery replays an ordered suffix, so the
+concurrent-add/remove interleavings OR-Set exists to resolve cannot reach the
+client out of order. The unused OR-Set libraries have been removed on both
+sides rather than left as an implied contract the system does not honour.
+
+If delivery semantics ever change (per-event push, out-of-order relay), this
+decision must be revisited — that is the scenario where plain add/remove can
+resurrect a removed label.

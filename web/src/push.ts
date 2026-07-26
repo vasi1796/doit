@@ -4,6 +4,8 @@
  * and Safari 16.1+ (macOS).
  */
 
+import { authAwareFetch } from './api/http'
+
 export function isPushSupported(): boolean {
   return 'PushManager' in window && 'serviceWorker' in navigator && 'Notification' in window
 }
@@ -22,7 +24,7 @@ export async function subscribeToPush(): Promise<boolean> {
   if (permission !== 'granted') return false
 
   // Fetch VAPID public key from server
-  const res = await fetch('/api/v1/push/vapid-key', { credentials: 'include' })
+  const res = await authAwareFetch('/api/v1/push/vapid-key')
   if (!res.ok) return false
   const { vapid_public_key } = await res.json()
 
@@ -34,9 +36,8 @@ export async function subscribeToPush(): Promise<boolean> {
   })
 
   // Send subscription to backend
-  const postRes = await fetch('/api/v1/push/subscribe', {
+  const postRes = await authAwareFetch('/api/v1/push/subscribe', {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       endpoint: subscription.endpoint,
@@ -56,9 +57,8 @@ export async function unsubscribeFromPush(): Promise<void> {
   const subscription = await reg.pushManager.getSubscription()
   if (!subscription) return
 
-  await fetch('/api/v1/push/subscribe', {
+  await authAwareFetch('/api/v1/push/subscribe', {
     method: 'DELETE',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ endpoint: subscription.endpoint }),
   })

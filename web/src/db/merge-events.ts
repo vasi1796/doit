@@ -164,6 +164,23 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
     // ---- Task events ----
     case 'TaskCreated': {
       const p = data as unknown as TaskCreatedPayload
+      const existingTask = await db.tasks.get(aggId)
+      if (existingTask) {
+        // Redelivered create (merge is at-least-once): per-field LWW so newer
+        // local edits survive. is_completed/is_deleted are absent on purpose —
+        // a create payload carries no such facts, and the server re-echoes the
+        // create with a fresh HLC that would beat an in-flight completion.
+        await mergeTaskField(aggId, eventHLC, {
+          title: p.title,
+          description: p.description,
+          priority: (p.priority ?? 0) as Priority,
+          due_date: p.due_date ? p.due_date.split('T')[0] : undefined,
+          due_time: p.due_time,
+          list_id: p.list_id,
+          position: p.position,
+        }, ['title', 'description', 'priority', 'due_date', 'due_time', 'list_id', 'position'])
+        break
+      }
       const hlcEntry = { time: eventHLC.time, counter: eventHLC.counter }
       const field_hlcs: FieldHLC = {
         title: hlcEntry,

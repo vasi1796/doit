@@ -90,101 +90,6 @@ func TestConflictLWWIdempotency(t *testing.T) {
 	}
 }
 
-func TestConflictORSetConcurrentAddRemove(t *testing.T) {
-	tests := []struct {
-		name    string
-		deviceA []ORSetOp
-		deviceB []ORSetOp
-		want    []string // expected materialized set
-	}{
-		{
-			name: "A adds, B removes with different tag — add survives",
-			deviceA: []ORSetOp{
-				{Value: "label-1", Tag: "add-tag-1", Op: "add"},
-			},
-			deviceB: []ORSetOp{
-				{Value: "label-1", Tag: "remove-tag-2", Op: "remove"},
-			},
-			want: []string{"label-1"},
-		},
-		{
-			name: "A adds, then A removes same tag — label gone",
-			deviceA: []ORSetOp{
-				{Value: "label-1", Tag: "t1", Op: "add"},
-				{Value: "label-1", Tag: "t1", Op: "remove"},
-			},
-			deviceB: []ORSetOp{},
-			want:    []string{},
-		},
-		{
-			name: "remove then re-add with new tag — label present",
-			deviceA: []ORSetOp{
-				{Value: "label-1", Tag: "t1", Op: "add"},
-				{Value: "label-1", Tag: "t1", Op: "remove"},
-			},
-			deviceB: []ORSetOp{
-				{Value: "label-1", Tag: "t2", Op: "add"},
-			},
-			want: []string{"label-1"},
-		},
-		{
-			name: "concurrent adds of different labels — both present",
-			deviceA: []ORSetOp{
-				{Value: "label-1", Tag: "t1", Op: "add"},
-			},
-			deviceB: []ORSetOp{
-				{Value: "label-2", Tag: "t2", Op: "add"},
-			},
-			want: []string{"label-1", "label-2"},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// Merge A then B
-			merged1 := MergeORSet(tc.deviceA, tc.deviceB)
-			result1 := Materialize(merged1)
-			if result1 == nil {
-				result1 = []string{}
-			}
-			sort.Strings(result1)
-
-			// Merge B then A (commutativity)
-			merged2 := MergeORSet(tc.deviceB, tc.deviceA)
-			result2 := Materialize(merged2)
-			if result2 == nil {
-				result2 = []string{}
-			}
-			sort.Strings(result2)
-
-			want := tc.want
-			sort.Strings(want)
-
-			// Check correctness
-			assertStringSlice(t, "A-then-B", result1, want)
-			// Check commutativity
-			assertStringSlice(t, "B-then-A", result2, want)
-		})
-	}
-}
-
-func TestConflictORSetIdempotency(t *testing.T) {
-	ops := []ORSetOp{
-		{Value: "label-1", Tag: "t1", Op: "add"},
-		{Value: "label-2", Tag: "t2", Op: "add"},
-	}
-
-	merged := MergeORSet(ops, ops)
-	reMerged := MergeORSet(merged, ops)
-
-	result1 := Materialize(merged)
-	result2 := Materialize(reMerged)
-	sort.Strings(result1)
-	sort.Strings(result2)
-
-	assertStringSlice(t, "idempotent", result1, result2)
-}
-
 func TestConflictFracIndexConcurrentInserts(t *testing.T) {
 	// Two devices insert between the same items
 	posA := Between("a", "c")
@@ -209,17 +114,5 @@ func TestConflictFracIndexConcurrentInserts(t *testing.T) {
 	sort.Strings(items)
 	if items[0] != "a" || items[len(items)-1] != "c" {
 		t.Errorf("sort broken: %v", items)
-	}
-}
-
-func assertStringSlice(t *testing.T, label string, got, want []string) {
-	t.Helper()
-	if len(got) != len(want) {
-		t.Fatalf("%s: got %v (len %d), want %v (len %d)", label, got, len(got), want, len(want))
-	}
-	for i := range got {
-		if got[i] != want[i] {
-			t.Fatalf("%s: got %v, want %v", label, got, want)
-		}
 	}
 }

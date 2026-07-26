@@ -65,7 +65,7 @@ All reads come from local IndexedDB. The API is never queried directly for reads
   `{"type":"sync"}` pings (no event payloads); clients respond by pulling through
   /sync — the single state-transfer path. Missed pings are covered by the 30s poll.
 - **HLC timestamps**: Hybrid Logical Clocks provide causal ordering for CRDT merge. Tracked per field so concurrent edits to different fields are both preserved.
-- **CRDTs**: LWW-Register (scalars, per-field HLC), OR-Set (labels), Fractional Indexing (ordering).
+- **CRDTs**: LWW-Register (scalars, per-field HLC), Fractional Indexing (ordering).
 - **Consumer-side interfaces**: Each package defines the interfaces it needs from its dependencies.
 
 ---
@@ -185,7 +185,7 @@ doit/
 | Data Type | CRDT Strategy | Notes |
 |-----------|--------------|-------|
 | Scalar fields (title, due date, status) | **LWW-Register** | Last-Writer-Wins using per-field HLC timestamps |
-| Labels on a task | **OR-Set** | Observed-Remove Set — concurrent add/remove resolved |
+| Labels on a task | **Plain add/remove rows** | Safe under HLC-ordered pull delivery (ADR-002 addendum) |
 | Task/subtask/list/label ordering | **Fractional Indexing** | String position keys between adjacent items |
 | Timestamps | **HLC** | Hybrid Logical Clock for causal ordering |
 | Markdown descriptions | **LWW-Register** | Whole-string replacement (see ADR-006) |
@@ -324,7 +324,7 @@ cd web && npm run build                          # frontend build
 | Phase | Scope | Status |
 |-------|-------|--------|
 | **Phase 1** | Online-only MVP — event store, projections, CRUD API+UI, Google SSO, Docker Compose | Backend + frontend done |
-| **Phase 2** | Offline-first + CRDT sync — Dexie.js, service worker, LWW/OR-Set merge, sync engine, WebSocket push, HLC timestamps, aggregate snapshots | Done |
+| **Phase 2** | Offline-first + CRDT sync — Dexie.js, service worker, per-field LWW merge, sync engine, WebSocket push, HLC timestamps, aggregate snapshots | Done |
 | **Phase 3** | RabbitMQ + async projections — transactional outbox, topic exchanges, DLQ, projection worker, recurring tasks worker | Done |
 | **Phase 4** | Polish — integration tests, projection rebuilder CLI, drag-and-drop, install banner, iPad multitasking | Done |
 | **Phase 5** | Advanced features — Eisenhower matrix, global quick-add, markdown editor, search, calendar view, iCal feed, deploy webhook, push reminders | Done |

@@ -26,7 +26,7 @@ api/              Go backend
     auth/          JWT tokens, Google OAuth, context helpers
     broker/        RabbitMQ client (exchange, queues, publish, consume, auto-reconnect)
     config/        Env var loading
-    crdt/          CRDT merge functions (per-field LWW-Register, OR-Set, Fractional Indexing)
+    crdt/          CRDT merge functions (per-field LWW-Register, Fractional Indexing)
     domain/        Aggregates, commands, payloads, CommandHandler (outbox-aware),
                    generic loadAggregate[T] for aggregate loading
     eventstore/    Event store (append/load/query, HLC counter, outbox)

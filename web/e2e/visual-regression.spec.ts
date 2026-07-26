@@ -100,9 +100,9 @@ test.describe('Visual regression — interactive components', () => {
     const newTaskBtn = page.getByText('New task...')
     await newTaskBtn.waitFor({ state: 'visible', timeout: 15_000 })
     await newTaskBtn.click()
-    // Wait for the expanded form to render
+    // Wait for the expanded form to render; toHaveScreenshot then waits for
+    // two consecutive stable frames, which covers the expand animation
     await page.getByPlaceholder('Task name').waitFor({ state: 'visible', timeout: 10_000 })
-    await page.waitForTimeout(300)
 
     await expect(page).toHaveScreenshot('quickadd-expanded.png')
   })

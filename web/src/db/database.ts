@@ -6,7 +6,9 @@ export interface StoredSubtask extends Subtask {
   taskId: string
 }
 
-/** Join table for the task–label many-to-many relationship (OR-Set in Phase 2). */
+/** Join table for the task–label many-to-many relationship. Plain add/delete
+ * rows — sync pulls deliver events in HLC order, so no tags/tombstones are
+ * needed (see ADR-002 addendum). */
 export interface TaskLabel {
   taskId: string
   labelId: string

@@ -18,6 +18,8 @@ export class SyncEngine {
   private interval = BASE_INTERVAL
   private syncing = false
   private pendingSync = false
+  private halted = false
+  private currentRun: Promise<void> | null = null
 
   // WebSocket
   private ws: WebSocket | null = null
@@ -57,13 +59,34 @@ export class SyncEngine {
     }
   }
 
-  async sync(): Promise<void> {
+  sync(): Promise<void> {
+    if (this.halted) return Promise.resolve()
     if (this.syncing) {
       // A sync is in flight — remember the request and run one trailing sync
-      // when it finishes, so pings arriving mid-sync are never lost.
+      // when it finishes, so pings arriving mid-sync are never lost. Return
+      // the in-flight run so callers awaiting a flush await real work.
       this.pendingSync = true
-      return
+      return this.currentRun ?? Promise.resolve()
     }
+    this.currentRun = this.runSync()
+    return this.currentRun
+  }
+
+  /** Await any in-flight run, then flush once more — used at sign-out so
+   * queued ops actually reach the server before the wipe. */
+  async drain(): Promise<void> {
+    if (this.currentRun) await this.currentRun.catch(() => {})
+    await this.sync()
+  }
+
+  /** Permanently stop and forbid further database writes — called before the
+   * sign-out wipe so an in-flight response cannot recreate the deleted DB. */
+  halt(): void {
+    this.halted = true
+    this.stop()
+  }
+
+  private async runSync(): Promise<void> {
     this.syncing = true
     window.dispatchEvent(new Event('sync:start'))
 
@@ -90,6 +113,12 @@ export class SyncEngine {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
+
+      if (this.halted) {
+        // Halted mid-flight (sign-out): any database write past this point
+        // would recreate the wiped database via Dexie's auto-open.
+        return
+      }
 
       if (res.status === 401) {
         window.location.href = '/login'
@@ -163,7 +192,7 @@ export class SyncEngine {
       window.dispatchEvent(new Event('sync:end'))
       if (this.pendingSync) {
         this.pendingSync = false
-        if (!this.stopped) void this.sync()
+        if (!this.stopped && !this.halted) void this.sync()
       }
     }
   }

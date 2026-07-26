@@ -72,7 +72,8 @@ Shared implementations in Go and TypeScript:
   both preserved. Compare HLC timestamps per field, keep later value.
 - **OR-Set** (Observed-Remove Set) — for labels on a task. Tracks add/remove
   operations with unique tags. Concurrent add+remove of same label resolves
-  correctly.
+  correctly. *(Superseded: built as a library but never integrated, and removed
+  in 2026-07 — labels are plain add/remove rows. See the ADR-002 addendum.)*
 - **Fractional Indexing** — for task ordering within lists. Position is a string
   that sorts lexicographically between any two adjacent items.
 
@@ -112,7 +113,7 @@ are pulled and IndexedDB is rehydrated on next launch.
 Test harness simulating two devices making conflicting offline edits:
 - Concurrent title edit → LWW, later HLC wins
 - Edit on device A + delete on device B → edit resurrects (policy from ADR-002)
-- Concurrent label add + remove → OR-Set resolves
+- Concurrent label add + remove → last operation in HLC order wins
 - Concurrent list moves → LWW on list_id
 - Complete on device A + delete on device B → complete resurrects
 All scenarios must converge to the same state regardless of merge order.
