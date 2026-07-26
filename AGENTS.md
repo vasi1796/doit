@@ -324,7 +324,7 @@ cd web && npm run build                          # frontend build
 | Phase | Scope | Status |
 |-------|-------|--------|
 | **Phase 1** | Online-only MVP — event store, projections, CRUD API+UI, Google SSO, Docker Compose | Backend + frontend done |
-| **Phase 2** | Offline-first + CRDT sync — Dexie.js, service worker, LWW/OR-Set merge, sync engine, WebSocket push, HLC timestamps, aggregate snapshots | Done |
+| **Phase 2** | Offline-first + CRDT sync — Dexie.js, service worker, per-field LWW merge, sync engine, WebSocket push, HLC timestamps, aggregate snapshots | Done |
 | **Phase 3** | RabbitMQ + async projections — transactional outbox, topic exchanges, DLQ, projection worker, recurring tasks worker | Done |
 | **Phase 4** | Polish — integration tests, projection rebuilder CLI, drag-and-drop, install banner, iPad multitasking | Done |
 | **Phase 5** | Advanced features — Eisenhower matrix, global quick-add, markdown editor, search, calendar view, iCal feed, deploy webhook, push reminders | Done |

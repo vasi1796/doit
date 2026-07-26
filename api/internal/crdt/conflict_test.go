@@ -116,15 +116,3 @@ func TestConflictFracIndexConcurrentInserts(t *testing.T) {
 		t.Errorf("sort broken: %v", items)
 	}
 }
-
-func assertStringSlice(t *testing.T, label string, got, want []string) {
-	t.Helper()
-	if len(got) != len(want) {
-		t.Fatalf("%s: got %v (len %d), want %v (len %d)", label, got, len(got), want, len(want))
-	}
-	for i := range got {
-		if got[i] != want[i] {
-			t.Fatalf("%s: got %v, want %v", label, got, want)
-		}
-	}
-}
