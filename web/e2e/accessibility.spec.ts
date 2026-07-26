@@ -17,7 +17,11 @@ const KNOWN_VIOLATIONS = [
 async function waitForPage(page: import('@playwright/test').Page) {
   // Wait for the page content h1 inside <main>, not the sidebar "DoIt" h1
   await page.locator('main h1').first().waitFor({ state: 'visible', timeout: 10_000 })
-  await page.waitForTimeout(300)
+  // Let enter animations finish so axe scans a settled tree (deterministic,
+  // unlike a fixed sleep)
+  await page.waitForFunction(() =>
+    document.getAnimations().every((a) => a.playState === 'finished' || a.playState === 'idle'),
+  )
 }
 
 function a11yTest(name: string, path: string) {
