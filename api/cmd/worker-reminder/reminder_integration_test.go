@@ -42,7 +42,7 @@ func insertTestUser(t *testing.T, pool *pgxpool.Pool) uuid.UUID {
 	t.Helper()
 	userID := uuid.New()
 	_, err := pool.Exec(context.Background(),
-		`INSERT INTO users (id, google_id, email, name, allowed) VALUES ($1, $2, $3, $4, true)`,
+		`INSERT INTO users (id, google_id, email, name) VALUES ($1, $2, $3, $4)`,
 		userID, "google-"+userID.String(), userID.String()+"@test.com", "Test User",
 	)
 	if err != nil {
