@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { signOut } from '../session'
 
-const { deleteFn } = vi.hoisted(() => ({ deleteFn: vi.fn() }))
+const { deleteFn, unsubscribeFn } = vi.hoisted(() => ({
+  deleteFn: vi.fn(),
+  unsubscribeFn: vi.fn(),
+}))
 
 vi.mock('../db/database', () => ({ db: { delete: deleteFn } }))
+vi.mock('../push', () => ({ unsubscribeFromPush: unsubscribeFn }))
 
 describe('signOut', () => {
   const drainFn = vi.fn()
@@ -16,6 +20,7 @@ describe('signOut', () => {
     // test would otherwise leak into the next
     deleteFn.mockResolvedValue(undefined)
     drainFn.mockResolvedValue(undefined)
+    unsubscribeFn.mockResolvedValue(undefined)
     location.href = ''
     vi.stubGlobal('window', { __syncEngine: { drain: drainFn, halt: haltFn }, location })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
@@ -67,6 +72,26 @@ describe('signOut', () => {
     await vi.advanceTimersByTimeAsync(3000)
     await done
 
+    expect(location.href).toBe('/login')
+  })
+
+  it('unsubscribes from push before the session cookie is expired', async () => {
+    const logout = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', logout)
+
+    await signOut()
+
+    // The unsubscribe DELETE is user-scoped, so it fails silently once the
+    // logout has cleared the cookie — order is the whole point
+    expect(unsubscribeFn.mock.invocationCallOrder[0]).toBeLessThan(logout.mock.invocationCallOrder[0])
+  })
+
+  it('a failing unsubscribe still wipes and redirects', async () => {
+    unsubscribeFn.mockRejectedValue(new Error('no service worker'))
+
+    await signOut()
+
+    expect(deleteFn).toHaveBeenCalledOnce()
     expect(location.href).toBe('/login')
   })
 
