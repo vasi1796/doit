@@ -186,7 +186,7 @@ doit/
 |-----------|--------------|-------|
 | Scalar fields (title, due date, status) | **LWW-Register** | Last-Writer-Wins using per-field HLC timestamps |
 | Labels on a task | **OR-Set** | Observed-Remove Set — concurrent add/remove resolved |
-| Task/subtask ordering | **Fractional Indexing** | String position keys between adjacent items |
+| Task/subtask/list/label ordering | **Fractional Indexing** | String position keys between adjacent items |
 | Timestamps | **HLC** | Hybrid Logical Clock for causal ordering |
 | Markdown descriptions | **LWW-Register** | Whole-string replacement (see ADR-006) |
 
@@ -288,7 +288,7 @@ TaskCreated, TaskCompleted, TaskUncompleted, TaskDeleted, TaskRestored,
 TaskMoved, TaskTitleUpdated, TaskDescriptionUpdated, TaskPriorityUpdated,
 TaskDueDateUpdated, TaskDueTimeUpdated, TaskRecurrenceUpdated, TaskReordered,
 LabelAdded, LabelRemoved, LabelCreated, LabelDeleted, LabelNameUpdated, LabelColourUpdated,
-ListCreated, ListDeleted, ListNameUpdated, ListColourUpdated,
+LabelReordered, ListCreated, ListDeleted, ListNameUpdated, ListColourUpdated, ListReordered,
 SubtaskCreated, SubtaskCompleted, SubtaskUncompleted, SubtaskTitleUpdated
 ```
 
