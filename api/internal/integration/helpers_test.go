@@ -65,7 +65,7 @@ func setupHarness(t *testing.T) *testHarness {
 	// Insert a test user for FK constraints
 	userID := uuid.New()
 	_, err = pool.Exec(ctx,
-		`INSERT INTO users (id, google_id, email, name, allowed) VALUES ($1, $2, $3, $4, true)`,
+		`INSERT INTO users (id, google_id, email, name) VALUES ($1, $2, $3, $4)`,
 		userID, "google-"+userID.String(), userID.String()+"@test.com", "Test User",
 	)
 	if err != nil {

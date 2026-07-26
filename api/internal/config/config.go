@@ -59,6 +59,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URL are required when DEV_MODE is not enabled")
 	}
 
+	// Without an allowlist the OAuth endpoints accept any Google account, so an
+	// unset value must fail startup rather than silently open registration.
+	if !cfg.DevMode && len(cfg.AllowedEmails) == 0 {
+		return nil, fmt.Errorf("ALLOWED_EMAILS is required when DEV_MODE is not enabled")
+	}
+
 	return cfg, nil
 }
 

@@ -29,11 +29,6 @@
 		reverse_proxy doit-api:8080
 	}
 
-	# Prometheus metrics — restrict to internal networks in production
-	handle /metrics {
-		reverse_proxy doit-api:8080
-	}
-
 	# iCal feed endpoint
 	handle /ical/* {
 		reverse_proxy doit-api:8080
