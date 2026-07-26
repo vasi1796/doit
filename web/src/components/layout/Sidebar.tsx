@@ -1,12 +1,25 @@
 import { useState, useEffect, useCallback } from 'react'
 import { NavLink, useNavigate } from 'react-router'
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { computeDropPosition, healMissingPositions } from '../../utils/reorder'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { ConfirmDialog } from '../common/ConfirmDialog'
 import { ContextMenu } from '../common/ContextMenu'
 import { EditNameColourDialog } from '../common/EditNameColourDialog'
-import { useLongPress } from '../../hooks/useLongPress'
+import { useLongPress, LONG_PRESS_MS } from '../../hooks/useLongPress'
 import { SyncStatus } from '../common/SyncStatus'
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '../../push'
 import { CalendarFeedLink } from '../common/CalendarFeedLink'
@@ -229,7 +242,7 @@ function SwipeableRow({ onDelete, desktopActionButton, children }: {
  * context menu (Edit / Delete) opened by long-press on touch or by
  * right-click / the hover … button on desktop.
  */
-function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelete, onOpenMenu }: {
+function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelete, onOpenMenu, dragHandleProps }: {
   to: string
   name: string
   colour?: string
@@ -238,6 +251,7 @@ function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelet
   entityLabel: 'list' | 'label'
   onDelete: () => void
   onOpenMenu: (point: { x: number; y: number }) => void
+  dragHandleProps?: Record<string, unknown>
 }) {
   const longPress = useLongPress(onOpenMenu)
 
@@ -272,10 +286,40 @@ function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelet
           e.preventDefault()
           onOpenMenu({ x: e.clientX, y: e.clientY })
         }}
-        className="flex-1 select-none [-webkit-touch-callout:none]"
+        className="flex-1 flex items-center select-none [-webkit-touch-callout:none]"
       >
+        {dragHandleProps && (
+          <button
+            type="button"
+            aria-label={`Drag to reorder ${name}`}
+            className="w-[44px] min-h-[44px] -mr-2 self-stretch flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-quaternary hover:text-text-secondary"
+            {...dragHandleProps}
+            // Run the dnd-kit activator first, then stop propagation so the
+            // row's long-press handler never sees handle presses (framer's
+            // swipe listens natively and is instead constrained by its own
+            // direction lock). A capture-phase stopPropagation would skip
+            // the activator itself.
+            onPointerDown={(e) => {
+              ;(dragHandleProps.onPointerDown as ((e: React.PointerEvent) => void) | undefined)?.(e)
+              e.stopPropagation()
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="9" cy="6" r="1.5" />
+              <circle cx="15" cy="6" r="1.5" />
+              <circle cx="9" cy="12" r="1.5" />
+              <circle cx="15" cy="12" r="1.5" />
+              <circle cx="9" cy="18" r="1.5" />
+              <circle cx="15" cy="18" r="1.5" />
+            </svg>
+          </button>
+        )}
         <NavLink
           to={to}
+          // Anchors are natively draggable — WebKit's native drag would steal
+          // the pointer stream before the sort sensor can activate
+          draggable={false}
           className={({ isActive }) =>
             `relative flex-1 flex items-center gap-3 px-3 min-h-[44px] rounded-[10px] text-[15px] transition-colors ${
               isActive
@@ -308,6 +352,23 @@ function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelet
   )
 }
 
+function SortableEntityRow({ id, ...rowProps }: { id: string } & Parameters<typeof SidebarEntityRow>[0]) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    position: isDragging ? ('relative' as const) : undefined,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <SidebarEntityRow {...rowProps} dragHandleProps={{ ...attributes, ...listeners }} />
+    </div>
+  )
+}
+
 export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProps) {
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -318,6 +379,54 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
   const [labelsCollapsed, setLabelsCollapsed] = useState(false)
   const [entityMenu, setEntityMenu] = useState<{ type: 'list' | 'label'; id: string; name: string; colour: string; x: number; y: number } | null>(null)
   const [editTarget, setEditTarget] = useState<{ type: 'list' | 'label'; id: string; name: string; colour: string } | null>(null)
+
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: { distance: 8 },
+  })
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: LONG_PRESS_MS, tolerance: 5 },
+  })
+  const keyboardSensor = useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  })
+  const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor)
+
+  const handleListDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+      const position = computeDropPosition(lists, String(active.id), String(over.id))
+      if (!position) return
+      operations.updateList(String(active.id), { position }).catch((err: unknown) => {
+        toast(err instanceof Error ? err.message : 'Failed to reorder', 'error')
+      })
+    },
+    [lists, toast],
+  )
+
+  const handleLabelDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+      const reportError = (err: unknown) => {
+        toast(err instanceof Error ? err.message : 'Failed to reorder', 'error')
+      }
+      // Legacy rows (e.g. from a projection rebuild) may lack positions;
+      // give them keys matching their display order so the drop lands
+      // exactly where the user put it.
+      const healed = healMissingPositions(
+        labels,
+        (id, position) => {
+          operations.updateLabel(id, { position }).catch(reportError)
+        },
+        String(active.id),
+      )
+      const position = computeDropPosition(healed, String(active.id), String(over.id))
+      if (!position) return
+      operations.updateLabel(String(active.id), { position }).catch(reportError)
+    },
+    [labels, toast],
+  )
 
   const handleEditSave = useCallback(async (changes: { name?: string; colour?: string }) => {
     if (!editTarget) return
@@ -483,24 +592,33 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
           </motion.form>
         )}
         </AnimatePresence>
-        <div className="space-y-0.5">
-          {lists.map((list) => (
-            <SidebarEntityRow
-              key={list.id}
-              to={`/lists/${list.id}`}
-              name={list.name}
-              colour={list.colour}
-              shape="circle"
-              count={taskCounts.byList[list.id] || 0}
-              entityLabel="list"
-              onDelete={() => setPendingDelete({ type: 'list', id: list.id, name: list.name })}
-              onOpenMenu={(point) => setEntityMenu({
-                type: 'list', id: list.id, name: list.name,
-                colour: list.colour || '', x: point.x, y: point.y,
-              })}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleListDragEnd}
+        >
+          <SortableContext items={lists.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-0.5">
+              {lists.map((list) => (
+                <SortableEntityRow
+                  key={list.id}
+                  id={list.id}
+                  to={`/lists/${list.id}`}
+                  name={list.name}
+                  colour={list.colour}
+                  shape="circle"
+                  count={taskCounts.byList[list.id] || 0}
+                  entityLabel="list"
+                  onDelete={() => setPendingDelete({ type: 'list', id: list.id, name: list.name })}
+                  onOpenMenu={(point) => setEntityMenu({
+                    type: 'list', id: list.id, name: list.name,
+                    colour: list.colour || '', x: point.x, y: point.y,
+                  })}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* Labels */}
@@ -540,21 +658,30 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
               >
-                {labels.map((label) => (
-                  <SidebarEntityRow
-                    key={label.id}
-                    to={`/labels/${label.id}`}
-                    name={label.name}
-                    colour={label.colour}
-                    shape="square"
-                    entityLabel="label"
-                    onDelete={() => setPendingDelete({ type: 'label', id: label.id, name: label.name })}
-                    onOpenMenu={(point) => setEntityMenu({
-                      type: 'label', id: label.id, name: label.name,
-                      colour: label.colour || '', x: point.x, y: point.y,
-                    })}
-                  />
-                ))}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleLabelDragEnd}
+                >
+                  <SortableContext items={labels.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+                    {labels.map((label) => (
+                      <SortableEntityRow
+                        key={label.id}
+                        id={label.id}
+                        to={`/labels/${label.id}`}
+                        name={label.name}
+                        colour={label.colour}
+                        shape="square"
+                        entityLabel="label"
+                        onDelete={() => setPendingDelete({ type: 'label', id: label.id, name: label.name })}
+                        onOpenMenu={(point) => setEntityMenu({
+                          type: 'label', id: label.id, name: label.name,
+                          colour: label.colour || '', x: point.x, y: point.y,
+                        })}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </motion.div>
             )}
           </AnimatePresence>

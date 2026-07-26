@@ -47,6 +47,8 @@ const (
 	EventListColourUpdated      EventType = "ListColourUpdated"
 	EventLabelNameUpdated       EventType = "LabelNameUpdated"
 	EventLabelColourUpdated     EventType = "LabelColourUpdated"
+	EventListReordered          EventType = "ListReordered"
+	EventLabelReordered         EventType = "LabelReordered"
 )
 
 // Event represents a single domain event stored in the event store.

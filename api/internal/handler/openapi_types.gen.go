@@ -71,8 +71,9 @@ type AddLabelRequest struct {
 
 // CreateLabelRequest defines model for CreateLabelRequest.
 type CreateLabelRequest struct {
-	Colour string `json:"colour"`
-	Name   string `json:"name"`
+	Colour   string  `json:"colour"`
+	Name     string  `json:"name"`
+	Position *string `json:"position,omitempty"`
 }
 
 // CreateListRequest defines model for CreateListRequest.
@@ -120,6 +121,8 @@ type Label struct {
 	CreatedAt *time.Time         `json:"created_at,omitempty"`
 	Id        openapi_types.UUID `json:"id"`
 	Name      string             `json:"name"`
+	Position  *string            `json:"position,omitempty"`
+	UpdatedAt *time.Time         `json:"updated_at,omitempty"`
 }
 
 // List defines model for List.

@@ -112,6 +112,23 @@ func (a *ListAggregate) HandleUpdateColour(cmd UpdateListColour, now hlc.Timesta
 	return []eventstore.Event{e}, nil
 }
 
+func (a *ListAggregate) HandleReorder(cmd ReorderList, now hlc.Timestamp) ([]eventstore.Event, error) {
+	if err := a.requireActive(); err != nil {
+		return nil, err
+	}
+	if cmd.Position == "" {
+		return nil, ErrEmptyPosition
+	}
+
+	e, err := a.newEvent(eventstore.EventListReordered, ListReorderedPayload{
+		Position: cmd.Position,
+	}, now)
+	if err != nil {
+		return nil, err
+	}
+	return []eventstore.Event{e}, nil
+}
+
 func (a *ListAggregate) requireActive() error {
 	if !a.created {
 		return ErrListNotFound

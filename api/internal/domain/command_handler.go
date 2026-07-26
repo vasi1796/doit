@@ -326,6 +326,13 @@ func (h *CommandHandler) UpdateList(ctx context.Context, aggregateID uuid.UUID, 
 		}
 		events = append(events, evs...)
 	}
+	if cmd.Position != nil {
+		evs, err := agg.HandleReorder(ReorderList{Position: *cmd.Position}, h.clock.Now())
+		if err != nil {
+			return err
+		}
+		events = append(events, evs...)
+	}
 	if len(events) == 0 {
 		return nil
 	}
@@ -369,6 +376,13 @@ func (h *CommandHandler) UpdateLabel(ctx context.Context, aggregateID uuid.UUID,
 	}
 	if cmd.Colour != nil {
 		evs, err := agg.HandleUpdateColour(UpdateLabelColour{Colour: *cmd.Colour}, h.clock.Now())
+		if err != nil {
+			return err
+		}
+		events = append(events, evs...)
+	}
+	if cmd.Position != nil {
+		evs, err := agg.HandleReorder(ReorderLabel{Position: *cmd.Position}, h.clock.Now())
 		if err != nil {
 			return err
 		}

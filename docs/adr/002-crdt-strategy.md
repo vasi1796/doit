@@ -83,3 +83,33 @@ list and label `name` and `colour`:
 Rejected alternative: a single combined `ListUpdated` event carrying
 name+colour — simpler, but a concurrent rename and recolour would resolve to
 one winner, violating the per-field preservation principle above.
+
+## Addendum (2026-07-26): ordering CRDT extended to sidebar lists and labels
+
+The fractional-indexing decision above originally covered only task and
+subtask ordering. With the sidebar reorder feature the same strategy now
+covers the user-defined order of lists and labels in the sidebar:
+
+- `lists.position` (which existed since Phase 1 but was write-once at
+  creation) and a new `labels.position` column (migration 009) hold
+  fractional-index strings; concurrent inserts at the same slot resolve by
+  per-field LWW on `position`, consistent with the "concurrent list moves"
+  policy above.
+- Granular `ListReordered`/`LabelReordered` events mirror the task
+  field-event pattern and ride the existing atomic `UpdateList`/`UpdateLabel`
+  commands, so a rename on one device and a reorder on another both survive
+  (`field_hlcs['position']` on client rows).
+- Existing labels are backfilled in alphabetical order twice with one
+  deterministic formula — SQL in migration 009 for the server, a Dexie v5
+  upgrade for already-installed clients — because no events exist for the
+  backfill; the two sides converge without sync. Both sides compare by raw
+  code units (`COLLATE "C"` in SQL via migration 010, code-unit `<` in JS)
+  so the order does not depend on the database locale. Rows that predate the
+  backfill (e.g. a projection rebuild replaying historical `LabelCreated`
+  events) have NULL positions, so label read paths order by position with a
+  name fallback rather than requiring NOT NULL.
+
+Rejected alternative: dedicated `ReorderList`/`ReorderLabel` sync operations
+mirroring `ReorderTask` — behaviourally identical but duplicates dispatch,
+interface, and mock plumbing for no per-field-LWW gain; position as a third
+LWW field on the existing atomic update ops was chosen instead.

@@ -228,7 +228,7 @@ export async function deleteList(id: string): Promise<void> {
   await queueOp(SyncOpType.DELETE_LIST, id, hlc)
 }
 
-export async function updateList(id: string, data: { name?: string; colour?: string }): Promise<void> {
+export async function updateList(id: string, data: { name?: string; colour?: string; position?: string }): Promise<void> {
   await updateEntity(db.lists, SyncOpType.UPDATE_LIST, id, data, { updated_at: new Date().toISOString() })
 }
 
@@ -239,7 +239,7 @@ export async function updateList(id: string, data: { name?: string; colour?: str
 export async function createLabel(data: CreateLabelRequest): Promise<string> {
   const id = uuid()
   const { hlc } = hlcFields()
-  await db.labels.put({ id, name: data.name, colour: data.colour })
+  await db.labels.put({ id, name: data.name, colour: data.colour, position: data.position })
   await queueOp(SyncOpType.CREATE_LABEL, id, hlc, data)
   return id
 }
@@ -250,7 +250,7 @@ export async function deleteLabel(id: string): Promise<void> {
   await queueOp(SyncOpType.DELETE_LABEL, id, hlc)
 }
 
-export async function updateLabel(id: string, data: { name?: string; colour?: string }): Promise<void> {
+export async function updateLabel(id: string, data: { name?: string; colour?: string; position?: string }): Promise<void> {
   await updateEntity(db.labels, SyncOpType.UPDATE_LABEL, id, data)
 }
 
@@ -260,7 +260,7 @@ async function updateEntity<T extends { field_hlcs?: FieldHLC }>(
   table: Table<T>,
   opType: string,
   id: string,
-  data: { name?: string; colour?: string },
+  data: { name?: string; colour?: string; position?: string },
   extraChanges: Record<string, string> = {},
 ): Promise<void> {
   const entity = await table.get(id)

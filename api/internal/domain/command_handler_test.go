@@ -125,6 +125,34 @@ func TestCommandHandler(t *testing.T) {
 			},
 			wantErr: loadErr,
 		},
+		{
+			name: "update list with rename and reorder appends both events",
+			store: &mockEventStore{
+				events: []eventstore.Event{
+					taskEvent(uuid.MustParse("00000000-0000-0000-0000-000000000002"), eventstore.EventListCreated, 1, ListCreatedPayload{Name: "Work", Position: "a"}),
+				},
+			},
+			action: func(h *CommandHandler) error {
+				name, position := "Renamed", "aO"
+				return h.UpdateList(context.Background(), uuid.MustParse("00000000-0000-0000-0000-000000000002"), testUserID, UpdateList{Name: &name, Position: &position})
+			},
+			wantAppended:   2,
+			checkEventType: eventstore.EventListNameUpdated,
+		},
+		{
+			name: "update label with position only appends LabelReordered",
+			store: &mockEventStore{
+				events: []eventstore.Event{
+					taskEvent(uuid.MustParse("00000000-0000-0000-0000-000000000003"), eventstore.EventLabelCreated, 1, LabelCreatedPayload{Name: "Urgent"}),
+				},
+			},
+			action: func(h *CommandHandler) error {
+				position := "aO"
+				return h.UpdateLabel(context.Background(), uuid.MustParse("00000000-0000-0000-0000-000000000003"), testUserID, UpdateLabel{Position: &position})
+			},
+			wantAppended:   1,
+			checkEventType: eventstore.EventLabelReordered,
+		},
 	}
 
 	for _, tc := range tests {
@@ -156,5 +184,25 @@ func TestCommandHandler(t *testing.T) {
 				t.Errorf("Version = %d, want %d", tc.store.appended[0].Version, tc.checkVersion)
 			}
 		})
+	}
+}
+
+func TestUpdateListInvalidFieldAppendsNothing(t *testing.T) {
+	listID := uuid.MustParse("00000000-0000-0000-0000-000000000004")
+	store := &mockEventStore{
+		events: []eventstore.Event{
+			taskEvent(listID, eventstore.EventListCreated, 1, ListCreatedPayload{Name: "Work", Position: "a"}),
+		},
+	}
+	handler := NewCommandHandler(store, &mockPool{}, hlc.New())
+
+	name, position := "Renamed", ""
+	err := handler.UpdateList(context.Background(), listID, testUserID, UpdateList{Name: &name, Position: &position})
+
+	if !errors.Is(err, ErrEmptyPosition) {
+		t.Fatalf("got error %v, want %v", err, ErrEmptyPosition)
+	}
+	if len(store.appended) != 0 {
+		t.Errorf("appended %d events, want 0 — a partially-valid edit must append nothing", len(store.appended))
 	}
 }

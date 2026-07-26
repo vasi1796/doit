@@ -74,7 +74,7 @@ func (s *SnapshotWriter) SaveListSnapshot(ctx context.Context, listID, userID uu
 func (s *SnapshotWriter) SaveLabelSnapshot(ctx context.Context, labelID, userID uuid.UUID) error {
 	jsonRow := s.pool.QueryRow(ctx,
 		`SELECT row_to_json(t) FROM (
-			SELECT id, name, colour, created_at
+			SELECT id, name, colour, position, created_at, updated_at
 			FROM labels WHERE id = $1 AND user_id = $2
 		) t`, labelID, userID)
 

@@ -51,6 +51,9 @@ func (h *LabelHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Name:    req.Name,
 		Colour:  req.Colour,
 	}
+	if req.Position != nil {
+		cmd.Position = *req.Position
+	}
 
 	if mapDomainError(w, h.logger, h.cmds.CreateLabel(r.Context(), cmd)) {
 		return
@@ -67,7 +70,9 @@ func (h *LabelHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.pool.Query(r.Context(),
-		`SELECT id, name, colour, created_at FROM labels WHERE user_id = $1 ORDER BY name ASC`,
+		`SELECT id, name, colour, position, created_at, updated_at
+		FROM labels WHERE user_id = $1
+		ORDER BY position COLLATE "C" ASC NULLS LAST, name COLLATE "C" ASC`,
 		userID,
 	)
 	if err != nil {
@@ -80,9 +85,9 @@ func (h *LabelHandler) List(w http.ResponseWriter, r *http.Request) {
 	labels := make([]Label, 0)
 	for rows.Next() {
 		var l Label
-		var colour sql.NullString
-		var createdAt sql.NullTime
-		if err := rows.Scan(&l.Id, &l.Name, &colour, &createdAt); err != nil {
+		var colour, position sql.NullString
+		var createdAt, updatedAt sql.NullTime
+		if err := rows.Scan(&l.Id, &l.Name, &colour, &position, &createdAt, &updatedAt); err != nil {
 			h.logger.Error().Err(err).Msg("scanning label row")
 			writeError(w, h.logger, http.StatusInternalServerError, "internal error")
 			return
@@ -90,8 +95,14 @@ func (h *LabelHandler) List(w http.ResponseWriter, r *http.Request) {
 		if colour.Valid {
 			l.Colour = &colour.String
 		}
+		if position.Valid {
+			l.Position = &position.String
+		}
 		if createdAt.Valid {
 			l.CreatedAt = &createdAt.Time
+		}
+		if updatedAt.Valid {
+			l.UpdatedAt = &updatedAt.Time
 		}
 		labels = append(labels, l)
 	}

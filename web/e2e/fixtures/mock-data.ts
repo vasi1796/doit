@@ -1,8 +1,8 @@
 import type { Task, Label, List } from '../../src/api/types'
 
 export const MOCK_LABELS: Label[] = [
-  { id: 'label-1', name: 'Work', colour: '#007aff' },
-  { id: 'label-2', name: 'Personal', colour: '#4cd964' },
+  { id: 'label-1', name: 'Work', colour: '#007aff', position: 'a' },
+  { id: 'label-2', name: 'Personal', colour: '#4cd964', position: 'b' },
 ]
 
 export const MOCK_LISTS: List[] = [

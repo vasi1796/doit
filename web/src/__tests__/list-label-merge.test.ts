@@ -176,4 +176,68 @@ describe('mergeRemoteEvents — list/label field LWW', () => {
     ])
     expect(lists.has('ghost')).toBe(false)
   })
+
+  it('applies reorder events to existing lists and labels', async () => {
+    lists.set('l1', { id: 'l1', name: 'Work', position: 'a' })
+    labels.set('la1', { id: 'la1', name: 'Urgent', position: 'b' })
+
+    await mergeRemoteEvents([
+      remoteEvent('ListReordered', 'l1', { position: 'aO' }, T0),
+      remoteEvent('LabelReordered', 'la1', { position: 'bO' }, T0),
+    ])
+
+    expect(lists.get('l1')!.position).toBe('aO')
+    expect(labels.get('la1')!.position).toBe('bO')
+  })
+
+  it('a stale remote reorder does not clobber a newer local reorder', async () => {
+    labels.set('la1', {
+      id: 'la1',
+      name: 'Urgent',
+      position: 'z',
+      field_hlcs: { position: { time: T0 + 60_000, counter: 0 } },
+    })
+
+    await mergeRemoteEvents([
+      remoteEvent('LabelReordered', 'la1', { position: 'a' }, T0),
+    ])
+
+    expect(labels.get('la1')!.position).toBe('z')
+  })
+
+  it('concurrent local rename and remote reorder both survive', async () => {
+    lists.set('l1', {
+      id: 'l1',
+      name: 'Renamed locally',
+      position: 'a',
+      field_hlcs: { name: { time: T0 + 60_000, counter: 0 } },
+    })
+
+    await mergeRemoteEvents([
+      remoteEvent('ListReordered', 'l1', { position: 'aO' }, T0),
+    ])
+
+    const list = lists.get('l1')!
+    expect(list.name).toBe('Renamed locally')
+    expect(list.position).toBe('aO')
+  })
+
+  it('LabelCreated inserts with position, and a redelivery does not clobber a newer local reorder', async () => {
+    await mergeRemoteEvents([
+      remoteEvent('LabelCreated', 'la1', { name: 'Urgent', colour: '#ff0000', position: 'b' }, T0),
+    ])
+    expect(labels.get('la1')!.position).toBe('b')
+
+    labels.set('la1', {
+      ...labels.get('la1')!,
+      position: 'bO',
+      field_hlcs: { position: { time: T0 + 60_000, counter: 0 } },
+    })
+
+    await mergeRemoteEvents([
+      remoteEvent('LabelCreated', 'la1', { name: 'Urgent', colour: '#ff0000', position: 'b' }, T0),
+    ])
+
+    expect(labels.get('la1')!.position).toBe('bO')
+  })
 })

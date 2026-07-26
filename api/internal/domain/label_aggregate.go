@@ -50,8 +50,9 @@ func (a *LabelAggregate) HandleCreate(cmd CreateLabel, now hlc.Timestamp) ([]eve
 	a.userID = cmd.UserID
 
 	e, err := a.newEvent(eventstore.EventLabelCreated, LabelCreatedPayload{
-		Name:   cmd.Name,
-		Colour: cmd.Colour,
+		Name:     cmd.Name,
+		Colour:   cmd.Colour,
+		Position: cmd.Position,
 	}, now)
 	if err != nil {
 		return nil, err
@@ -103,6 +104,23 @@ func (a *LabelAggregate) HandleUpdateColour(cmd UpdateLabelColour, now hlc.Times
 
 	e, err := a.newEvent(eventstore.EventLabelColourUpdated, LabelColourUpdatedPayload{
 		Colour: cmd.Colour,
+	}, now)
+	if err != nil {
+		return nil, err
+	}
+	return []eventstore.Event{e}, nil
+}
+
+func (a *LabelAggregate) HandleReorder(cmd ReorderLabel, now hlc.Timestamp) ([]eventstore.Event, error) {
+	if err := a.requireActive(); err != nil {
+		return nil, err
+	}
+	if cmd.Position == "" {
+		return nil, ErrEmptyPosition
+	}
+
+	e, err := a.newEvent(eventstore.EventLabelReordered, LabelReorderedPayload{
+		Position: cmd.Position,
 	}, now)
 	if err != nil {
 		return nil, err

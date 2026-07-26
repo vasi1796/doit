@@ -579,7 +579,12 @@ components:
           type: string
         colour:
           type: string
+        position:
+          type: string
         created_at:
+          type: string
+          format: date-time
+        updated_at:
           type: string
           format: date-time
 
@@ -696,4 +701,6 @@ components:
         name:
           type: string
         colour:
+          type: string
+        position:
           type: string

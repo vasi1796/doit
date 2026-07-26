@@ -36,7 +36,7 @@ api/              Go backend
     middleware/     JWT auth middleware
     outbox/        Outbox poller (publishes events to RabbitMQ)
     projection/    Event → read model table updates (generic execProjection[T] helper)
-  migrations/     SQL migration files (001–007, embedded via migrations/embed.go)
+  migrations/     SQL migration files (001–010, embedded via migrations/embed.go)
   openapi.yaml    API contract (source of truth for Go + TS type generation)
 web/              React frontend
   src/
@@ -293,8 +293,8 @@ Events: `TaskCreated`, `TaskCompleted`, `TaskUncompleted`, `TaskDeleted`,
 `TaskRestored`, `TaskMoved`, `TaskTitleUpdated`, `TaskDescriptionUpdated`,
 `TaskPriorityUpdated`, `TaskDueDateUpdated`, `TaskDueTimeUpdated`,
 `TaskRecurrenceUpdated`, `TaskReordered`, `LabelAdded`, `LabelRemoved`, `LabelCreated`,
-`LabelDeleted`, `LabelNameUpdated`, `LabelColourUpdated`, `ListCreated`,
-`ListDeleted`, `ListNameUpdated`, `ListColourUpdated`, `SubtaskCreated`,
+`LabelDeleted`, `LabelNameUpdated`, `LabelColourUpdated`, `LabelReordered`, `ListCreated`,
+`ListDeleted`, `ListNameUpdated`, `ListColourUpdated`, `ListReordered`, `SubtaskCreated`,
 `SubtaskCompleted`, `SubtaskUncompleted`, `SubtaskTitleUpdated`
 
 ---

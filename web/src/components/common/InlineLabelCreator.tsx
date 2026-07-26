@@ -18,7 +18,7 @@ export function InlineLabelCreator({ onCreated, onCancel }: InlineLabelCreatorPr
     e.preventDefault()
     if (!name.trim()) return
     try {
-      const id = await operations.createLabel({ name: name.trim(), colour })
+      const id = await operations.createLabel({ name: name.trim(), colour, position: Date.now().toString() })
       toast('Label created', 'success')
       onCreated(id)
     } catch (err) {

@@ -33,7 +33,7 @@ export function LabelPicker({ allLabels, attachedIds, taskId }: LabelPickerProps
     e.preventDefault()
     if (!newName.trim()) return
     try {
-      await operations.createLabel({ name: newName.trim(), colour: newColour })
+      await operations.createLabel({ name: newName.trim(), colour: newColour, position: Date.now().toString() })
       setNewName('')
       setCreating(false)
     } catch (err) {
