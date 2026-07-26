@@ -13,11 +13,12 @@ import {
 import {
   SortableContext,
   verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import type { Task } from '../../api/types'
 import { SortableTaskItem } from './TaskItem'
 import { EmptyState } from '../common/EmptyState'
-import { between } from '../../crdt/fracindex'
+import { computeDropPosition } from '../../utils/reorder'
 import * as operations from '../../db/operations'
 
 interface TaskListProps {
@@ -36,27 +37,18 @@ export function TaskList({ tasks, loading, emptyMessage, emptyHint, emptyAction,
   const touchSensor = useSensor(TouchSensor, {
     activationConstraint: { delay: 500, tolerance: 5 },
   })
-  const keyboardSensor = useSensor(KeyboardSensor)
+  const keyboardSensor = useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  })
   const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor)
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event
       if (!over || active.id === over.id) return
-
-      const oldIndex = tasks.findIndex((t) => t.id === active.id)
-      const newIndex = tasks.findIndex((t) => t.id === over.id)
-      if (oldIndex === -1 || newIndex === -1) return
-
-      // Compute a position between the new neighbors for the dragged task only.
-      const reordered = tasks.filter((_, i) => i !== oldIndex)
-      const insertAt = newIndex > oldIndex ? newIndex - 1 : newIndex
-
-      const prevPos = insertAt > 0 ? reordered[insertAt - 1].position : ''
-      const nextPos = insertAt < reordered.length ? reordered[insertAt].position : ''
-      const newPosition = between(prevPos, nextPos)
-
-      operations.updateTask(String(active.id), { position: newPosition })
+      const position = computeDropPosition(tasks, String(active.id), String(over.id))
+      if (!position) return
+      operations.updateTask(String(active.id), { position })
     },
     [tasks],
   )
