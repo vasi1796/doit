@@ -146,6 +146,24 @@ func TestListHandleUpdate(t *testing.T) {
 			update:  func(a *ListAggregate) ([]eventstore.Event, error) { return a.HandleUpdateColour(UpdateListColour{Colour: ""}, testHLC) },
 			wantErr: ErrEmptyColour,
 		},
+		{
+			name:     "reorder active list",
+			setup:    active,
+			update:   func(a *ListAggregate) ([]eventstore.Event, error) { return a.HandleReorder(ReorderList{Position: "aO"}, testHLC) },
+			wantType: eventstore.EventListReordered,
+		},
+		{
+			name:    "reorder to empty position",
+			setup:   active,
+			update:  func(a *ListAggregate) ([]eventstore.Event, error) { return a.HandleReorder(ReorderList{Position: ""}, testHLC) },
+			wantErr: ErrEmptyPosition,
+		},
+		{
+			name:    "reorder deleted list",
+			setup:   deleted,
+			update:  func(a *ListAggregate) ([]eventstore.Event, error) { return a.HandleReorder(ReorderList{Position: "aO"}, testHLC) },
+			wantErr: ErrListAlreadyDeleted,
+		},
 	}
 
 	for _, tc := range tests {

@@ -313,14 +313,19 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 			colour := strVal(data, "colour")
 			cmd.Colour = &colour
 		}
+		if _, ok := data["position"]; ok {
+			position := strVal(data, "position")
+			cmd.Position = &position
+		}
 		return h.cmds.UpdateList(ctx, aggID, userID, cmd)
 
 	case OpCreateLabel:
 		return h.cmds.CreateLabel(ctx, domain.CreateLabel{
-			LabelID: aggID,
-			UserID:  userID,
-			Name:    strVal(data, "name"),
-			Colour:  strVal(data, "colour"),
+			LabelID:  aggID,
+			UserID:   userID,
+			Name:     strVal(data, "name"),
+			Colour:   strVal(data, "colour"),
+			Position: strVal(data, "position"),
 		})
 
 	case OpDeleteLabel:
@@ -335,6 +340,10 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 		if _, ok := data["colour"]; ok {
 			colour := strVal(data, "colour")
 			cmd.Colour = &colour
+		}
+		if _, ok := data["position"]; ok {
+			position := strVal(data, "position")
+			cmd.Position = &position
 		}
 		return h.cmds.UpdateLabel(ctx, aggID, userID, cmd)
 

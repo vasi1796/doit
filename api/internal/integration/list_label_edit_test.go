@@ -51,7 +51,7 @@ func TestListLabelEditFlow(t *testing.T) {
 			{
 				"type":         "CreateLabel",
 				"aggregate_id": labelID.String(),
-				"data":         map[string]any{"name": "Urgent", "colour": "#ff0000"},
+				"data":         map[string]any{"name": "Urgent", "colour": "#ff0000", "position": "b"},
 				"hlc_time":     now,
 				"hlc_counter":  2,
 			},
@@ -61,6 +61,20 @@ func TestListLabelEditFlow(t *testing.T) {
 				"data":         map[string]any{"name": "Important", "colour": "#0000ff"},
 				"hlc_time":     now,
 				"hlc_counter":  3,
+			},
+			{
+				"type":         "UpdateList",
+				"aggregate_id": listID.String(),
+				"data":         map[string]any{"position": "aO"},
+				"hlc_time":     now,
+				"hlc_counter":  4,
+			},
+			{
+				"type":         "UpdateLabel",
+				"aggregate_id": labelID.String(),
+				"data":         map[string]any{"position": "bO"},
+				"hlc_time":     now,
+				"hlc_counter":  5,
 			},
 		},
 		"cursor": nil,
@@ -97,7 +111,7 @@ func TestListLabelEditFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadByAggregate(list): %v", err)
 	}
-	wantListEvents := []string{"ListCreated", "ListNameUpdated", "ListColourUpdated"}
+	wantListEvents := []string{"ListCreated", "ListNameUpdated", "ListColourUpdated", "ListReordered"}
 	if len(listEvents) != len(wantListEvents) {
 		t.Fatalf("expected %d list events, got %d", len(wantListEvents), len(listEvents))
 	}
@@ -110,15 +124,15 @@ func TestListLabelEditFlow(t *testing.T) {
 	// Flush outbox → RabbitMQ, drain projections → read models
 	h.flushOutbox(t)
 	projected := h.drainProjections(t)
-	if projected != 6 {
-		t.Fatalf("expected 6 projected events, got %d", projected)
+	if projected != 8 {
+		t.Fatalf("expected 8 projected events, got %d", projected)
 	}
 
-	var listName, listColour string
+	var listName, listColour, listPosition string
 	err = h.pool.QueryRow(ctx,
-		`SELECT name, colour FROM lists WHERE id = $1 AND user_id = $2`,
+		`SELECT name, colour, position FROM lists WHERE id = $1 AND user_id = $2`,
 		listID, h.userID,
-	).Scan(&listName, &listColour)
+	).Scan(&listName, &listColour, &listPosition)
 	if err != nil {
 		t.Fatalf("reading list from read model: %v", err)
 	}
@@ -128,12 +142,15 @@ func TestListLabelEditFlow(t *testing.T) {
 	if listColour != "#00ff00" {
 		t.Errorf("list colour = %q, want %q", listColour, "#00ff00")
 	}
+	if listPosition != "aO" {
+		t.Errorf("list position = %q, want %q", listPosition, "aO")
+	}
 
-	var labelName, labelColour string
+	var labelName, labelColour, labelPosition string
 	err = h.pool.QueryRow(ctx,
-		`SELECT name, colour FROM labels WHERE id = $1 AND user_id = $2`,
+		`SELECT name, colour, position FROM labels WHERE id = $1 AND user_id = $2`,
 		labelID, h.userID,
-	).Scan(&labelName, &labelColour)
+	).Scan(&labelName, &labelColour, &labelPosition)
 	if err != nil {
 		t.Fatalf("reading label from read model: %v", err)
 	}
@@ -142,5 +159,8 @@ func TestListLabelEditFlow(t *testing.T) {
 	}
 	if labelColour != "#0000ff" {
 		t.Errorf("label colour = %q, want %q", labelColour, "#0000ff")
+	}
+	if labelPosition != "bO" {
+		t.Errorf("label position = %q, want %q", labelPosition, "bO")
 	}
 }

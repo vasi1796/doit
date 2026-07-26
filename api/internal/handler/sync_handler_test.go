@@ -110,7 +110,7 @@ func (m *mockSyncCommander) DeleteList(_ context.Context, _ uuid.UUID, _ uuid.UU
 	m.calls = append(m.calls, "DeleteList")
 	return m.err
 }
-func describeEntityUpdate(op string, name, colour *string) string {
+func describeEntityUpdate(op string, name, colour, position *string) string {
 	s := op
 	if name != nil {
 		s += ":name=" + *name
@@ -118,14 +118,17 @@ func describeEntityUpdate(op string, name, colour *string) string {
 	if colour != nil {
 		s += ":colour=" + *colour
 	}
+	if position != nil {
+		s += ":position=" + *position
+	}
 	return s
 }
 func (m *mockSyncCommander) UpdateList(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateList) error {
-	m.calls = append(m.calls, describeEntityUpdate("UpdateList", cmd.Name, cmd.Colour))
+	m.calls = append(m.calls, describeEntityUpdate("UpdateList", cmd.Name, cmd.Colour, cmd.Position))
 	return m.err
 }
 func (m *mockSyncCommander) UpdateLabel(_ context.Context, _ uuid.UUID, _ uuid.UUID, cmd domain.UpdateLabel) error {
-	m.calls = append(m.calls, describeEntityUpdate("UpdateLabel", cmd.Name, cmd.Colour))
+	m.calls = append(m.calls, describeEntityUpdate("UpdateLabel", cmd.Name, cmd.Colour, cmd.Position))
 	return m.err
 }
 func (m *mockSyncCommander) CreateLabel(_ context.Context, cmd domain.CreateLabel) error {
@@ -495,9 +498,15 @@ func TestSyncDispatchOpAllTypes(t *testing.T) {
 			wantCalls: []string{"UpdateList:name=:colour=#00ff00"},
 		},
 		{
+			name:      "UpdateList with position only dispatches a reorder-carrying command",
+			opType:    "UpdateList",
+			data:      map[string]any{"position": "aO"},
+			wantCalls: []string{"UpdateList:position=aO"},
+		},
+		{
 			name:      "CreateLabel dispatches with name, colour",
 			opType:    "CreateLabel",
-			data:      map[string]any{"name": "Urgent", "colour": "#ff0000"},
+			data:      map[string]any{"name": "Urgent", "colour": "#ff0000", "position": "a"},
 			wantCalls: []string{"CreateLabel:Urgent"},
 		},
 		{
@@ -511,6 +520,12 @@ func TestSyncDispatchOpAllTypes(t *testing.T) {
 			opType:    "UpdateLabel",
 			data:      map[string]any{"colour": "#0000ff"},
 			wantCalls: []string{"UpdateLabel:colour=#0000ff"},
+		},
+		{
+			name:      "UpdateLabel with name and position stays one atomic command",
+			opType:    "UpdateLabel",
+			data:      map[string]any{"name": "Important", "position": "aO"},
+			wantCalls: []string{"UpdateLabel:name=Important:position=aO"},
 		},
 		{
 			name:      "DeleteLabel dispatches DeleteLabel",

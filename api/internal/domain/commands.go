@@ -116,21 +116,27 @@ type UpdateListColour struct {
 	Colour string
 }
 
+type ReorderList struct {
+	Position string
+}
+
 // UpdateList carries the changed fields of a list edit; nil means unchanged.
 // Handled as a single atomic command so one sync op never splits into
 // partially-applied field commands across retries.
 type UpdateList struct {
-	Name   *string
-	Colour *string
+	Name     *string
+	Colour   *string
+	Position *string
 }
 
 // Label commands
 
 type CreateLabel struct {
-	LabelID uuid.UUID
-	UserID  uuid.UUID
-	Name    string
-	Colour  string
+	LabelID  uuid.UUID
+	UserID   uuid.UUID
+	Name     string
+	Colour   string
+	Position string
 }
 
 type DeleteLabel struct {
@@ -145,8 +151,13 @@ type UpdateLabelColour struct {
 	Colour string
 }
 
+type ReorderLabel struct {
+	Position string
+}
+
 // UpdateLabel carries the changed fields of a label edit; nil means unchanged.
 type UpdateLabel struct {
-	Name   *string
-	Colour *string
+	Name     *string
+	Colour   *string
+	Position *string
 }

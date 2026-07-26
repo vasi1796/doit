@@ -231,6 +231,98 @@ func TestProjectLabelCreated(t *testing.T) {
 	}
 }
 
+func TestProjectLabelCreatedWithPosition(t *testing.T) {
+	proj, pool := setupTest(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Microsecond)
+
+	tests := []struct {
+		name         string
+		payload      domain.LabelCreatedPayload
+		wantPosition *string
+	}{
+		{
+			name:         "position stored when payload carries it",
+			payload:      domain.LabelCreatedPayload{Name: "urgent", Colour: "#ff0000", Position: "a"},
+			wantPosition: strPtr("a"),
+		},
+		{
+			name:         "historical payload without position projects NULL",
+			payload:      domain.LabelCreatedPayload{Name: "later", Colour: "#00ff00"},
+			wantPosition: nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			labelID := uuid.New()
+			evt := makeEvent(t, labelID, eventstore.EventLabelCreated, eventstore.AggregateTypeLabel, 1, tc.payload, now)
+			if err := proj.Project(ctx, []eventstore.Event{evt}); err != nil {
+				t.Fatalf("projecting: %v", err)
+			}
+
+			var position *string
+			if err := pool.QueryRow(ctx, "SELECT position FROM labels WHERE id = $1", labelID).Scan(&position); err != nil {
+				t.Fatalf("querying label: %v", err)
+			}
+			if (position == nil) != (tc.wantPosition == nil) || (position != nil && *position != *tc.wantPosition) {
+				t.Errorf("position = %v, want %v", position, tc.wantPosition)
+			}
+		})
+	}
+}
+
+func TestProjectReorderEvents(t *testing.T) {
+	proj, pool := setupTest(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	listID := uuid.New()
+	labelID := uuid.New()
+
+	setup := []eventstore.Event{
+		makeEvent(t, listID, eventstore.EventListCreated, eventstore.AggregateTypeList, 1,
+			domain.ListCreatedPayload{Name: "Work", Colour: "#ff0000", Position: "a"}, now),
+		makeEvent(t, labelID, eventstore.EventLabelCreated, eventstore.AggregateTypeLabel, 1,
+			domain.LabelCreatedPayload{Name: "urgent", Colour: "#ff0000", Position: "b"}, now),
+	}
+	if err := proj.Project(ctx, setup); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	later := now.Add(time.Second)
+	reorders := []eventstore.Event{
+		makeEvent(t, listID, eventstore.EventListReordered, eventstore.AggregateTypeList, 2,
+			domain.ListReorderedPayload{Position: "aO"}, later),
+		makeEvent(t, labelID, eventstore.EventLabelReordered, eventstore.AggregateTypeLabel, 2,
+			domain.LabelReorderedPayload{Position: "bO"}, later),
+	}
+	if err := proj.Project(ctx, reorders); err != nil {
+		t.Fatalf("projecting reorders: %v", err)
+	}
+
+	var listPos string
+	if err := pool.QueryRow(ctx, "SELECT position FROM lists WHERE id = $1", listID).Scan(&listPos); err != nil {
+		t.Fatalf("querying list: %v", err)
+	}
+	if listPos != "aO" {
+		t.Errorf("list position = %q, want %q", listPos, "aO")
+	}
+
+	var labelPos string
+	var updatedAt time.Time
+	if err := pool.QueryRow(ctx, "SELECT position, updated_at FROM labels WHERE id = $1", labelID).Scan(&labelPos, &updatedAt); err != nil {
+		t.Fatalf("querying label: %v", err)
+	}
+	if labelPos != "bO" {
+		t.Errorf("label position = %q, want %q", labelPos, "bO")
+	}
+	if !updatedAt.Equal(later) {
+		t.Errorf("label updated_at = %v, want %v", updatedAt, later)
+	}
+}
+
+func strPtr(s string) *string { return &s }
+
 func TestProjectLabelAddedRemoved(t *testing.T) {
 	proj, pool := setupTest(t)
 	ctx := context.Background()

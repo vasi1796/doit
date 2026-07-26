@@ -50,10 +50,11 @@ ON CONFLICT (id) DO UPDATE SET
 	user_id = EXCLUDED.user_id, name = EXCLUDED.name, colour = EXCLUDED.colour,
 	icon = EXCLUDED.icon, position = EXCLUDED.position, updated_at = EXCLUDED.updated_at`
 
-const upsertLabelSQL = `INSERT INTO labels (id, user_id, name, colour, created_at)
-VALUES ($1, $2, $3, $4, $5)
+const upsertLabelSQL = `INSERT INTO labels (id, user_id, name, colour, position, created_at, updated_at)
+VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $6)
 ON CONFLICT (id) DO UPDATE SET
-	user_id = EXCLUDED.user_id, name = EXCLUDED.name, colour = EXCLUDED.colour`
+	user_id = EXCLUDED.user_id, name = EXCLUDED.name, colour = EXCLUDED.colour,
+	position = EXCLUDED.position, updated_at = EXCLUDED.updated_at`
 
 const upsertSubtaskSQL = `INSERT INTO subtasks (id, task_id, title, position, created_at)
 VALUES ($1, $2, $3, $4, $5)
@@ -66,8 +67,10 @@ const updateSubtaskUncompletedSQL = `UPDATE subtasks SET is_completed = false WH
 
 const updateListNameSQL = `UPDATE lists SET name = $2, updated_at = $3 WHERE id = $1`
 const updateListColourSQL = `UPDATE lists SET colour = $2, updated_at = $3 WHERE id = $1`
-const updateLabelNameSQL = `UPDATE labels SET name = $2 WHERE id = $1`
-const updateLabelColourSQL = `UPDATE labels SET colour = $2 WHERE id = $1`
+const updateListPositionSQL = `UPDATE lists SET position = $2, updated_at = $3 WHERE id = $1`
+const updateLabelNameSQL = `UPDATE labels SET name = $2, updated_at = $3 WHERE id = $1`
+const updateLabelColourSQL = `UPDATE labels SET colour = $2, updated_at = $3 WHERE id = $1`
+const updateLabelPositionSQL = `UPDATE labels SET position = $2, updated_at = $3 WHERE id = $1`
 
 const deleteListSQL = `DELETE FROM lists WHERE id = $1`
 const moveTasksToInboxSQL = `UPDATE tasks SET list_id = NULL WHERE list_id = $1`
@@ -193,14 +196,22 @@ func (p *Projector) handleEvent(ctx context.Context, tx pgx.Tx, e eventstore.Eve
 		return execProjection(ctx, tx, p.logger, e, updateListColourSQL, func(pl domain.ListColourUpdatedPayload) []any {
 			return []any{e.AggregateID, pl.Colour, e.Timestamp}
 		}, "ListColourUpdated")
+	case eventstore.EventListReordered:
+		return execProjection(ctx, tx, p.logger, e, updateListPositionSQL, func(pl domain.ListReorderedPayload) []any {
+			return []any{e.AggregateID, pl.Position, e.Timestamp}
+		}, "ListReordered")
 	case eventstore.EventLabelNameUpdated:
 		return execProjection(ctx, tx, p.logger, e, updateLabelNameSQL, func(pl domain.LabelNameUpdatedPayload) []any {
-			return []any{e.AggregateID, pl.Name}
+			return []any{e.AggregateID, pl.Name, e.Timestamp}
 		}, "LabelNameUpdated")
 	case eventstore.EventLabelColourUpdated:
 		return execProjection(ctx, tx, p.logger, e, updateLabelColourSQL, func(pl domain.LabelColourUpdatedPayload) []any {
-			return []any{e.AggregateID, pl.Colour}
+			return []any{e.AggregateID, pl.Colour, e.Timestamp}
 		}, "LabelColourUpdated")
+	case eventstore.EventLabelReordered:
+		return execProjection(ctx, tx, p.logger, e, updateLabelPositionSQL, func(pl domain.LabelReorderedPayload) []any {
+			return []any{e.AggregateID, pl.Position, e.Timestamp}
+		}, "LabelReordered")
 	case eventstore.EventLabelCreated:
 		return p.handleLabelCreated(ctx, tx, e)
 	case eventstore.EventLabelDeleted:
@@ -274,7 +285,7 @@ func (p *Projector) handleLabelCreated(ctx context.Context, tx pgx.Tx, e eventst
 		return fmt.Errorf("unmarshaling LabelCreatedPayload: %w", err)
 	}
 	_, err := tx.Exec(ctx, upsertLabelSQL,
-		e.AggregateID, e.UserID, payload.Name, payload.Colour, e.Timestamp,
+		e.AggregateID, e.UserID, payload.Name, payload.Colour, payload.Position, e.Timestamp,
 	)
 	if err != nil {
 		return fmt.Errorf("upserting label: %w", err)

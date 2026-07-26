@@ -67,8 +67,9 @@ type ListCreatedPayload struct {
 }
 
 type LabelCreatedPayload struct {
-	Name   string `json:"name"`
-	Colour string `json:"colour"`
+	Name     string `json:"name"`
+	Colour   string `json:"colour"`
+	Position string `json:"position,omitempty"`
 }
 
 type SubtaskCreatedPayload struct {
@@ -123,4 +124,12 @@ type LabelColourUpdatedPayload struct {
 
 type LabelDeletedPayload struct {
 	DeletedAt time.Time `json:"deleted_at"`
+}
+
+type ListReorderedPayload struct {
+	Position string `json:"position"`
+}
+
+type LabelReorderedPayload struct {
+	Position string `json:"position"`
 }

@@ -128,6 +128,32 @@ func TestLabelHandleUpdate(t *testing.T) {
 			update:  func(a *LabelAggregate) ([]eventstore.Event, error) { return a.HandleUpdateColour(UpdateLabelColour{Colour: ""}, testHLC) },
 			wantErr: ErrEmptyColour,
 		},
+		{
+			name:     "reorder active label",
+			agg:      newActive,
+			update:   func(a *LabelAggregate) ([]eventstore.Event, error) { return a.HandleReorder(ReorderLabel{Position: "aO"}, testHLC) },
+			wantType: eventstore.EventLabelReordered,
+		},
+		{
+			name:    "reorder to empty position",
+			agg:     newActive,
+			update:  func(a *LabelAggregate) ([]eventstore.Event, error) { return a.HandleReorder(ReorderLabel{Position: ""}, testHLC) },
+			wantErr: ErrEmptyPosition,
+		},
+		{
+			name: "reorder deleted label",
+			agg: func() *LabelAggregate {
+				agg := newActive()
+				events, err := agg.HandleDelete(DeleteLabel{}, testHLC)
+				if err != nil {
+					t.Fatalf("setup delete: %v", err)
+				}
+				agg.Apply(events[0])
+				return agg
+			},
+			update:  func(a *LabelAggregate) ([]eventstore.Event, error) { return a.HandleReorder(ReorderLabel{Position: "aO"}, testHLC) },
+			wantErr: ErrLabelAlreadyDeleted,
+		},
 	}
 
 	for _, tc := range tests {
