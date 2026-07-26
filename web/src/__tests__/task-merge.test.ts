@@ -96,6 +96,30 @@ describe('mergeRemoteEvents — task per-field LWW', () => {
     expect(task.priority).toBe(1)
   })
 
+  it('a redelivered TaskCreated with a newer HLC still cannot un-complete a task', async () => {
+    // The server echoes the create back in the same pull that carried the op,
+    // stamped with a server HLC newer than the client's completion.
+    tasks.set('t1', {
+      id: 't1',
+      title: 'Original',
+      priority: 1,
+      position: 'a',
+      is_completed: true,
+      completed_at: '2026-07-26T10:00:30Z',
+      is_deleted: false,
+      field_hlcs: { is_completed: { time: T0 + 30_000, counter: 0 } },
+    })
+
+    await mergeRemoteEvents([
+      remoteEvent('TaskCreated', 't1', { title: 'Original', priority: 1, position: 'a' }, T0 + 60_000),
+    ])
+
+    const task = tasks.get('t1')!
+    expect(task.is_completed).toBe(true)
+    expect(task.completed_at).toBe('2026-07-26T10:00:30Z')
+    expect(task.is_deleted).toBe(false)
+  })
+
   it('a stale remote field update loses to a newer tracked local edit', async () => {
     tasks.set('t1', {
       id: 't1',
