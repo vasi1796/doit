@@ -1,6 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { NavLink, useNavigate } from 'react-router'
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { between } from '../../crdt/fracindex'
 import * as operations from '../../db/operations'
 import { useToast } from '../common/Toast'
 import { ConfirmDialog } from '../common/ConfirmDialog'
@@ -308,6 +321,40 @@ function SidebarEntityRow({ to, name, colour, shape, count, entityLabel, onDelet
   )
 }
 
+function SortableEntityRow({ id, ...rowProps }: { id: string } & Parameters<typeof SidebarEntityRow>[0]) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    position: isDragging ? ('relative' as const) : undefined,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <SidebarEntityRow {...rowProps} />
+    </div>
+  )
+}
+
+/** Fractional-index position for dropping `activeId` at `overId`'s slot. */
+function computeDropPosition(
+  items: ReadonlyArray<{ id: string; position?: string }>,
+  activeId: string,
+  overId: string,
+): string | null {
+  const oldIndex = items.findIndex((i) => i.id === activeId)
+  const newIndex = items.findIndex((i) => i.id === overId)
+  if (oldIndex === -1 || newIndex === -1) return null
+
+  const reordered = items.filter((_, i) => i !== oldIndex)
+  const insertAt = newIndex > oldIndex ? newIndex - 1 : newIndex
+  const prevPos = insertAt > 0 ? (reordered[insertAt - 1].position ?? '') : ''
+  const nextPos = insertAt < reordered.length ? (reordered[insertAt].position ?? '') : ''
+  return between(prevPos, nextPos)
+}
+
 export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProps) {
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -318,6 +365,45 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
   const [labelsCollapsed, setLabelsCollapsed] = useState(false)
   const [entityMenu, setEntityMenu] = useState<{ type: 'list' | 'label'; id: string; name: string; colour: string; x: number; y: number } | null>(null)
   const [editTarget, setEditTarget] = useState<{ type: 'list' | 'label'; id: string; name: string; colour: string } | null>(null)
+
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: { distance: 8 },
+  })
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: 500, tolerance: 5 },
+  })
+  const keyboardSensor = useSensor(KeyboardSensor)
+  const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor)
+
+  // Touch long-press opens the context menu at the same 500ms the drag sensor
+  // activates; actually moving the row disambiguates in favour of the drag.
+  const dismissMenuOnDragMove = useCallback(() => setEntityMenu(null), [])
+
+  const handleListDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+      const position = computeDropPosition(lists, String(active.id), String(over.id))
+      if (!position) return
+      operations.updateList(String(active.id), { position }).catch((err: unknown) => {
+        toast(err instanceof Error ? err.message : 'Failed to reorder', 'error')
+      })
+    },
+    [lists, toast],
+  )
+
+  const handleLabelDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+      const position = computeDropPosition(labels, String(active.id), String(over.id))
+      if (!position) return
+      operations.updateLabel(String(active.id), { position }).catch((err: unknown) => {
+        toast(err instanceof Error ? err.message : 'Failed to reorder', 'error')
+      })
+    },
+    [labels, toast],
+  )
 
   const handleEditSave = useCallback(async (changes: { name?: string; colour?: string }) => {
     if (!editTarget) return
@@ -483,24 +569,34 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
           </motion.form>
         )}
         </AnimatePresence>
-        <div className="space-y-0.5">
-          {lists.map((list) => (
-            <SidebarEntityRow
-              key={list.id}
-              to={`/lists/${list.id}`}
-              name={list.name}
-              colour={list.colour}
-              shape="circle"
-              count={taskCounts.byList[list.id] || 0}
-              entityLabel="list"
-              onDelete={() => setPendingDelete({ type: 'list', id: list.id, name: list.name })}
-              onOpenMenu={(point) => setEntityMenu({
-                type: 'list', id: list.id, name: list.name,
-                colour: list.colour || '', x: point.x, y: point.y,
-              })}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragMove={dismissMenuOnDragMove}
+          onDragEnd={handleListDragEnd}
+        >
+          <SortableContext items={lists.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-0.5">
+              {lists.map((list) => (
+                <SortableEntityRow
+                  key={list.id}
+                  id={list.id}
+                  to={`/lists/${list.id}`}
+                  name={list.name}
+                  colour={list.colour}
+                  shape="circle"
+                  count={taskCounts.byList[list.id] || 0}
+                  entityLabel="list"
+                  onDelete={() => setPendingDelete({ type: 'list', id: list.id, name: list.name })}
+                  onOpenMenu={(point) => setEntityMenu({
+                    type: 'list', id: list.id, name: list.name,
+                    colour: list.colour || '', x: point.x, y: point.y,
+                  })}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* Labels */}
@@ -540,21 +636,31 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
               >
-                {labels.map((label) => (
-                  <SidebarEntityRow
-                    key={label.id}
-                    to={`/labels/${label.id}`}
-                    name={label.name}
-                    colour={label.colour}
-                    shape="square"
-                    entityLabel="label"
-                    onDelete={() => setPendingDelete({ type: 'label', id: label.id, name: label.name })}
-                    onOpenMenu={(point) => setEntityMenu({
-                      type: 'label', id: label.id, name: label.name,
-                      colour: label.colour || '', x: point.x, y: point.y,
-                    })}
-                  />
-                ))}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragMove={dismissMenuOnDragMove}
+                  onDragEnd={handleLabelDragEnd}
+                >
+                  <SortableContext items={labels.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+                    {labels.map((label) => (
+                      <SortableEntityRow
+                        key={label.id}
+                        id={label.id}
+                        to={`/labels/${label.id}`}
+                        name={label.name}
+                        colour={label.colour}
+                        shape="square"
+                        entityLabel="label"
+                        onDelete={() => setPendingDelete({ type: 'label', id: label.id, name: label.name })}
+                        onOpenMenu={(point) => setEntityMenu({
+                          type: 'label', id: label.id, name: label.name,
+                          colour: label.colour || '', x: point.x, y: point.y,
+                        })}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </motion.div>
             )}
           </AnimatePresence>
