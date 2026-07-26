@@ -84,7 +84,11 @@ describe('operations — optimistic writes and sync queueing', () => {
 
     const task = tasks.get(id)!
     const hlcs = task.field_hlcs as FieldHLC
-    for (const field of ['title', 'priority', 'position', 'is_completed', 'is_deleted']) {
+    const allTaskFields = [
+      'title', 'description', 'priority', 'due_date', 'due_time',
+      'recurrence_rule', 'list_id', 'position', 'is_completed', 'is_deleted',
+    ]
+    for (const field of allTaskFields) {
       expect(hlcs[field]).toEqual({ time: T0, counter: 7 })
     }
     expect(queued[0]).toMatchObject({ operationType: 'CreateTask', aggregateId: id })

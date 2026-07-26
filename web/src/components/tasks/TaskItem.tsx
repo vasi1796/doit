@@ -167,10 +167,10 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
             aria-label="Drag to reorder"
             className="w-[44px] min-h-[44px] -ml-5 -my-3 self-stretch flex items-center justify-center shrink-0 touch-none cursor-grab active:cursor-grabbing text-text-tertiary hover:text-text-secondary"
             {...dragHandleProps}
-            // Run the dnd-kit activator first, then stop propagation so the
-            // row's click/swipe handlers never see handle presses. A
-            // capture-phase stopPropagation would skip the activator itself.
-            onPointerDown={(e) => {
+            // Capture phase: framer's native row listener fires before React
+            // bubble handlers, and a capture stop skips this element's own
+            // bubble onPointerDown — hence the manual activator call
+            onPointerDownCapture={(e) => {
               ;(dragHandleProps?.onPointerDown as ((e: React.PointerEvent) => void) | undefined)?.(e)
               e.stopPropagation()
             }}
