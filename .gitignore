@@ -144,4 +144,13 @@ api/api
 _bmad
 _bmad-output
 .superset
-.claude
+
+# .claude/rules and first-party .claude/skills are tracked project config;
+# local settings, vendored bmad skill packs, and worktrees are not.
+.claude/settings.local.json
+.claude/skills/bmad-*/
+.claude/worktrees/
+
+# macOS and local agent artifacts
+.DS_Store
+.agents/
