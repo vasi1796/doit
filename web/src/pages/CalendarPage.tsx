@@ -109,7 +109,7 @@ function CalendarTask({ entry, onSelect }: { entry: CalendarEntry; onSelect: (id
 }
 
 export function CalendarPage() {
-  const { tasks, loading } = useTasks({ is_completed: 'false' })
+  const { tasks, loading } = useTasks({ completed: false })
   const { selectTask } = useLayoutContext()
 
   const now = new Date()

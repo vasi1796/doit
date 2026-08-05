@@ -197,7 +197,7 @@ function QuickAddModal({ lists, labels, pathname, onClose }: { lists: List[]; la
 export function AppLayout() {
   const { lists } = useLists()
   const { labels } = useLabels()
-  const { tasks } = useTasks({ is_completed: 'false' })
+  const { tasks } = useTasks({ completed: false })
   const quickAddRef = useRef<{ focus: () => void } | null>(null)
   const location = useLocation()
 

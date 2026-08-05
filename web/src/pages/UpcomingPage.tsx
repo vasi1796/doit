@@ -5,7 +5,7 @@ import { TaskList } from '../components/tasks/TaskList'
 import { nextNDays, formatDayGroupHeader } from '../utils/date'
 
 export function UpcomingPage() {
-  const { tasks, loading } = useTasks({ is_completed: 'false' })
+  const { tasks, loading } = useTasks({ completed: false })
   const { selectTask } = useLayoutContext()
 
   // `days` is stable for the lifetime of the page mount; `grouped` re-derives

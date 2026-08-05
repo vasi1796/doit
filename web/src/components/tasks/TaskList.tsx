@@ -18,6 +18,7 @@ import {
 import type { Task } from '../../api/types'
 import { SortableTaskItem } from './TaskItem'
 import { EmptyState } from '../common/EmptyState'
+import { useToast } from '../common/Toast'
 import { computeDropPosition } from '../../utils/reorder'
 import * as operations from '../../db/operations'
 
@@ -31,6 +32,7 @@ interface TaskListProps {
 }
 
 export function TaskList({ tasks, loading, emptyMessage, emptyHint, emptyAction, onTaskSelect }: TaskListProps) {
+  const { toast } = useToast()
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 8 },
   })
@@ -48,9 +50,11 @@ export function TaskList({ tasks, loading, emptyMessage, emptyHint, emptyAction,
       if (!over || active.id === over.id) return
       const position = computeDropPosition(tasks, String(active.id), String(over.id))
       if (!position) return
-      operations.updateTask(String(active.id), { position })
+      operations.updateTask(String(active.id), { position }).catch((err) => {
+        toast(err instanceof Error ? err.message : 'Failed to reorder', 'error')
+      })
     },
-    [tasks],
+    [tasks, toast],
   )
 
   if (loading) {

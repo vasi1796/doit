@@ -12,7 +12,7 @@ const SECTIONS: { key: CompletedTimeGroup; label: string }[] = [
 ]
 
 export function CompletedPage() {
-  const { tasks, loading } = useTasks({ is_completed: 'true' })
+  const { tasks, loading } = useTasks({ completed: true })
   const { selectTask } = useLayoutContext()
 
   const { grouped, monthCount } = useMemo(() => groupByCompletion(tasks), [tasks])

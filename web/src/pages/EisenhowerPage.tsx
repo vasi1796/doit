@@ -37,7 +37,7 @@ function classifyTasks(tasks: Task[]): Record<string, Task[]> {
 }
 
 export function EisenhowerPage() {
-  const { tasks, loading } = useTasks({ is_completed: 'false' })
+  const { tasks, loading } = useTasks({ completed: false })
   const { selectTask } = useLayoutContext()
 
   const classified = classifyTasks(tasks)

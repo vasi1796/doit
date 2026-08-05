@@ -4,7 +4,7 @@ import { TaskList } from '../components/tasks/TaskList'
 import { todayStr } from '../utils/date'
 
 export function TodayPage() {
-  const { tasks, loading } = useTasks({ is_completed: 'false' })
+  const { tasks, loading } = useTasks({ completed: false })
   const { selectTask } = useLayoutContext()
 
   const today = todayStr()
