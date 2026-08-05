@@ -244,6 +244,8 @@ GET  /auth/google/login       → redirect to Google consent
 GET  /auth/google/callback    → exchange code, set JWT cookie, redirect
 POST /auth/dev                → dev login (DEV_MODE only)
 POST /auth/logout             → clear cookie
+GET  /auth/me                 → authenticated; returns {user_id} so the client
+                                can bind its local DB to the account (no-store)
 ```
 
 ### Tasks (authenticated via JWT cookie)
