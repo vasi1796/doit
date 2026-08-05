@@ -18,8 +18,8 @@ Separately, the `deployer` sidecar called `log.Fatal` when
 describe auto-deploy as optional. A default install therefore got a permanently
 crash-looping container.
 
-Related: ADR-011 established the deploy sidecar; this ADR adjusts its failure
-semantics.
+Related: the deploy sidecar was introduced without an ADR (it is documented in
+`docs/deployment.md`); this ADR records its failure semantics.
 
 ## Decision
 

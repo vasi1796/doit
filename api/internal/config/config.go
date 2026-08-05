@@ -27,7 +27,6 @@ type Config struct {
 	DevMode                bool
 	FrontendURL            string
 	SecureCookies          bool
-	MetricsEnabled         bool
 	CORSOrigins            []string
 	VAPIDPublicKey         string
 	VAPIDPrivateKey        string
@@ -100,7 +99,6 @@ func loadBase() (*Config, error) {
 		DevMode:                envBool("DEV_MODE", false),
 		FrontendURL:            envString("FRONTEND_URL", "/"),
 		SecureCookies:          envBool("SECURE_COOKIES", true),
-		MetricsEnabled:         envBool("METRICS_ENABLED", true),
 		CORSOrigins:            envStringSlice("CORS_ORIGINS"),
 		VAPIDPublicKey:         os.Getenv("VAPID_PUBLIC_KEY"),
 		VAPIDPrivateKey:        os.Getenv("VAPID_PRIVATE_KEY"),

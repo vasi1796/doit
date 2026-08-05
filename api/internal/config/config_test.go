@@ -101,9 +101,6 @@ func TestLoad(t *testing.T) {
 				if cfg.ShutdownTimeout != 15*time.Second {
 					t.Errorf("ShutdownTimeout = %v, want 15s", cfg.ShutdownTimeout)
 				}
-				if cfg.MetricsEnabled != true {
-					t.Errorf("MetricsEnabled = %v, want true", cfg.MetricsEnabled)
-				}
 			},
 		},
 		{
@@ -123,7 +120,6 @@ func TestLoad(t *testing.T) {
 				"GOOGLE_CLIENT_SECRET": "client-secret",
 				"GOOGLE_REDIRECT_URL": "http://localhost/callback",
 				"ALLOWED_EMAILS":      "me@example.com",
-				"METRICS_ENABLED":     "false",
 			},
 			validate: func(t *testing.T, cfg *Config) {
 				if cfg.Port != 9090 {
@@ -162,9 +158,6 @@ func TestLoad(t *testing.T) {
 				if cfg.GoogleRedirectURL != "http://localhost/callback" {
 					t.Errorf("GoogleRedirectURL = %q, want %q", cfg.GoogleRedirectURL, "http://localhost/callback")
 				}
-				if cfg.MetricsEnabled != false {
-					t.Errorf("MetricsEnabled = %v, want false", cfg.MetricsEnabled)
-				}
 			},
 		},
 		{
@@ -201,7 +194,7 @@ func TestLoad(t *testing.T) {
 		"DB_MAX_OPEN_CONNS", "DB_MAX_IDLE_CONNS", "DB_CONN_MAX_LIFETIME",
 		"JWT_SECRET", "JWT_EXPIRY_HOURS", "SHUTDOWN_TIMEOUT",
 		"GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URL",
-		"ALLOWED_EMAILS", "METRICS_ENABLED", "DEV_MODE", "REMINDER_HOUR",
+		"ALLOWED_EMAILS", "DEV_MODE", "REMINDER_HOUR",
 	}
 
 	for _, tc := range tests {

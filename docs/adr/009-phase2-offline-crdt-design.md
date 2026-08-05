@@ -62,7 +62,8 @@ IndexedDB schema mirrors the server read model tables:
   local DB's account binding)*
 
 **Slice 3: Service Worker**
-Workbox for app shell caching. The PWA must launch instantly from the home
+Workbox for app shell caching *(as built: a hand-written `web/public/sw.js`,
+not Workbox)*. The PWA must launch instantly from the home
 screen with zero connectivity. Cache-first strategy for static assets (JS,
 CSS, icons). Network-first for API calls (handled by sync engine, not
 service worker). No Background Sync API (Safari doesn't support it).
