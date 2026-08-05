@@ -13,8 +13,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog"
 
@@ -73,7 +73,7 @@ func main() {
 	// Start outbox poller if RabbitMQ is configured
 	rabbitURL := cfg.RabbitMQURL
 	if rabbitURL != "" {
-		b, err := broker.New(rabbitURL, logger)
+		b, err := broker.New(rabbitURL, logger, broker.WithPublishTimeout(cfg.RabbitMQPublishTimeout))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to connect to RabbitMQ")
 		}

@@ -15,9 +15,10 @@ import (
 	"github.com/vasi1796/doit/internal/eventstore"
 )
 
-// Publisher sends messages to the broker.
+// Publisher sends messages to the broker, returning nil only once the broker
+// has confirmed the message.
 type Publisher interface {
-	Publish(routingKey string, body []byte) error
+	Publish(ctx context.Context, routingKey string, body []byte) error
 }
 
 // OutboxStore provides outbox query methods.
@@ -110,7 +111,7 @@ func (p *Poller) Poll(ctx context.Context) error {
 			continue
 		}
 
-		if err := p.publisher.Publish(string(entry.EventType), body); err != nil {
+		if err := p.publisher.Publish(ctx, string(entry.EventType), body); err != nil {
 			p.logger.Error().Err(err).Str("event_id", entry.EventID.String()).Msg("publish outbox entry")
 			// Stop publishing this batch — entries stay unpublished for retry
 			break
