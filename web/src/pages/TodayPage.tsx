@@ -1,12 +1,13 @@
 import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
+import { todayStr } from '../utils/date'
 
 export function TodayPage() {
-  const { tasks, loading } = useTasks({ is_completed: 'false' })
+  const { tasks, loading } = useTasks({ completed: false })
   const { selectTask } = useLayoutContext()
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayStr()
   const overdueTasks = tasks.filter((t) => t.due_date && t.due_date < today)
   const todayTasks = tasks.filter((t) => t.due_date === today)
 

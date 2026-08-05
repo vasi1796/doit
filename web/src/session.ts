@@ -1,4 +1,5 @@
 import { db } from './db/database'
+import { getSyncEngine } from './db/sync-instance'
 import { unsubscribeFromPush } from './push'
 
 const FLUSH_TIMEOUT_MS = 3000
@@ -20,7 +21,7 @@ export async function signOut(): Promise<void> {
   try {
     // drain (not sync): a plain sync() coalesces into an in-flight run and
     // resolves without flushing anything — exactly when unflushed ops exist
-    const flush = window.__syncEngine?.drain()
+    const flush = getSyncEngine()?.drain()
     if (flush) {
       await bounded(flush, FLUSH_TIMEOUT_MS)
     }
@@ -37,7 +38,7 @@ export async function signOut(): Promise<void> {
   } catch {
     // best-effort only
   }
-  window.__syncEngine?.halt()
+  getSyncEngine()?.halt()
   try {
     // Server failure still expires the session locally: data is wiped and
     // the stale cookie can only produce a fresh 401 → login redirect.

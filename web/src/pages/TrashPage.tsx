@@ -50,7 +50,7 @@ function TrashItem({ task }: { task: Task }) {
 }
 
 export function TrashPage() {
-  const { tasks, loading } = useTasks({ is_deleted: 'true' })
+  const { tasks, loading } = useTasks({ deleted: true })
 
   return (
     <div>

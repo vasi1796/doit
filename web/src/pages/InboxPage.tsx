@@ -4,7 +4,7 @@ import { TaskList } from '../components/tasks/TaskList'
 import { QuickAdd } from '../components/tasks/QuickAdd'
 
 export function InboxPage() {
-  const { tasks, loading } = useTasks({ inbox: 'true', is_completed: 'false' })
+  const { tasks, loading } = useTasks({ inbox: true, completed: false })
   const { lists, labels, quickAddRef, selectTask } = useLayoutContext()
 
   return (

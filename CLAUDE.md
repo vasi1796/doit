@@ -49,8 +49,13 @@ web/              React frontend
                    SearchOverlay (Cmd+K global search with keyboard navigation),
                    CalendarFeedLink (iCal subscription copy-to-clipboard),
                    ContextMenu + EditNameColourDialog (sidebar list/label edit via
-                   long-press, right-click, or hover options button)
-    db/            Dexie.js database, operations, sync engine, event merger
+                   long-press, right-click, or hover options button),
+                   Popover + PickerTrigger (shared picker shell: backdrop, Escape,
+                   sibling clear button), sidebar split into NavItem,
+                   NotificationToggle, SidebarEntityRow (layout/)
+    db/            Dexie.js database, operations, sync engine, event merger,
+                   ensure-owner (binds local DB to account, wipes on switch),
+                   sync-instance (module-level engine registry)
     hlc/           Hybrid Logical Clock (TypeScript, mirrors Go)
     hooks/         Dexie.js useLiveQuery hooks (useTasks, useLists, useLabels, useTaskDetail)
                    plus useLongPress (touch gesture for context menus)

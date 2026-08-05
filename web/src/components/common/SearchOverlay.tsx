@@ -15,8 +15,8 @@ export function SearchOverlay({ onClose, onSelectTask }: SearchOverlayProps) {
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
-  const { tasks } = useTasks({ is_completed: 'false' })
-  const { tasks: completedTasks } = useTasks({ is_completed: 'true' })
+  const { tasks } = useTasks({ completed: false })
+  const { tasks: completedTasks } = useTasks({ completed: true })
 
   const allTasks = useMemo(() => [...tasks, ...completedTasks], [tasks, completedTasks])
 

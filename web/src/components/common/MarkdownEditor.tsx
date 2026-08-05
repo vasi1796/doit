@@ -165,10 +165,12 @@ export function MarkdownEditor({ value, onChange, placeholder = 'Notes', minHeig
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync external value changes (e.g., from initial load)
+  // Sync external value changes (e.g., from initial load). Never while the
+  // editor has focus: the debounced save round-trips through the live query,
+  // and replacing the doc mid-typing drops keystrokes and resets the caret.
   useEffect(() => {
     const view = viewRef.current
-    if (!view) return
+    if (!view || view.hasFocus) return
     const current = view.state.doc.toString()
     if (current !== value) {
       view.dispatch({

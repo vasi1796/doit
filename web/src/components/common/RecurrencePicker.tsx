@@ -1,4 +1,5 @@
 import { usePopover } from '../../hooks/usePopover'
+import { Popover } from './Popover'
 
 const RULES = [
   { value: '', label: 'No repeat' },
@@ -35,26 +36,20 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-[60]" onClick={() => close()} aria-hidden="true" />
-          <div
-            className="fixed bg-bg-elevated rounded-[14px] shadow-popover border border-separator py-1 z-[61] min-w-[160px]"
-            style={{ top: pos.top, left: pos.left }}
-          >
-            {RULES.map((r) => (
-              <button
-                key={r.value}
-                type="button"
-                onClick={() => { onChange(r.value); close() }}
-                className={`w-full text-left px-4 py-2.5 text-[15px] hover:bg-bg-secondary transition-colors ${
-                  value === r.value ? 'text-accent font-medium' : 'text-text-primary'
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-        </>
+        <Popover pos={pos} label="Choose repeat" onClose={close} className="py-1 min-w-[160px]">
+          {RULES.map((r) => (
+            <button
+              key={r.value}
+              type="button"
+              onClick={() => { onChange(r.value); close() }}
+              className={`w-full text-left px-4 py-2.5 text-[15px] hover:bg-bg-secondary transition-colors ${
+                value === r.value ? 'text-accent font-medium' : 'text-text-primary'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </Popover>
       )}
     </>
   )

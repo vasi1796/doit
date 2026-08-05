@@ -7,7 +7,8 @@ const { tasks, labels, queued } = vi.hoisted(() => ({
   queued: [] as Record<string, unknown>[],
 }))
 
-vi.mock('../db/database', () => {
+vi.mock('../db/database', async (importOriginal) => {
+  const { TASK_LWW_FIELDS } = await importOriginal<typeof import('../db/database')>()
   function makeTable(store: Map<string, Record<string, unknown>>) {
     return {
       get: async (id: string) => store.get(id),
@@ -21,6 +22,7 @@ vi.mock('../db/database', () => {
     }
   }
   return {
+    TASK_LWW_FIELDS,
     db: {
       tasks: makeTable(tasks),
       labels: makeTable(labels),
@@ -39,6 +41,8 @@ vi.mock('../db/clock', () => ({
 }))
 
 import * as operations from '../db/operations'
+import { setSyncEngine } from '../db/sync-instance'
+import type { SyncEngine } from '../db/sync-engine'
 
 describe('operations — optimistic writes and sync queueing', () => {
   const nudge = vi.fn()
@@ -48,10 +52,11 @@ describe('operations — optimistic writes and sync queueing', () => {
     labels.clear()
     queued.length = 0
     nudge.mockClear()
-    vi.stubGlobal('window', { __syncEngine: { nudge } })
+    setSyncEngine({ nudge } as unknown as SyncEngine)
   })
 
   afterEach(() => {
+    setSyncEngine(null)
     vi.unstubAllGlobals()
   })
 

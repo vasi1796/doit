@@ -2,33 +2,35 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/database'
 import type { Task } from '../api/types'
 
-export function useTasks(params?: Record<string, string>) {
+export interface TaskFilter {
+  /** true → only completed, false → only incomplete, undefined → both */
+  completed?: boolean
+  /** true → trash view (deleted only); otherwise deleted tasks are excluded */
+  deleted?: boolean
+  /** true → only tasks with no list */
+  inbox?: boolean
+  listId?: string
+  labelId?: string
+}
+
+export function useTasks(filter: TaskFilter = {}) {
+  const { completed, deleted, inbox, listId, labelId } = filter
+
   const tasks = useLiveQuery(async () => {
-    let collection = db.tasks.toCollection()
-
-    if (params?.is_deleted === 'true') {
-      collection = db.tasks.filter((t) => t.is_deleted === true)
-    } else {
-      collection = db.tasks.filter((t) => t.is_deleted === false)
-
-      if (params?.is_completed === 'true') {
-        collection = collection.and((t) => t.is_completed === true)
-      } else if (params?.is_completed === 'false') {
-        collection = collection.and((t) => t.is_completed === false)
-      }
+    let collection = db.tasks.filter((t) => t.is_deleted === (deleted === true))
+    if (deleted !== true && completed !== undefined) {
+      collection = collection.and((t) => t.is_completed === completed)
     }
 
-    if (params?.inbox === 'true') {
+    if (inbox) {
       collection = collection.and((t) => !t.list_id)
     }
 
-    if (params?.list_id) {
-      const listId = params.list_id
+    if (listId) {
       collection = collection.and((t) => t.list_id === listId)
     }
 
-    if (params?.label_id) {
-      const labelId = params.label_id
+    if (labelId) {
       const taskIds = await db.taskLabels.where('labelId').equals(labelId).toArray()
       const taskIdSet = new Set(taskIds.map((tl) => tl.taskId))
       collection = collection.and((t) => taskIdSet.has(t.id))
@@ -49,7 +51,7 @@ export function useTasks(params?: Record<string, string>) {
         return { ...task, subtasks, labels } as Task
       })
     )
-  }, [params ? JSON.stringify(params) : ''])
+  }, [completed, deleted, inbox, listId, labelId])
 
   return {
     tasks: tasks ?? [],

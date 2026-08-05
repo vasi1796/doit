@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { usePopover } from '../../hooks/usePopover'
+import { Popover, PickerTrigger } from './Popover'
 import { toDateStr, formatDisplayDate } from '../../utils/date'
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
@@ -65,40 +66,25 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
 
   return (
     <>
-      <button
-        ref={triggerRef}
-        type="button"
+      <PickerTrigger
+        triggerRef={triggerRef}
         onClick={toggle}
-        className={`flex items-center gap-2 min-h-[40px] px-3 rounded-[10px] hover:bg-bg-secondary transition-colors text-sm ${value ? 'text-accent' : 'text-text-secondary'}`}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-        <span className={value ? 'text-text-primary' : 'text-text-secondary'}>
-          {value ? formatDisplayDate(value) : 'Date'}
-        </span>
-        {value && onClear && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onClear() }}
-            className="text-text-secondary hover:text-danger"
-            aria-label="Clear date"
-          >
-            ×
-          </button>
-        )}
-      </button>
+        active={!!value}
+        label={value ? formatDisplayDate(value) : 'Date'}
+        onClear={onClear}
+        clearLabel="Clear date"
+        icon={
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        }
+      />
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-[60]" onClick={close} aria-hidden="true" />
-          <div
-            className="fixed bg-bg-elevated rounded-[14px] shadow-popover border border-separator p-3 z-[61] w-[270px]"
-            style={{ top: pos.top, left: pos.left }}
-          >
+        <Popover pos={pos} label="Choose date" onClose={close} className="p-3 w-[270px]">
             {/* Quick shortcuts */}
             <div className="flex gap-1.5 mb-3">
               <button
@@ -182,8 +168,7 @@ export function DatePicker({ value, onChange, onClear }: DatePickerProps) {
                 )
               })}
             </div>
-          </div>
-        </>
+        </Popover>
       )}
     </>
   )

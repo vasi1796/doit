@@ -3,6 +3,13 @@ export function toDateStr(d: Date): string {
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
 }
 
+/** Today as YYYY-MM-DD in the device's timezone. Due dates are written in
+ * local time, so comparing them against a UTC day (toISOString) is off by
+ * one for hours around midnight. */
+export function todayStr(): string {
+  return toDateStr(new Date())
+}
+
 /** Calculate day difference from today (negative = past) */
 function dayDiff(dateStr: string): number {
   const date = new Date(dateStr + 'T00:00:00')

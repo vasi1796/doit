@@ -2,17 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SyncEngine } from '../db/sync-engine'
 import { mergeRemoteEvents } from '../db/merge-events'
 
-const { bulkDeleteSpy, cursorPutSpy } = vi.hoisted(() => ({
+const { bulkDeleteSpy, cursorPutSpy, queuedOps } = vi.hoisted(() => ({
   bulkDeleteSpy: vi.fn(),
   cursorPutSpy: vi.fn(),
+  queuedOps: [] as Record<string, unknown>[],
 }))
 
 vi.mock('../db/database', () => ({
   db: {
     syncQueue: {
-      orderBy: () => ({ toArray: async () => [] }),
+      orderBy: () => ({ toArray: async () => queuedOps }),
       bulkDelete: bulkDeleteSpy,
-      get: async () => undefined,
+      get: async (id: number) => queuedOps.find((op) => op.id === id),
       update: async () => {},
     },
     syncState: {
@@ -45,19 +46,24 @@ class FakeWebSocket {
 let fetchResolvers: ((value: unknown) => void)[]
 let fetchMock: ReturnType<typeof vi.fn>
 
+let locationStub: { protocol: string; host: string; href: string }
+
 beforeEach(() => {
   vi.clearAllMocks()
+  queuedOps.length = 0
+  vi.mocked(mergeRemoteEvents).mockResolvedValue(true)
   fetchResolvers = []
   fetchMock = vi.fn(
     () => new Promise((resolve) => fetchResolvers.push(resolve)),
   )
+  locationStub = { protocol: 'http:', host: 'test', href: '' }
   vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('window', { dispatchEvent: () => {} })
+  vi.stubGlobal('window', { dispatchEvent: () => {}, location: locationStub })
   vi.stubGlobal('document', {
     addEventListener: () => {},
     removeEventListener: () => {},
   })
-  vi.stubGlobal('location', { protocol: 'http:', host: 'test' })
+  vi.stubGlobal('location', locationStub)
   vi.stubGlobal('WebSocket', FakeWebSocket)
   FakeWebSocket.last = null
 })
@@ -148,6 +154,82 @@ describe('drain', () => {
     fetchResolvers[1](okResponse)
     await drain
     expect(drained).toBe(true)
+  })
+})
+
+describe('cursor persistence', () => {
+  const eventsResponse = {
+    ok: true,
+    status: 200,
+    json: async () => ({ cursor: { hlc_time: 5, hlc_counter: 1 }, events: [{ id: 'e1' }] }),
+  }
+
+  it('merges events before persisting the cursor', async () => {
+    const engine = new SyncEngine()
+    const run = engine.sync()
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+
+    fetchResolvers[0](eventsResponse)
+    await run
+
+    expect(cursorPutSpy).toHaveBeenCalledWith({ key: 'cursor', hlcTime: 5, hlcCounter: 1 })
+    // Ordering is the invariant: a cursor written first would mark events as
+    // consumed before they are applied, so a crash in between loses them.
+    expect(vi.mocked(mergeRemoteEvents).mock.invocationCallOrder[0])
+      .toBeLessThan(cursorPutSpy.mock.invocationCallOrder[0])
+  })
+
+  it('a failed merge leaves the cursor untouched so events are redelivered', async () => {
+    vi.mocked(mergeRemoteEvents).mockResolvedValue(false)
+    const notify = vi.fn()
+    const engine = new SyncEngine()
+    engine.setNotifier(notify)
+    const run = engine.sync()
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+
+    fetchResolvers[0](eventsResponse)
+    await run
+
+    expect(cursorPutSpy).not.toHaveBeenCalled()
+    expect(notify).toHaveBeenCalledOnce()
+  })
+})
+
+describe('retry expiry', () => {
+  it('discarding an op past max retries surfaces a notification', async () => {
+    queuedOps.push({
+      id: 1, operationType: 'UpdateTask', aggregateId: 'a', data: '{}',
+      hlcTime: 1, hlcCounter: 0, createdAt: 1, retryCount: 5,
+    })
+    const notify = vi.fn()
+    const engine = new SyncEngine()
+    engine.setNotifier(notify)
+    const run = engine.sync()
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+
+    fetchResolvers[0]({ ok: true, status: 200, json: async () => ({ failed_ops: [0] }) })
+    await run
+
+    expect(bulkDeleteSpy).toHaveBeenCalledWith([1])
+    expect(notify).toHaveBeenCalledWith('An offline change could not be synced and was discarded')
+  })
+})
+
+describe('session expiry', () => {
+  it('a 401 halts the engine and redirects to login without wiping', async () => {
+    const engine = new SyncEngine()
+    const run = engine.sync()
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+
+    fetchResolvers[0]({ ok: false, status: 401 })
+    await run
+
+    expect(locationStub.href).toBe('/login')
+    expect(bulkDeleteSpy).not.toHaveBeenCalled()
+    expect(cursorPutSpy).not.toHaveBeenCalled()
+
+    await engine.sync() // halted — must not flush under a dead session
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })
 

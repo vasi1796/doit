@@ -76,12 +76,32 @@ export async function initialSync(): Promise<void> {
     ])
   })
 
-  // Set sync cursor to "now" so the first incremental sync doesn't re-fetch everything
   await db.syncState.put({
     key: 'cursor',
-    hlcTime: Date.now(),
+    hlcTime: cursorSeedFrom([
+      ...allTasks.map((t) => t.updated_at),
+      ...lists.map((l) => l.updated_at),
+      ...labels.map((l) => l.updated_at),
+    ]),
     hlcCounter: 0,
   })
+}
+
+/**
+ * Seed the sync cursor from the newest row the server returned rather than
+ * the device clock: a fast local clock would silently skip every event whose
+ * HLC falls between server time and device time. Seeding low only causes
+ * redelivery, which the merge path absorbs idempotently — hence the extra
+ * millisecond back-off to re-pull the boundary event itself.
+ */
+export function cursorSeedFrom(timestamps: (string | undefined)[]): number {
+  let max = 0
+  for (const ts of timestamps) {
+    if (!ts) continue
+    const ms = new Date(ts).getTime()
+    if (Number.isFinite(ms) && ms > max) max = ms
+  }
+  return Math.max(0, max - 1)
 }
 
 /**
@@ -93,6 +113,8 @@ async function rehydrateFromSnapshots(): Promise<void> {
   if (!res.ok) return
 
   const snapshots: { aggregate_id: string; aggregate_type: string; data: Record<string, unknown> }[] = await res.json()
+
+  const snapshotTimestamps = snapshots.map((s) => s.data.updated_at as string | undefined)
 
   await db.transaction('rw', [db.tasks, db.lists, db.labels], async () => {
     await Promise.all([db.tasks.clear(), db.lists.clear(), db.labels.clear()])
@@ -143,7 +165,7 @@ async function rehydrateFromSnapshots(): Promise<void> {
 
   await db.syncState.put({
     key: 'cursor',
-    hlcTime: Date.now(),
+    hlcTime: cursorSeedFrom(snapshotTimestamps),
     hlcCounter: 0,
   })
 }

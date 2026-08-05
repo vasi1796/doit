@@ -45,6 +45,14 @@ export interface FieldHLC {
   [field: string]: { time: number; counter: number }
 }
 
+/** Every task field under per-field LWW tracking — the single list consumed
+ * by createTask and both TaskCreated merge paths. A field missing here
+ * silently falls back to task-level LWW, so new fields must be added here. */
+export const TASK_LWW_FIELDS: readonly string[] = [
+  'title', 'description', 'priority', 'due_date', 'due_time',
+  'recurrence_rule', 'list_id', 'position', 'is_completed', 'is_deleted',
+]
+
 /** Task record stored in IndexedDB — includes HLC fields for LWW merge. */
 export type StoredTask = Omit<Task, 'subtasks' | 'labels'> & {
   hlc_time?: number      // keep for backward compat during migration

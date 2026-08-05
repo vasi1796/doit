@@ -5,7 +5,7 @@ import { TaskList } from '../components/tasks/TaskList'
 
 export function LabelPage() {
   const { id } = useParams<{ id: string }>()
-  const { tasks, loading } = useTasks({ label_id: id ?? '', is_completed: 'false' })
+  const { tasks, loading } = useTasks({ labelId: id ?? '', completed: false })
   const { labels, selectTask } = useLayoutContext()
 
   if (!id) return <Navigate to="/inbox" replace />

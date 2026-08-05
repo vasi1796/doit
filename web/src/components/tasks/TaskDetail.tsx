@@ -49,9 +49,13 @@ export function TaskDetail({ taskId, lists, onClose, variant = 'modal' }: TaskDe
   const saveDescription = useCallback((val: string) => {
     if (descTimerRef.current) clearTimeout(descTimerRef.current)
     descTimerRef.current = setTimeout(() => {
-      if (resolvedTaskId) operations.updateTask(resolvedTaskId, { description: val })
+      if (resolvedTaskId) {
+        operations.updateTask(resolvedTaskId, { description: val }).catch((err) => {
+          toast(err instanceof Error ? err.message : 'Failed to save description', 'error')
+        })
+      }
     }, 500)
-  }, [resolvedTaskId])
+  }, [resolvedTaskId, toast])
 
   // Clear debounce timer on unmount
   useEffect(() => () => {

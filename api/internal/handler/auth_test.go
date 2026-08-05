@@ -2,11 +2,13 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
 	"github.com/vasi1796/doit/internal/auth"
@@ -199,5 +201,63 @@ func TestLogout(t *testing.T) {
 	}
 	if !found {
 		t.Error("doit_token cookie not cleared")
+	}
+}
+
+func TestMe(t *testing.T) {
+	userID := uuid.New()
+
+	cases := []struct {
+		name       string
+		ctx        context.Context
+		wantStatus int
+		wantUserID string
+	}{
+		{
+			name:       "authenticated request returns user id",
+			ctx:        auth.WithUserID(context.Background(), userID),
+			wantStatus: http.StatusOK,
+			wantUserID: userID.String(),
+		},
+		{
+			name:       "missing user in context returns unauthorized",
+			ctx:        context.Background(),
+			wantStatus: http.StatusUnauthorized,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := NewAuthHandler(
+				&mockOAuthExchanger{},
+				auth.NewTokenService("secret", 72),
+				nil,
+				nil,
+				zerolog.Nop(),
+				"/",
+				false,
+				false,
+			)
+
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/auth/me", nil).WithContext(tc.ctx)
+			h.Me(rr, req)
+
+			if rr.Code != tc.wantStatus {
+				t.Fatalf("status = %d, want %d", rr.Code, tc.wantStatus)
+			}
+			if tc.wantUserID != "" {
+				if got := rr.Header().Get("Cache-Control"); got != "no-store" {
+					t.Errorf("Cache-Control = %q, want %q", got, "no-store")
+				}
+				var body map[string]string
+				if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
+					t.Fatalf("decoding response: %v", err)
+				}
+				if body["user_id"] != tc.wantUserID {
+					t.Errorf("user_id = %q, want %q", body["user_id"], tc.wantUserID)
+				}
+			}
+		})
 	}
 }

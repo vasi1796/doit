@@ -35,13 +35,17 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Navigation requests: network-first for index.html so deploys take effect
+  // Navigation requests: network-first for index.html so deploys take effect.
+  // Only ok responses are cached — a transient 500 must not become the app
+  // shell served on every offline launch.
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch('/index.html')
         .then((response) => {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone))
+          if (response.ok) {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone))
+          }
           return response
         })
         .catch(() => caches.match('/index.html'))
@@ -67,7 +71,14 @@ self.addEventListener('fetch', (event) => {
 
 // Push notification received (Web Push via VAPID)
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {}
+  // A malformed payload must still show a notification — repeated silent
+  // pushes risk Safari revoking the userVisibleOnly subscription
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch {
+    data = {}
+  }
   const title = data.title || 'DoIt Reminder'
   const options = {
     body: data.body || 'You have tasks due today',

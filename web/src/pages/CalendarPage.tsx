@@ -3,13 +3,10 @@ import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { InlineMarkdown } from '../components/common/InlineMarkdown'
 import { PRIORITY_COLORS } from '../constants'
+import { toDateStr } from '../utils/date'
 import type { Task } from '../api/types'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-function toDateStr(d: Date): string {
-  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
-}
 
 function getCalendarDays(year: number, month: number): { date: string; inMonth: boolean }[] {
   const first = new Date(year, month, 1)
@@ -112,7 +109,7 @@ function CalendarTask({ entry, onSelect }: { entry: CalendarEntry; onSelect: (id
 }
 
 export function CalendarPage() {
-  const { tasks, loading } = useTasks({ is_completed: 'false' })
+  const { tasks, loading } = useTasks({ completed: false })
   const { selectTask } = useLayoutContext()
 
   const now = new Date()
