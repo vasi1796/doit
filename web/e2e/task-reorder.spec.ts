@@ -3,7 +3,7 @@ import { mockApi } from './helpers/mock-api'
 import { dragByHandle } from './helpers/drag'
 
 function taskRows(page: Page) {
-  return page.locator('main div[role="button"]')
+  return page.getByTestId('task-row')
 }
 
 test.describe('Task drag-and-drop reorder', () => {

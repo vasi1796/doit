@@ -150,6 +150,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
             (a role=button row would nest them — invalid for AT focus). */}
         {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
         <div
+          data-testid="task-row"
           onClick={() => { if (!swiping.current) onSelect(task.id) }}
           className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-bg-secondary text-left transition-colors relative cursor-pointer ${
             isDragging ? 'bg-bg-elevated shadow-card rounded-[10px]' : ''
