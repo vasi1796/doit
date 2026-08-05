@@ -27,7 +27,7 @@ var (
 func main() {
 	secret = os.Getenv("DEPLOY_WEBHOOK_SECRET")
 	if secret == "" {
-		log.Fatal("DEPLOY_WEBHOOK_SECRET is required")
+		log.Println("DEPLOY_WEBHOOK_SECRET is not set — auto-deploy disabled, serving health checks only")
 	}
 
 	repoDir = os.Getenv("REPO_DIR")
@@ -50,6 +50,10 @@ func main() {
 }
 
 func handleWebhook(w http.ResponseWriter, r *http.Request) {
+	if secret == "" {
+		http.Error(w, "auto-deploy disabled: DEPLOY_WEBHOOK_SECRET is not set", http.StatusServiceUnavailable)
+		return
+	}
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
