@@ -49,6 +49,10 @@ Optional (event pipeline tuning; sensible defaults apply):
   (default `5`)
 - `PROJECTION_RETRY_DELAY` — wait between projection retries (default `2s`)
 
+Optional (container log rotation; defaults apply):
+- `LOG_MAX_SIZE` (default `20m`) and `LOG_MAX_FILE` (default `5`) — per-container
+  json-file log caps applied to all long-running services
+
 ---
 
 ## 3. Generate Secrets
@@ -119,12 +123,21 @@ All services use `restart: unless-stopped` — they restart automatically when D
 ```bash
 chmod +x scripts/backup.sh
 sudo mkdir -p /var/backups/doit
+sudo chown "$USER" /var/backups/doit
 
 # Daily at 3:00 AM
 (crontab -l 2>/dev/null; echo "0 3 * * * /opt/doit/scripts/backup.sh >> /var/log/doit-backup.log 2>&1") | crontab -
 ```
 
-Retains 7 daily + 4 weekly backups. See `scripts/backup.sh` for S3 upload options.
+The cron entry runs as your user, so that user must own the backup directory
+(hence the `chown`) and be in the `docker` group. Retention is configurable
+via `BACKUP_RETAIN_DAILY` / `BACKUP_RETAIN_WEEKLY` (defaults: 7 daily +
+4 weekly); set `BACKUP_S3_BUCKET` for off-VPS upload.
+
+Only Postgres is backed up — it is the source of truth and everything else
+can be rebuilt from it. Note the `caddy_data` volume (TLS certificates) is
+not included: after a full-server restore, Caddy re-issues certificates,
+which counts against the Let's Encrypt rate limit (50/week per domain).
 
 ---
 
@@ -133,8 +146,13 @@ Retains 7 daily + 4 weekly backups. See `scripts/backup.sh` for S3 upload option
 ```bash
 cd /opt/doit
 git pull
+docker compose rm -fsv web-build   # so the one-shot frontend build re-runs
 docker compose up -d --build
 ```
+
+The `web-build` container is a one-shot build step — without removing it
+first, `up` considers it complete and Caddy keeps serving the previous
+frontend from the shared volume. `scripts/deploy.sh` does both steps for you.
 
 Database migrations run automatically on API startup.
 
@@ -150,8 +168,21 @@ Set `DEPLOY_WEBHOOK_SECRET` in `.env`, then configure GitHub:
 5. Events: Just the push event
 
 The `deployer` sidecar container receives the webhook, verifies the
-HMAC-SHA256 signature, and runs `git pull && docker compose up -d --build`
-on pushes to main only. Non-main pushes are ignored.
+HMAC-SHA256 signature, and on pushes to main runs `git pull --ff-only`,
+rebuilds the five app services (`doit-api`, `web-build`, `worker`,
+`worker-recurring`, `worker-reminder`), resets the one-shot `web-build`
+container, and brings those services up. Non-main pushes are ignored.
+If `DEPLOY_WEBHOOK_SECRET` is unset, the deployer idles and the webhook
+returns 503.
+
+Auto-deploy deliberately does **not** touch `postgres`, `rabbitmq`, `caddy`,
+or the deployer itself (they rely on host bind mounts unavailable inside the
+sidecar). Changes to the Caddyfile, compose infra stanzas, or `deploy/` need
+a manual `docker compose up -d --build` on the host.
+
+The sidecar pins the compose project name to `doit`, so clone the repo into
+a directory named `doit` (as above) — or set `COMPOSE_PROJECT_NAME=doit` in
+`.env` — so host-run compose commands share the same project.
 
 If using a private repo, set the git remote to use a PAT:
 ```bash
@@ -172,9 +203,12 @@ git remote set-url origin https://<user>:<token>@github.com/user/doit.git
 - Must be served over HTTPS
 - If missing, clear Safari cache and retry
 
-### Containers crash-looping
+### Containers crash-looping or refusing to start
 - Check logs: `docker compose logs <service-name>`
 - Common: missing `.env` values, wrong DB password, RabbitMQ not ready
+- The API refuses to start without `ALLOWED_EMAILS` when `DEV_MODE=false`
+- `docker compose` itself fails fast if `RABBITMQ_PASSWORD` is unset —
+  every compose command needs a complete `.env`
 - Reset: `docker compose down && docker compose up -d`
 
 ### Database issues
