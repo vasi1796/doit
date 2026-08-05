@@ -1,7 +1,15 @@
 import { authAwareFetch } from '../api/http'
 import { db } from './database'
+import { unsubscribeFromPushLocally } from '../push'
 
 const OWNER_KEY = 'db_owner'
+// Matches session.ts signOut's wipe bound
+const WIPE_TIMEOUT_MS = 3000
+const UNSUBSCRIBE_TIMEOUT_MS = 3000
+
+function bounded(work: Promise<unknown>, ms: number): Promise<unknown> {
+  return Promise.race([work, new Promise((resolve) => setTimeout(resolve, ms))])
+}
 
 /** Ownership unconfirmed — callers must not start the sync engine. */
 export class OwnerCheckError extends Error {}
@@ -28,7 +36,22 @@ export async function ensureDbOwner(): Promise<void> {
 
   const owner = await db.userPreferences.get(OWNER_KEY)
   if (owner && owner.value !== userId) {
-    await db.delete()
+    try {
+      // Browser-side only: the previous user's reminders must stop reaching
+      // this device, but the wipe proceeds even if this fails.
+      await bounded(unsubscribeFromPushLocally(), UNSUBSCRIBE_TIMEOUT_MS)
+    } catch {
+      // best-effort only
+    }
+    // A suspended tab holding a connection blocks deleteDatabase forever;
+    // fail closed rather than boot the sync engine over the old data.
+    const outcome = await Promise.race([
+      db.delete().then(() => 'wiped' as const),
+      new Promise<'blocked'>((resolve) => setTimeout(() => resolve('blocked'), WIPE_TIMEOUT_MS)),
+    ])
+    if (outcome === 'blocked') {
+      throw new OwnerCheckError('database wipe blocked by another connection')
+    }
     await db.open()
   }
   await db.userPreferences.put({ key: OWNER_KEY, value: userId })

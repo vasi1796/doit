@@ -1,11 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ensureDbOwner, OwnerCheckError } from '../db/ensure-owner'
 
-const { prefs, deleteFn, openFn, fetchFn } = vi.hoisted(() => ({
+const { prefs, deleteFn, openFn, fetchFn, unsubscribeFn } = vi.hoisted(() => ({
   prefs: new Map<string, { key: string; value: string }>(),
   deleteFn: vi.fn(),
   openFn: vi.fn(),
   fetchFn: vi.fn(),
+  unsubscribeFn: vi.fn(),
 }))
 
 vi.mock('../db/database', () => ({
@@ -23,6 +24,8 @@ vi.mock('../db/database', () => ({
 
 vi.mock('../api/http', () => ({ authAwareFetch: fetchFn }))
 
+vi.mock('../push', () => ({ unsubscribeFromPushLocally: unsubscribeFn }))
+
 function okUser(id: string) {
   return { ok: true, json: async () => ({ user_id: id }) }
 }
@@ -33,6 +36,11 @@ describe('ensureDbOwner', () => {
     prefs.clear()
     deleteFn.mockResolvedValue(undefined)
     openFn.mockResolvedValue(undefined)
+    unsubscribeFn.mockResolvedValue(undefined)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('first boot records the owner without wiping', async () => {
@@ -59,9 +67,36 @@ describe('ensureDbOwner', () => {
 
     await ensureDbOwner()
 
+    expect(unsubscribeFn).toHaveBeenCalledOnce()
     expect(deleteFn).toHaveBeenCalledOnce()
     expect(openFn).toHaveBeenCalledOnce()
     expect(prefs.get('db_owner')?.value).toBe('user-b')
+  })
+
+  it('the wipe proceeds even when the push unsubscribe fails', async () => {
+    prefs.set('db_owner', { key: 'db_owner', value: 'user-a' })
+    fetchFn.mockResolvedValue(okUser('user-b'))
+    unsubscribeFn.mockRejectedValue(new Error('no service worker'))
+
+    await ensureDbOwner()
+
+    expect(deleteFn).toHaveBeenCalledOnce()
+    expect(prefs.get('db_owner')?.value).toBe('user-b')
+  })
+
+  it('a blocked wipe fails closed instead of booting over the previous data', async () => {
+    vi.useFakeTimers()
+    prefs.set('db_owner', { key: 'db_owner', value: 'user-a' })
+    fetchFn.mockResolvedValue(okUser('user-b'))
+    deleteFn.mockReturnValue(new Promise(() => {})) // suspended tab holds the DB
+
+    const run = ensureDbOwner()
+    const assertion = expect(run).rejects.toBeInstanceOf(OwnerCheckError)
+    await vi.advanceTimersByTimeAsync(3_000)
+    await assertion
+
+    expect(openFn).not.toHaveBeenCalled()
+    expect(prefs.get('db_owner')?.value).toBe('user-a')
   })
 
   it('an unreachable server proceeds without wiping — offline boots are always the same user', async () => {

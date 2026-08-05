@@ -52,6 +52,16 @@ export async function subscribeToPush(): Promise<boolean> {
   return true
 }
 
+/** Browser-side only — for the account-switch wipe, where the session cookie
+ * belongs to the new user and the server DELETE would target the wrong row.
+ * The orphaned server row 410s on the next send and can be pruned. */
+export async function unsubscribeFromPushLocally(): Promise<void> {
+  if (!isPushSupported()) return
+  const reg = await navigator.serviceWorker.ready
+  const subscription = await reg.pushManager.getSubscription()
+  await subscription?.unsubscribe()
+}
+
 export async function unsubscribeFromPush(): Promise<void> {
   const reg = await navigator.serviceWorker.ready
   const subscription = await reg.pushManager.getSubscription()
