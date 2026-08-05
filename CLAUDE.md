@@ -314,6 +314,6 @@ Events: `TaskCreated`, `TaskCompleted`, `TaskUncompleted`, `TaskDeleted`,
 ## Useful Context Files
 
 - `AGENTS.md` — full architecture overview, package guide, API endpoints
-- `docs/adr/` — Architecture Decision Records (12 total)
+- `docs/adr/` — Architecture Decision Records (13 total)
 - `docs/adr/008-phase1-migration-risks.md` — known refactor points for Phase 2-4
 - `docs/design-document.md` — complete design specification
