@@ -22,8 +22,8 @@ import (
 // --- Test mocks implementing SyncHandler interfaces ---
 
 type mockSyncCommander struct {
-	calls  []string
-	err    error
+	calls []string
+	err   error
 }
 
 func (m *mockSyncCommander) CreateTask(_ context.Context, cmd domain.CreateTask) error {
@@ -365,11 +365,11 @@ func TestSyncDispatchOpAllTypes(t *testing.T) {
 	subtaskID := uuid.New()
 
 	tests := []struct {
-		name        string
-		opType      string
-		data        map[string]any
-		wantCalls   []string
-		wantFailed  bool
+		name       string
+		opType     string
+		data       map[string]any
+		wantCalls  []string
+		wantFailed bool
 	}{
 		{
 			name:      "DeleteTask dispatches DeleteTask",
@@ -399,6 +399,53 @@ func TestSyncDispatchOpAllTypes(t *testing.T) {
 			name:       "AddLabel fails with invalid label_id",
 			opType:     "AddLabel",
 			data:       map[string]any{"label_id": "not-a-uuid"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:      "UpdateTask with valid due_date dispatches UpdateTaskDueDate",
+			opType:    "UpdateTask",
+			data:      map[string]any{"due_date": "2026-08-10"},
+			wantCalls: []string{"UpdateTaskDueDate"},
+		},
+		{
+			name:      "UpdateTask with null due_date clears via UpdateTaskDueDate",
+			opType:    "UpdateTask",
+			data:      map[string]any{"due_date": nil},
+			wantCalls: []string{"UpdateTaskDueDate"},
+		},
+		{
+			name:       "UpdateTask with malformed due_date fails instead of clearing",
+			opType:     "UpdateTask",
+			data:       map[string]any{"due_date": "10/08/2026"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:       "UpdateTask with malformed due_date dispatches no other field either",
+			opType:     "UpdateTask",
+			data:       map[string]any{"title": "New title", "due_date": "10/08/2026"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:       "UpdateTask with malformed list_id dispatches nothing",
+			opType:     "UpdateTask",
+			data:       map[string]any{"title": "New title", "list_id": "not-a-uuid"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:       "CreateTask with malformed due_date fails the op",
+			opType:     "CreateTask",
+			data:       map[string]any{"title": "x", "position": "a", "due_date": "not-a-date"},
+			wantCalls:  []string{},
+			wantFailed: true,
+		},
+		{
+			name:       "CreateTask with malformed list_id fails the op",
+			opType:     "CreateTask",
+			data:       map[string]any{"title": "x", "position": "a", "list_id": "not-a-uuid"},
 			wantCalls:  []string{},
 			wantFailed: true,
 		},

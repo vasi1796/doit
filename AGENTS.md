@@ -113,6 +113,8 @@ doit/
       handler/                 # HTTP handlers: auth, task, list, label, iCal feed, response utils
       middleware/              # JWT auth middleware (cookie-based)
       projection/              # Projector: events → read model table updates
+      recurring/               # Next-occurrence creation for completed recurring tasks
+                               # (deterministic IDs, shared by worker + integration tests)
     migrations/                # SQL files: 001–007, embedded via migrations/embed.go
     Dockerfile
     go.mod

@@ -2,6 +2,7 @@
 package broker
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/rand/v2"
@@ -21,15 +22,30 @@ const (
 
 	reconnectBaseDelay = 1 * time.Second
 	reconnectMaxDelay  = 30 * time.Second
+
+	defaultPublishTimeout = 5 * time.Second
 )
+
+// Option configures a Broker.
+type Option func(*Broker)
+
+// WithPublishTimeout bounds how long Publish waits for a broker confirmation.
+func WithPublishTimeout(d time.Duration) Option {
+	return func(b *Broker) {
+		if d > 0 {
+			b.publishTimeout = d
+		}
+	}
+}
 
 // Broker wraps an AMQP connection and channel with automatic reconnection.
 type Broker struct {
-	url     string
-	conn    *amqp.Connection
-	channel *amqp.Channel
-	logger  zerolog.Logger
-	mu      sync.RWMutex
+	url            string
+	conn           *amqp.Connection
+	channel        *amqp.Channel
+	logger         zerolog.Logger
+	publishTimeout time.Duration
+	mu             sync.RWMutex
 
 	// closed is closed when Close() is called to stop the reconnect loop.
 	closed chan struct{}
@@ -40,7 +56,7 @@ type Broker struct {
 
 // New connects to RabbitMQ and opens a channel. It starts a background
 // goroutine that watches for connection loss and reconnects automatically.
-func New(url string, logger zerolog.Logger) (*Broker, error) {
+func New(url string, logger zerolog.Logger, opts ...Option) (*Broker, error) {
 	conn, err := amqp.Dial(url)
 	if err != nil {
 		return nil, fmt.Errorf("broker: dial: %w", err)
@@ -51,12 +67,16 @@ func New(url string, logger zerolog.Logger) (*Broker, error) {
 		return nil, fmt.Errorf("broker: open channel: %w", err)
 	}
 	b := &Broker{
-		url:         url,
-		conn:        conn,
-		channel:     ch,
-		logger:      logger,
-		closed:      make(chan struct{}),
-		reconnected: make(chan struct{}),
+		url:            url,
+		conn:           conn,
+		channel:        ch,
+		logger:         logger,
+		publishTimeout: defaultPublishTimeout,
+		closed:         make(chan struct{}),
+		reconnected:    make(chan struct{}),
+	}
+	for _, opt := range opts {
+		opt(b)
 	}
 	go b.watchConnection()
 	return b, nil
@@ -199,7 +219,13 @@ func (b *Broker) Setup() error {
 }
 
 // setupChannel declares exchanges, queues, and bindings on the given channel.
+// It also enables confirm mode so Publish can wait for broker acknowledgement;
+// running here covers both the initial channel and every reconnected one.
 func setupChannel(ch *amqp.Channel) error {
+	if err := ch.Confirm(false); err != nil {
+		return fmt.Errorf("broker: enable confirm mode: %w", err)
+	}
+
 	// Dead-letter exchange + queue
 	if err := ch.ExchangeDeclare(DLXName, "fanout", true, false, false, false, nil); err != nil {
 		return fmt.Errorf("broker: declare DLX: %w", err)
@@ -239,22 +265,40 @@ func setupChannel(ch *amqp.Channel) error {
 	return nil
 }
 
-// Publish sends a message to the exchange with the given routing key.
+// Publish sends a message to the exchange with the given routing key and waits
+// for the broker to confirm persistence — a nil return means the broker has the
+// message, so callers may safely mark it published.
 // It acquires a read lock to safely access the channel during reconnection.
-func (b *Broker) Publish(routingKey string, body []byte) error {
+func (b *Broker) Publish(ctx context.Context, routingKey string, body []byte) error {
 	b.mu.RLock()
 	ch := b.channel
+	timeout := b.publishTimeout
 	b.mu.RUnlock()
 
 	if ch == nil {
 		return fmt.Errorf("broker: channel not available (reconnecting)")
 	}
 
-	return ch.Publish(ExchangeName, routingKey, false, false, amqp.Publishing{
+	confirmation, err := ch.PublishWithDeferredConfirm(ExchangeName, routingKey, false, false, amqp.Publishing{
 		ContentType:  "application/json",
 		DeliveryMode: amqp.Persistent,
 		Body:         body,
 	})
+	if err != nil {
+		return fmt.Errorf("broker: publish: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	acked, err := confirmation.WaitContext(ctx)
+	if err != nil {
+		return fmt.Errorf("broker: awaiting publish confirm: %w", err)
+	}
+	if !acked {
+		return fmt.Errorf("broker: publish nacked by broker")
+	}
+	return nil
 }
 
 // Consume returns a delivery channel for the given queue.

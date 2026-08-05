@@ -42,6 +42,13 @@ Optional (for iCal feed):
 Optional (for auto-deploy on push to main):
 - `DEPLOY_WEBHOOK_SECRET` (generate with `openssl rand -hex 32`)
 
+Optional (event pipeline tuning; sensible defaults apply):
+- `RABBITMQ_PUBLISH_TIMEOUT` — how long the outbox publisher waits for a broker
+  confirmation before retrying the batch (default `5s`)
+- `PROJECTION_RETRY_MAX` — projection attempts before an event is dead-lettered
+  (default `5`)
+- `PROJECTION_RETRY_DELAY` — wait between projection retries (default `2s`)
+
 ---
 
 ## 3. Generate Secrets

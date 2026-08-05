@@ -65,24 +65,24 @@ type SyncSnapshotWriter interface {
 
 // Sync operation type constants.
 const (
-	OpCreateTask        = "CreateTask"
-	OpUpdateTask        = "UpdateTask"
-	OpCompleteTask      = "CompleteTask"
-	OpUncompleteTask    = "UncompleteTask"
-	OpDeleteTask        = "DeleteTask"
-	OpRestoreTask       = "RestoreTask"
-	OpAddLabel          = "AddLabel"
-	OpRemoveLabel       = "RemoveLabel"
-	OpCreateSubtask     = "CreateSubtask"
-	OpCompleteSubtask   = "CompleteSubtask"
-	OpUncompleteSubtask = "UncompleteSubtask"
+	OpCreateTask         = "CreateTask"
+	OpUpdateTask         = "UpdateTask"
+	OpCompleteTask       = "CompleteTask"
+	OpUncompleteTask     = "UncompleteTask"
+	OpDeleteTask         = "DeleteTask"
+	OpRestoreTask        = "RestoreTask"
+	OpAddLabel           = "AddLabel"
+	OpRemoveLabel        = "RemoveLabel"
+	OpCreateSubtask      = "CreateSubtask"
+	OpCompleteSubtask    = "CompleteSubtask"
+	OpUncompleteSubtask  = "UncompleteSubtask"
 	OpUpdateSubtaskTitle = "UpdateSubtaskTitle"
-	OpCreateList        = "CreateList"
-	OpDeleteList        = "DeleteList"
-	OpUpdateList        = "UpdateList"
-	OpCreateLabel       = "CreateLabel"
-	OpDeleteLabel       = "DeleteLabel"
-	OpUpdateLabel       = "UpdateLabel"
+	OpCreateList         = "CreateList"
+	OpDeleteList         = "DeleteList"
+	OpUpdateList         = "UpdateList"
+	OpCreateLabel        = "CreateLabel"
+	OpDeleteLabel        = "DeleteLabel"
+	OpUpdateLabel        = "UpdateLabel"
 )
 
 // SyncHandler processes batched sync operations from clients.
@@ -205,19 +205,22 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 			cmd.Description = strVal(data, "description")
 		}
 		if v, ok := data["due_date"]; ok && v != nil {
-			s := strVal(data, "due_date")
-			if t, err := time.Parse("2006-01-02", s); err == nil {
-				cmd.DueDate = &t
+			t, err := time.Parse("2006-01-02", strVal(data, "due_date"))
+			if err != nil {
+				return fmt.Errorf("sync: invalid due_date: %w", err)
 			}
+			cmd.DueDate = &t
 		}
 		if v, ok := data["due_time"]; ok && v != nil {
 			s := strVal(data, "due_time")
 			cmd.DueTime = &s
 		}
 		if v, ok := data["list_id"]; ok && v != nil {
-			if id, err := uuid.Parse(strVal(data, "list_id")); err == nil {
-				cmd.ListID = &id
+			id, err := uuid.Parse(strVal(data, "list_id"))
+			if err != nil {
+				return fmt.Errorf("sync: invalid list_id: %w", err)
 			}
+			cmd.ListID = &id
 		}
 		return h.cmds.CreateTask(ctx, cmd)
 
@@ -353,6 +356,26 @@ func (h *SyncHandler) dispatchOp(r *http.Request, userID, aggID uuid.UUID, op sy
 }
 
 func (h *SyncHandler) dispatchUpdateTask(ctx context.Context, aggID, userID uuid.UUID, data map[string]any) error {
+	// Parse every parseable field before dispatching any command: each field is
+	// a separate command, so failing midway would leave the op half-applied and
+	// the client's retries would replay the earlier fields at fresh HLCs.
+	var dueDate *time.Time
+	if _, ok := data["due_date"]; ok && data["due_date"] != nil {
+		t, err := time.Parse("2006-01-02", strVal(data, "due_date"))
+		if err != nil {
+			return fmt.Errorf("sync: invalid due_date: %w", err)
+		}
+		dueDate = &t
+	}
+	var moveListID *uuid.UUID
+	if v, ok := data["list_id"]; ok && v != nil {
+		lid, err := uuid.Parse(strVal(data, "list_id"))
+		if err != nil {
+			return fmt.Errorf("sync: invalid list_id: %w", err)
+		}
+		moveListID = &lid
+	}
+
 	if _, ok := data["title"]; ok {
 		title := strVal(data, "title")
 		if title != "" {
@@ -373,13 +396,6 @@ func (h *SyncHandler) dispatchUpdateTask(ctx context.Context, aggID, userID uuid
 		}
 	}
 	if _, ok := data["due_date"]; ok {
-		var dueDate *time.Time
-		if data["due_date"] != nil {
-			s := strVal(data, "due_date")
-			if t, err := time.Parse("2006-01-02", s); err == nil {
-				dueDate = &t
-			}
-		}
 		if err := h.cmds.UpdateTaskDueDate(ctx, aggID, userID, domain.UpdateTaskDueDate{DueDate: dueDate}); err != nil {
 			return err
 		}
@@ -400,16 +416,12 @@ func (h *SyncHandler) dispatchUpdateTask(ctx context.Context, aggID, userID uuid
 			return err
 		}
 	}
-	if v, ok := data["list_id"]; ok && v != nil {
-		lid, err := uuid.Parse(strVal(data, "list_id"))
-		if err != nil {
-			return err
-		}
+	if moveListID != nil {
 		pos := strVal(data, "position")
 		if pos == "" {
 			pos = strconv.FormatInt(time.Now().UnixMilli(), 10)
 		}
-		if err := h.cmds.MoveTask(ctx, aggID, userID, domain.MoveTask{ListID: lid, Position: pos}); err != nil {
+		if err := h.cmds.MoveTask(ctx, aggID, userID, domain.MoveTask{ListID: *moveListID, Position: pos}); err != nil {
 			return err
 		}
 	} else if _, ok := data["position"]; ok {

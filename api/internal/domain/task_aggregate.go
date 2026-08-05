@@ -45,19 +45,19 @@ func NewTaskAggregate() *TaskAggregate {
 	}
 }
 
-func (a *TaskAggregate) ID() uuid.UUID      { return a.id }
-func (a *TaskAggregate) Version() int        { return a.version }
-func (a *TaskAggregate) UserID() uuid.UUID   { return a.userID }
+func (a *TaskAggregate) ID() uuid.UUID     { return a.id }
+func (a *TaskAggregate) Version() int      { return a.version }
+func (a *TaskAggregate) UserID() uuid.UUID { return a.userID }
 
 // Getters for recurring task worker
-func (a *TaskAggregate) Title() string              { return a.title }
-func (a *TaskAggregate) Description() string        { return a.description }
-func (a *TaskAggregate) Priority() Priority         { return a.priority }
+func (a *TaskAggregate) Title() string                  { return a.title }
+func (a *TaskAggregate) Description() string            { return a.description }
+func (a *TaskAggregate) Priority() Priority             { return a.priority }
 func (a *TaskAggregate) RecurrenceRule() RecurrenceRule { return a.recurrenceRule }
-func (a *TaskAggregate) DueDate() *time.Time        { return a.dueDate }
-func (a *TaskAggregate) DueTime() *string           { return a.dueTime }
-func (a *TaskAggregate) ListID() *uuid.UUID         { return a.listID }
-func (a *TaskAggregate) Position() string           { return a.position }
+func (a *TaskAggregate) DueDate() *time.Time            { return a.dueDate }
+func (a *TaskAggregate) DueTime() *string               { return a.dueTime }
+func (a *TaskAggregate) ListID() *uuid.UUID             { return a.listID }
+func (a *TaskAggregate) Position() string               { return a.position }
 func (a *TaskAggregate) Labels() []uuid.UUID {
 	ids := make([]uuid.UUID, 0, len(a.labels))
 	for id := range a.labels {
@@ -218,6 +218,9 @@ func (a *TaskAggregate) HandleCreate(cmd CreateTask, now hlc.Timestamp) ([]event
 	if invalidOptionalDueTime(cmd.DueTime) {
 		return nil, ErrInvalidDueTime
 	}
+	if !cmd.RecurrenceRule.Valid() {
+		return nil, ErrInvalidRecurrenceRule
+	}
 
 	a.id = cmd.TaskID
 	a.userID = cmd.UserID
@@ -234,7 +237,33 @@ func (a *TaskAggregate) HandleCreate(cmd CreateTask, now hlc.Timestamp) ([]event
 	if err != nil {
 		return nil, err
 	}
-	return []eventstore.Event{e}, nil
+	events := []eventstore.Event{e}
+
+	if cmd.RecurrenceRule != RecurrenceNone {
+		re, err := a.newEvent(eventstore.EventTaskRecurrenceUpdated, TaskRecurrenceUpdatedPayload{
+			RecurrenceRule: cmd.RecurrenceRule,
+		}, now)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, re)
+	}
+
+	for _, labelID := range cmd.Labels {
+		if a.labels[labelID] {
+			continue
+		}
+		a.labels[labelID] = true
+		le, err := a.newEvent(eventstore.EventLabelAdded, LabelAddedPayload{
+			LabelID: labelID,
+		}, now)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, le)
+	}
+
+	return events, nil
 }
 
 // HandleComplete marks the task as completed.
