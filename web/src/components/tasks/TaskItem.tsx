@@ -144,19 +144,13 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
         onDragEnd={handleSwipeEnd}
         className="relative bg-bg"
       >
+        {/* Whitespace clicks still select via the row; keyboard and screen
+            reader access goes through the content button below, keeping the
+            drag handle, checkbox, and content as sibling interactive elements
+            (a role=button row would nest them — invalid for AT focus). */}
+        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
         <div
-          role="button"
-          tabIndex={0}
           onClick={() => { if (!swiping.current) onSelect(task.id) }}
-          onKeyDown={(e) => {
-            // Only row-level keypresses select — Enter/Space on the inner
-            // checkbox or drag handle must not also open the detail panel
-            if (e.target !== e.currentTarget) return
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              onSelect(task.id)
-            }
-          }}
           className={`w-full flex items-start gap-3 px-5 py-3 hover:bg-bg-secondary text-left transition-colors relative cursor-pointer ${
             isDragging ? 'bg-bg-elevated shadow-card rounded-[10px]' : ''
           }`}
@@ -205,7 +199,11 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
             )}
           </button>
 
-          <div className="flex-1 min-w-0 py-0.5">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); if (!swiping.current) onSelect(task.id) }}
+            className="flex-1 min-w-0 py-0.5 text-left"
+          >
             <div className="flex items-center gap-2">
               <InlineMarkdown
                 text={task.title}
@@ -258,7 +256,7 @@ function TaskItem({ task, onSelect, isDragging, dragHandleProps }: TaskItemInter
                 ))}
               </div>
             )}
-          </div>
+          </button>
         </div>
       </motion.div>
     </div>

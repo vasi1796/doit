@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { usePopover } from '../../hooks/usePopover'
+import { Popover } from './Popover'
 import * as operations from '../../db/operations'
 import { useToast } from './Toast'
 import { ColorSwatchRow } from './ColorSwatchRow'
@@ -55,12 +56,12 @@ export function ListSelect({ value, lists, onChange }: ListSelectProps) {
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-[60]" onClick={() => { close(); setCreating(false) }} aria-hidden="true" />
-          <div
-            className="fixed bg-bg-elevated rounded-[14px] shadow-popover border border-separator py-1 z-[61] min-w-[220px] max-h-[50vh] overflow-y-auto"
-            style={{ top: pos.top, left: pos.left }}
-          >
+        <Popover
+          pos={pos}
+          label="Choose list"
+          onClose={() => { close(); setCreating(false) }}
+          className="py-1 min-w-[220px] max-h-[50vh] overflow-y-auto"
+        >
             <button
               type="button"
               onClick={() => { onChange(''); close() }}
@@ -115,8 +116,7 @@ export function ListSelect({ value, lists, onChange }: ListSelectProps) {
                 </button>
               )}
             </div>
-          </div>
-        </>
+        </Popover>
       )}
     </>
   )

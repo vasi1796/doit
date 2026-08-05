@@ -5,12 +5,7 @@ import { mockApi } from './helpers/mock-api'
 // Known a11y violations in the existing codebase.
 // Remove rules from this list as they are fixed.
 const KNOWN_VIOLATIONS = [
-  'button-name',           // Some icon-only buttons lack aria-label
-  'color-contrast',        // Some text/background combos below AA ratio
-  'landmark-one-main',     // Login page has no <main> landmark
-  'landmark-unique',       // Duplicate nav landmarks in layout
-  'nested-interactive',    // Nested interactive elements in task items
-  'region',                // Content outside landmark regions
+  'color-contrast',        // Below-AA combos need palette decisions — tracked follow-up
   'scrollable-region-focusable', // Calendar grid scroll — tabIndex conflicts with jsx-a11y linter
 ]
 

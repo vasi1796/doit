@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { usePopover } from '../../hooks/usePopover'
+import { Popover, PickerTrigger } from './Popover'
 import { formatDisplayTime } from '../../utils/date'
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1)
@@ -38,38 +39,23 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
 
   return (
     <>
-      <button
-        ref={triggerRef}
-        type="button"
+      <PickerTrigger
+        triggerRef={triggerRef}
         onClick={toggle}
-        className={`flex items-center gap-2 min-h-[40px] px-3 rounded-[10px] hover:bg-bg-secondary transition-colors text-sm ${value ? 'text-accent' : 'text-text-secondary'}`}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-        <span className={value ? 'text-text-primary' : 'text-text-secondary'}>
-          {value ? formatDisplayTime(value) : 'Time'}
-        </span>
-        {value && onClear && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onClear() }}
-            className="text-text-secondary hover:text-danger"
-            aria-label="Clear time"
-          >
-            ×
-          </button>
-        )}
-      </button>
+        active={!!value}
+        label={value ? formatDisplayTime(value) : 'Time'}
+        onClear={onClear}
+        clearLabel="Clear time"
+        icon={
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        }
+      />
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-[60]" onClick={() => close()} aria-hidden="true" />
-          <div
-            className="fixed bg-bg-elevated rounded-[14px] shadow-popover border border-separator p-3 z-[61] w-[210px]"
-            style={{ top: pos.top, left: pos.left }}
-          >
+        <Popover pos={pos} label="Choose time" onClose={close} className="p-3 w-[210px]">
             <div className="flex gap-2 mb-3">
               <div className="flex-1">
                 <p className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider mb-1">Hour</p>
@@ -130,8 +116,7 @@ export function TimePicker({ value, onChange, onClear }: TimePickerProps) {
             >
               Done
             </button>
-          </div>
-        </>
+        </Popover>
       )}
     </>
   )

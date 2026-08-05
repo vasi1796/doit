@@ -18,6 +18,7 @@ export function BottomNav({ taskCounts, onMenuToggle }: BottomNavProps) {
 
   return (
     <nav
+      aria-label="Primary"
       className="frosted-bottom-nav fixed bottom-0 left-0 right-0 border-t border-separator flex md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >

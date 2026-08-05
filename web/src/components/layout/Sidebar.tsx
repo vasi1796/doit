@@ -512,7 +512,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
       )}
 
       {/* Smart lists */}
-      <nav className="px-2 space-y-0.5">
+      <nav aria-label="Views" className="px-2 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const countMap: Record<string, number> = {
             '/inbox': taskCounts.inbox,
@@ -688,7 +688,7 @@ export function Sidebar({ lists, labels, taskCounts, onSearchOpen }: SidebarProp
       )}
 
       {/* Bottom section */}
-      <nav className="px-2 pb-2 space-y-0.5">
+      <nav aria-label="Archive" className="px-2 pb-2 space-y-0.5">
         <div className="mx-3 mb-2 border-t border-separator" />
         {BOTTOM_ITEMS.map((item) => (
           <NavItem key={item.to} {...item} />

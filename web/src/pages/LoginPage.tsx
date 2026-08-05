@@ -38,7 +38,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <main className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
       {/* Subtle gradient background with accent bloom */}
       <div
         className="absolute inset-0 -z-10"
@@ -62,7 +62,7 @@ export function LoginPage() {
         </div>
         <h1 className="text-[34px] font-bold text-text-primary tracking-tight">DoIt</h1>
         <p className="text-text-secondary text-[17px] mt-2 max-w-xs mx-auto leading-relaxed">
-          Your tasks, organized.<br />Beautifully simple.
+          Your tasks, organised.<br />Beautifully simple.
         </p>
       </div>
 
@@ -127,6 +127,6 @@ export function LoginPage() {
           </span>
         ))}
       </div>
-    </div>
+    </main>
   )
 }
