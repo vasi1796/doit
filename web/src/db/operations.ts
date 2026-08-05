@@ -1,4 +1,4 @@
-import { db } from './database'
+import { db, TASK_LWW_FIELDS } from './database'
 import type { FieldHLC } from './database'
 import type { Table, UpdateSpec } from 'dexie'
 import { clock } from './clock'
@@ -48,7 +48,7 @@ function hlcFields() {
 }
 
 /** Build a FieldHLC map for the given field names using the provided HLC. */
-function buildFieldHlcs(fieldNames: string[], hlc: { time: number; counter: number }): FieldHLC {
+function buildFieldHlcs(fieldNames: readonly string[], hlc: { time: number; counter: number }): FieldHLC {
   const result: FieldHLC = {}
   for (const name of fieldNames) {
     result[name] = { time: hlc.time, counter: hlc.counter }
@@ -84,11 +84,7 @@ export async function createTask(data: CreateTaskRequest): Promise<string> {
   const id = uuid()
   const { hlc, fields } = hlcFields()
 
-  const allTaskFields = [
-    'title', 'description', 'priority', 'due_date', 'due_time',
-    'recurrence_rule', 'list_id', 'position', 'is_completed', 'is_deleted',
-  ]
-  const field_hlcs = buildFieldHlcs(allTaskFields, hlc)
+  const field_hlcs = buildFieldHlcs(TASK_LWW_FIELDS, hlc)
 
   await db.tasks.put({
     id,

@@ -1,4 +1,4 @@
-import { db } from './database'
+import { db, TASK_LWW_FIELDS } from './database'
 import type { FieldHLC } from './database'
 import type { Table, UpdateSpec } from 'dexie'
 import { clock } from './clock'
@@ -156,6 +156,8 @@ export async function mergeRemoteEvents(events: RemoteEvent[]): Promise<boolean>
   return allApplied
 }
 
+const CREATE_ECHO_EXCLUDED = ['is_completed', 'is_deleted', 'recurrence_rule']
+
 async function applyEvent(event: RemoteEvent): Promise<void> {
   const aggId = event.aggregate_id
   const data = event.data
@@ -172,9 +174,10 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
       const existingTask = await db.tasks.get(aggId)
       if (existingTask) {
         // Redelivered create (merge is at-least-once): per-field LWW so newer
-        // local edits survive. is_completed/is_deleted are absent on purpose —
-        // a create payload carries no such facts, and the server re-echoes the
-        // create with a fresh HLC that would beat an in-flight completion.
+        // local edits survive. is_completed/is_deleted/recurrence_rule are
+        // excluded on purpose — a create payload carries no such facts, and
+        // the server re-echoes the create with a fresh HLC that would beat an
+        // in-flight local completion or recurrence edit.
         await mergeTaskField(aggId, eventHLC, {
           title: p.title,
           description: p.description,
@@ -183,21 +186,13 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
           due_time: p.due_time,
           list_id: p.list_id,
           position: p.position,
-        }, ['title', 'description', 'priority', 'due_date', 'due_time', 'list_id', 'position'])
+        }, TASK_LWW_FIELDS.filter((f) => !CREATE_ECHO_EXCLUDED.includes(f)))
         break
       }
       const hlcEntry = { time: eventHLC.time, counter: eventHLC.counter }
-      const field_hlcs: FieldHLC = {
-        title: hlcEntry,
-        description: hlcEntry,
-        priority: hlcEntry,
-        due_date: hlcEntry,
-        due_time: hlcEntry,
-        recurrence_rule: hlcEntry,
-        list_id: hlcEntry,
-        position: hlcEntry,
-        is_completed: hlcEntry,
-        is_deleted: hlcEntry,
+      const field_hlcs: FieldHLC = {}
+      for (const field of TASK_LWW_FIELDS) {
+        field_hlcs[field] = hlcEntry
       }
       await db.tasks.put({
         id: aggId,
@@ -431,6 +426,11 @@ async function applyEvent(event: RemoteEvent): Promise<void> {
       await mergeEntityField(db.labels, aggId, eventHLC, 'colour', p.colour)
       break
     }
+
+    default:
+      // Unknown types are logged and skipped, not failed: a newer client's
+      // event must not wedge this device's cursor behind it forever.
+      console.warn('merge-events: unknown event type', event.event_type, event.id)
   }
 }
 

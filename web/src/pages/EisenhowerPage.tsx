@@ -2,6 +2,7 @@ import { useTasks } from '../hooks/useTasks'
 import { useLayoutContext } from '../components/layout/AppLayout'
 import { TaskList } from '../components/tasks/TaskList'
 import { COLORS } from '../constants'
+import { todayStr } from '../utils/date'
 import type { Task } from '../api/types'
 
 interface Quadrant {
@@ -19,7 +20,7 @@ const QUADRANTS: Quadrant[] = [
 ]
 
 function classifyTasks(tasks: Task[]): Record<string, Task[]> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayStr()
   const result: Record<string, Task[]> = { do: [], schedule: [], delegate: [], eliminate: [] }
 
   for (const task of tasks) {

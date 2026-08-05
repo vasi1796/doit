@@ -8,7 +8,8 @@ const { tasks, lists, labels } = vi.hoisted(() => ({
   labels: new Map<string, Record<string, unknown>>(),
 }))
 
-vi.mock('../db/database', () => {
+vi.mock('../db/database', async (importOriginal) => {
+  const { TASK_LWW_FIELDS } = await importOriginal<typeof import('../db/database')>()
   function makeTable(store: Map<string, Record<string, unknown>>) {
     return {
       get: async (id: string) => store.get(id),
@@ -25,6 +26,7 @@ vi.mock('../db/database', () => {
     }
   }
   return {
+    TASK_LWW_FIELDS,
     db: {
       tasks: makeTable(tasks),
       lists: makeTable(lists),
@@ -184,5 +186,39 @@ describe('mergeRemoteEvents — task per-field LWW', () => {
       remoteEvent('TaskTitleUpdated', 'ghost', { title: 'Nope' }, T0),
     ])
     expect(tasks.has('ghost')).toBe(false)
+  })
+})
+
+describe('mergeRemoteEvents — unknown event types', () => {
+  beforeEach(() => {
+    tasks.clear()
+  })
+
+  it('logs and skips an unknown event without failing the batch', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const allApplied = await mergeRemoteEvents([
+      remoteEvent('TaskTeleported', 't1', { where: 'moon' }, T0),
+    ])
+
+    // A newer client's event type must not wedge this device's cursor —
+    // the batch still counts as applied so sync keeps advancing.
+    expect(allApplied).toBe(true)
+    expect(warn).toHaveBeenCalledWith(
+      'merge-events: unknown event type', 'TaskTeleported', expect.any(String),
+    )
+    warn.mockRestore()
+  })
+
+  it('a throwing event marks the batch as not fully applied', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const allApplied = await mergeRemoteEvents([
+      // Null payload makes the TaskCompleted handler throw on property access
+      remoteEvent('TaskCompleted', 't1', null as unknown as Record<string, unknown>, T0),
+    ])
+
+    expect(allApplied).toBe(false)
+    warn.mockRestore()
   })
 })

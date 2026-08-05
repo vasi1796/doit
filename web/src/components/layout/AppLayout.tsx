@@ -13,6 +13,7 @@ import { SyncEngine } from '../../db/sync-engine'
 import { setSyncEngine } from '../../db/sync-instance'
 import { useToast } from '../common/Toast'
 import { InstallBanner } from '../common/InstallBanner'
+import { toDateStr, todayStr } from '../../utils/date'
 import { SearchOverlay } from '../common/SearchOverlay'
 import { TaskDetail } from '../tasks/TaskDetail'
 import type { List, Label, Task } from '../../api/types'
@@ -52,10 +53,10 @@ export function useLayoutContext() {
 // ---------------------------------------------------------------------------
 
 function useTaskCounts(tasks: Task[]): TaskCounts {
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayStr()
   const nextWeek = new Date()
   nextWeek.setDate(nextWeek.getDate() + 7)
-  const nextWeekStr = nextWeek.toISOString().split('T')[0]
+  const nextWeekStr = toDateStr(nextWeek)
 
   return useMemo(() => ({
     inbox: tasks.filter((t) => !t.list_id).length,
@@ -152,7 +153,7 @@ function QuickAddModal({ lists, labels, pathname, onClose }: { lists: List[]; la
   const isToday = pathname === '/today'
 
   const prefilledListId = listMatch ? listMatch[1] : undefined
-  const prefilledDueDate = isToday ? new Date().toISOString().split('T')[0] : undefined
+  const prefilledDueDate = isToday ? todayStr() : undefined
   const prefilledLabelId = labelMatch ? labelMatch[1] : undefined
 
   // Auto-focus on mount + Escape to close

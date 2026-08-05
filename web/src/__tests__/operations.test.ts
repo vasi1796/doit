@@ -7,7 +7,8 @@ const { tasks, labels, queued } = vi.hoisted(() => ({
   queued: [] as Record<string, unknown>[],
 }))
 
-vi.mock('../db/database', () => {
+vi.mock('../db/database', async (importOriginal) => {
+  const { TASK_LWW_FIELDS } = await importOriginal<typeof import('../db/database')>()
   function makeTable(store: Map<string, Record<string, unknown>>) {
     return {
       get: async (id: string) => store.get(id),
@@ -21,6 +22,7 @@ vi.mock('../db/database', () => {
     }
   }
   return {
+    TASK_LWW_FIELDS,
     db: {
       tasks: makeTable(tasks),
       labels: makeTable(labels),
