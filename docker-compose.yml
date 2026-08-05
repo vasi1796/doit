@@ -1,5 +1,12 @@
 version: "3.9"
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "${LOG_MAX_SIZE:-20m}"
+    max-file: "${LOG_MAX_FILE:-5}"
+    tag: "{{.Name}}"
+
 networks:
   doit:
     driver: bridge
@@ -19,6 +26,7 @@ services:
     image: postgres:16-alpine
     container_name: doit-postgres
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - doit
     ports:
@@ -45,6 +53,7 @@ services:
       dockerfile: Dockerfile
     container_name: doit-api
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - doit
     ports:
@@ -84,6 +93,7 @@ services:
     image: caddy:2-alpine
     container_name: doit-caddy
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - doit
     environment:
@@ -115,6 +125,7 @@ services:
     image: rabbitmq:3.13-management-alpine
     container_name: doit-rabbitmq
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - doit
     ports:
@@ -143,6 +154,7 @@ services:
         CMD_PATH: cmd/worker
     container_name: doit-worker
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - doit
     env_file:
@@ -167,6 +179,7 @@ services:
         CMD_PATH: cmd/worker-recurring
     container_name: doit-worker-recurring
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - doit
     env_file:
@@ -191,6 +204,7 @@ services:
         CMD_PATH: cmd/worker-reminder
     container_name: doit-worker-reminder
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - doit
     env_file:
@@ -216,6 +230,7 @@ services:
       dockerfile: Dockerfile
     container_name: doit-deployer
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - doit
     environment:
