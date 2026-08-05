@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/go-chi/chi/v5"
@@ -299,9 +300,10 @@ func requestLogger(logger zerolog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ww := chimw.NewWrapResponseWriter(w, r.ProtoMajor)
+			path := redactPath(r.URL.Path)
 			logger.Info().
 				Str("method", r.Method).
-				Str("path", r.URL.Path).
+				Str("path", path).
 				Str("remote", r.RemoteAddr).
 				Msg("request started")
 
@@ -309,9 +311,23 @@ func requestLogger(logger zerolog.Logger) func(http.Handler) http.Handler {
 
 			logger.Info().
 				Str("method", r.Method).
-				Str("path", r.URL.Path).
+				Str("path", path).
 				Int("status", ww.Status()).
 				Msg("request completed")
 		})
 	}
+}
+
+// redactPath masks the capability token embedded in iCal feed URLs so request
+// logs never contain a credential that grants read access to a user's tasks.
+func redactPath(path string) string {
+	const icalPrefix = "/ical/"
+	if !strings.HasPrefix(path, icalPrefix) {
+		return path
+	}
+	rest := path[len(icalPrefix):]
+	if i := strings.IndexByte(rest, '/'); i >= 0 {
+		return icalPrefix + "[redacted]" + rest[i:]
+	}
+	return icalPrefix + "[redacted]"
 }
