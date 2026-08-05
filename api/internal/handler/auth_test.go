@@ -247,6 +247,9 @@ func TestMe(t *testing.T) {
 				t.Fatalf("status = %d, want %d", rr.Code, tc.wantStatus)
 			}
 			if tc.wantUserID != "" {
+				if got := rr.Header().Get("Cache-Control"); got != "no-store" {
+					t.Errorf("Cache-Control = %q, want %q", got, "no-store")
+				}
 				var body map[string]string
 				if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
 					t.Fatalf("decoding response: %v", err)

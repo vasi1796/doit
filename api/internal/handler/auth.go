@@ -224,6 +224,9 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		writeError(w, h.logger, http.StatusUnauthorized, "unauthorized")
 		return
 	}
+	// The client wipes local data based on this response — a cached stale
+	// identity after an account switch would skip the wipe.
+	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]string{"user_id": userID.String()}); err != nil {
 		h.logger.Error().Err(err).Msg("encoding me response")
