@@ -35,6 +35,16 @@ if [[ ! -f .env ]]; then
     exit 1
 fi
 
+# The API refuses to start without ALLOWED_EMAILS (outside dev mode), and
+# compose interpolation hard-fails without RABBITMQ_PASSWORD — check up front
+# so failures happen before containers are torn down.
+for var in RABBITMQ_PASSWORD ALLOWED_EMAILS; do
+    if ! grep -qE "^${var}=." .env; then
+        echo "ERROR: ${var} is not set in .env" >&2
+        exit 1
+    fi
+done
+
 # ---------------------------------------------------------------------------
 # Build & Start
 # ---------------------------------------------------------------------------
@@ -49,7 +59,9 @@ docker compose up -d --build
 # ---------------------------------------------------------------------------
 log "Waiting for services to become healthy..."
 DOMAIN=$(grep -E '^DOMAIN=' .env | cut -d= -f2- || echo "localhost")
-HEALTHZ_URL="http://localhost:80/healthz"
+# Probe the API's published port directly — Caddy only answers for $DOMAIN,
+# so a localhost request through port 80 404s on any real deployment.
+HEALTHZ_URL="http://127.0.0.1:8080/healthz"
 
 MAX_ATTEMPTS=30
 for i in $(seq 1 $MAX_ATTEMPTS); do
