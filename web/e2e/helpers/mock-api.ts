@@ -27,6 +27,12 @@ export function failOnConsoleErrors(page: Page) {
  * Call this before navigating to any authenticated page.
  */
 export async function mockApi(page: Page) {
+  // Boot's fail-closed owner check needs a confirmed identity before the
+  // app will populate IndexedDB or start the sync engine
+  await page.route('**/auth/me', (route) => {
+    return route.fulfill({ json: { user_id: 'e2e-user' } })
+  })
+
   // Use ** to match across path separators (single task: /tasks/{id})
   await page.route('**/api/v1/tasks**', (route) => {
     const url = new URL(route.request().url())
@@ -92,6 +98,10 @@ export async function mockApi(page: Page) {
  * Mock API to return empty data for testing empty states.
  */
 export async function mockApiEmpty(page: Page) {
+  await page.route('**/auth/me', (route) => {
+    return route.fulfill({ json: { user_id: 'e2e-user' } })
+  })
+
   await page.route('**/api/v1/tasks**', (route) => {
     return route.fulfill({ json: [] })
   })
