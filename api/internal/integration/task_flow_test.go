@@ -9,7 +9,10 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/vasi1796/doit/internal/broker"
 	"github.com/vasi1796/doit/internal/domain"
+	"github.com/vasi1796/doit/internal/eventstore"
+	"github.com/vasi1796/doit/internal/recurring"
 )
 
 func TestCreateTaskFlow(t *testing.T) {
@@ -240,5 +243,74 @@ func TestRecurringTaskFlow(t *testing.T) {
 	}
 	if foundLabelID != labelID {
 		t.Errorf("label_id = %s, want %s", foundLabelID, labelID)
+	}
+}
+
+func TestRecurringRedeliveryIdempotent(t *testing.T) {
+	// A TaskCompleted message redelivered by RabbitMQ must not create a second
+	// next occurrence: the deterministic task ID replays into the same
+	// aggregate and the event store rejects the duplicate.
+	h := setupHarness(t)
+	ctx := context.Background()
+
+	taskID := uuid.New()
+	dueDate := time.Date(2026, 5, 4, 0, 0, 0, 0, time.UTC)
+
+	err := h.cmdHandler.CreateTask(ctx, domain.CreateTask{
+		TaskID:         taskID,
+		UserID:         h.userID,
+		Title:          "Take out bins",
+		Priority:       domain.PriorityLow,
+		DueDate:        &dueDate,
+		Position:       "a",
+		RecurrenceRule: domain.RecurrenceDaily,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	err = h.cmdHandler.CompleteTask(ctx, taskID, h.userID, domain.CompleteTask{
+		CompletedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		t.Fatalf("CompleteTask: %v", err)
+	}
+
+	h.flushOutbox(t)
+
+	// Drain the recurring queue, capturing the TaskCompleted message so it can
+	// be redelivered below.
+	var completed broker.EventMessage
+	h.drainQueue(t, broker.QueueRecurring, func(em broker.EventMessage) error {
+		if em.EventType != string(eventstore.EventTaskCompleted) {
+			return nil
+		}
+		completed = em
+		return recurring.Handle(ctx, h.store, h.cmdHandler, em, h.logger)
+	})
+	if completed.EventID == uuid.Nil {
+		t.Fatal("no TaskCompleted message consumed")
+	}
+
+	nextID := recurring.NextTaskID(completed.EventID)
+	first, err := h.store.LoadByAggregate(ctx, nextID)
+	if err != nil {
+		t.Fatalf("loading next occurrence: %v", err)
+	}
+	if len(first) == 0 {
+		t.Fatal("next occurrence was not created")
+	}
+
+	// Simulate at-least-once redelivery of the same message.
+	if err := recurring.Handle(ctx, h.store, h.cmdHandler, completed, h.logger); err != nil {
+		t.Fatalf("redelivery should be acknowledged as processed, got: %v", err)
+	}
+
+	second, err := h.store.LoadByAggregate(ctx, nextID)
+	if err != nil {
+		t.Fatalf("reloading next occurrence: %v", err)
+	}
+	if len(second) != len(first) {
+		t.Errorf("redelivery appended events: %d, want %d", len(second), len(first))
 	}
 }

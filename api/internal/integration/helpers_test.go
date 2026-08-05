@@ -21,6 +21,7 @@ import (
 	"github.com/vasi1796/doit/internal/hlc"
 	"github.com/vasi1796/doit/internal/outbox"
 	"github.com/vasi1796/doit/internal/projection"
+	"github.com/vasi1796/doit/internal/recurring"
 )
 
 // testHarness bundles all components needed for full-stack integration tests.
@@ -136,7 +137,7 @@ func (h *testHarness) drainRecurring(t *testing.T) int {
 		if em.EventType != string(eventstore.EventTaskCompleted) {
 			return nil
 		}
-		return handleRecurring(context.Background(), h.store, h.cmdHandler, em, h.logger)
+		return recurring.Handle(context.Background(), h.store, h.cmdHandler, em, h.logger)
 	})
 }
 
@@ -181,56 +182,4 @@ func eventToStore(em broker.EventMessage) eventstore.Event {
 		Counter:       em.Counter,
 		Version:       em.Version,
 	}
-}
-
-// handleRecurring replicates the logic from cmd/worker-recurring/main.go.
-func handleRecurring(ctx context.Context, store *eventstore.Store, cmdHandler *domain.CommandHandler, em broker.EventMessage, logger zerolog.Logger) error {
-	events, err := store.LoadByAggregate(ctx, em.AggregateID)
-	if err != nil {
-		return err
-	}
-	if len(events) == 0 {
-		return nil
-	}
-
-	agg := domain.NewTaskAggregate()
-	for _, e := range events {
-		agg.Apply(e)
-	}
-
-	if agg.RecurrenceRule() == "" || agg.DueDate() == nil {
-		return nil
-	}
-
-	nextDue := domain.NextDueDate(*agg.DueDate(), agg.RecurrenceRule())
-
-	cmd := domain.CreateTask{
-		TaskID:      domain.NewID(),
-		UserID:      em.UserID,
-		Title:       agg.Title(),
-		Description: agg.Description(),
-		Priority:    agg.Priority(),
-		DueDate:     &nextDue,
-		DueTime:     agg.DueTime(),
-		ListID:      agg.ListID(),
-		Position:    agg.Position(),
-	}
-
-	if err := cmdHandler.CreateTask(ctx, cmd); err != nil {
-		return err
-	}
-
-	if err := cmdHandler.UpdateTaskRecurrence(ctx, cmd.TaskID, em.UserID, domain.UpdateTaskRecurrence{
-		RecurrenceRule: agg.RecurrenceRule(),
-	}); err != nil {
-		logger.Warn().Err(err).Msg("failed to set recurrence on new task")
-	}
-
-	for _, labelID := range agg.Labels() {
-		if err := cmdHandler.AddLabel(ctx, cmd.TaskID, em.UserID, domain.AddLabel{LabelID: labelID}); err != nil {
-			logger.Warn().Err(err).Str("label_id", labelID.String()).Msg("failed to copy label to new task")
-		}
-	}
-
-	return nil
 }

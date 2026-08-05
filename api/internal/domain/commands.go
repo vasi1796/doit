@@ -9,15 +9,17 @@ import (
 // Task commands
 
 type CreateTask struct {
-	TaskID      uuid.UUID
-	UserID      uuid.UUID
-	Title       string
-	Description string
-	Priority    Priority
-	DueDate     *time.Time
-	DueTime     *string
-	ListID      *uuid.UUID
-	Position    string
+	TaskID         uuid.UUID
+	UserID         uuid.UUID
+	Title          string
+	Description    string
+	Priority       Priority
+	DueDate        *time.Time
+	DueTime        *string
+	ListID         *uuid.UUID
+	Position       string
+	RecurrenceRule RecurrenceRule
+	Labels         []uuid.UUID
 }
 
 type CompleteTask struct {
