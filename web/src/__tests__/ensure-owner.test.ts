@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ensureDbOwner } from '../db/ensure-owner'
+import { ensureDbOwner, OwnerCheckError } from '../db/ensure-owner'
 
 const { prefs, deleteFn, openFn, fetchFn } = vi.hoisted(() => ({
   prefs: new Map<string, { key: string; value: string }>(),
@@ -74,11 +74,21 @@ describe('ensureDbOwner', () => {
     expect(prefs.get('db_owner')?.value).toBe('user-a')
   })
 
-  it('a malformed response neither wipes nor rebinds', async () => {
+  it('a malformed response fails closed without wiping or rebinding', async () => {
     prefs.set('db_owner', { key: 'db_owner', value: 'user-a' })
     fetchFn.mockResolvedValue({ ok: true, json: async () => ({ nope: 1 }) })
 
-    await ensureDbOwner()
+    await expect(ensureDbOwner()).rejects.toBeInstanceOf(OwnerCheckError)
+
+    expect(deleteFn).not.toHaveBeenCalled()
+    expect(prefs.get('db_owner')?.value).toBe('user-a')
+  })
+
+  it('a served error response fails closed — the switch may have happened and only the check failed', async () => {
+    prefs.set('db_owner', { key: 'db_owner', value: 'user-a' })
+    fetchFn.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) })
+
+    await expect(ensureDbOwner()).rejects.toBeInstanceOf(OwnerCheckError)
 
     expect(deleteFn).not.toHaveBeenCalled()
     expect(prefs.get('db_owner')?.value).toBe('user-a')

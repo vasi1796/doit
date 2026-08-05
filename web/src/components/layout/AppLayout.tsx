@@ -8,7 +8,7 @@ import { useLists } from '../../hooks/useLists'
 import { useLabels } from '../../hooks/useLabels'
 import { useTasks } from '../../hooks/useTasks'
 import { initialSync } from '../../db/initial-sync'
-import { ensureDbOwner } from '../../db/ensure-owner'
+import { ensureDbOwner, OwnerCheckError } from '../../db/ensure-owner'
 import { SyncEngine } from '../../db/sync-engine'
 import { setSyncEngine } from '../../db/sync-instance'
 import { useToast } from '../common/Toast'
@@ -210,9 +210,18 @@ export function AppLayout() {
     engine.setNotifier((message) => toast(message, 'error'))
     setSyncEngine(engine)
     ensureDbOwner()
-      .then(() => initialSync())
-      .then(() => engine.start())
-      .catch(() => engine.start()) // Start sync even if boot checks fail (may be offline)
+      .then(() =>
+        initialSync()
+          .then(() => engine.start())
+          .catch(() => engine.start()), // may be offline — sync retries
+      )
+      .catch((err) => {
+        // Owner unresolved (or session expired mid-redirect): flushing the
+        // queue here could push another account's ops under this cookie.
+        if (err instanceof OwnerCheckError) {
+          toast('Could not verify your account — sync is paused, reload to retry', 'error')
+        }
+      })
 
     return () => {
       engine.stop()

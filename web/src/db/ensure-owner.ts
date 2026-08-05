@@ -3,12 +3,14 @@ import { db } from './database'
 
 const OWNER_KEY = 'db_owner'
 
+/** Ownership unconfirmed — callers must not start the sync engine. */
+export class OwnerCheckError extends Error {}
+
 /**
- * Bind the local database to the signed-in account. A different account
- * signing in wipes the previous user's rows and queued sync ops before the
- * sync engine starts, so nothing leaks across users on a shared device.
- * An unreachable server resolves without checking: a user switch requires an
- * online login, so an offline boot is always the same user.
+ * Bind the local database to the signed-in account, wiping it on an account
+ * switch. Offline (fetch rejection) resolves: a switch requires an online
+ * login. A served non-ok/malformed response fails closed — the switch may
+ * have happened and only the check failed.
  */
 export async function ensureDbOwner(): Promise<void> {
   let res: Response
@@ -18,11 +20,11 @@ export async function ensureDbOwner(): Promise<void> {
     if (err instanceof Error && err.message === 'Unauthorized') throw err
     return
   }
-  if (!res.ok) return
+  if (!res.ok) throw new OwnerCheckError(`auth/me returned ${res.status}`)
 
   const body = (await res.json().catch(() => null)) as { user_id?: unknown } | null
   const userId = body && typeof body.user_id === 'string' ? body.user_id : ''
-  if (!userId) return
+  if (!userId) throw new OwnerCheckError('auth/me returned no user_id')
 
   const owner = await db.userPreferences.get(OWNER_KEY)
   if (owner && owner.value !== userId) {
