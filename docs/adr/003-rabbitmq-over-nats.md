@@ -26,9 +26,10 @@ The main candidates considered were:
 We will use **RabbitMQ 3.13+** with topic exchanges and dead-letter queues.
 
 - Events are published to a **topic exchange** with routing keys matching event
-  types (e.g., `task.created`, `task.completed`).
+  types. (As built, the routing key is the raw event type, e.g. `TaskCompleted`,
+  not the dotted `task.completed` style sketched here.)
 - Each projection worker binds a durable queue with routing key patterns
-  (e.g., `task.*` or `#` for all events).
+  (as built: `#` for projections, `TaskCompleted` for the recurring worker).
 - Failed messages are routed to a **dead-letter exchange/queue** for inspection
   and manual retry.
 - RabbitMQ's management UI provides visibility into queue depths, consumer

@@ -57,6 +57,9 @@ IndexedDB schema mirrors the server read model tables:
 - `subtasks` — same as subtasks table
 - `sync_queue` — pending operations to send to server
 - `sync_state` — last sync timestamp per aggregate
+  *(as built: `syncQueue` / `syncState`, the latter a single HLC cursor row —
+  never per-aggregate — plus a `userPreferences` table that also holds the
+  local DB's account binding)*
 
 **Slice 3: Service Worker**
 Workbox for app shell caching. The PWA must launch instantly from the home
@@ -85,8 +88,8 @@ Client-side sync engine triggered by:
 Operations are batched from the `sync_queue` table and sent via
 `POST /api/v1/sync`. Failed operations are retained in the queue with a retry
 count (max 5 retries) instead of being permanently deleted on first failure.
-The server validates, appends events, and returns a confirmation with the
-server-assigned HLC timestamp.
+The server validates, appends events, and responds. (As built, the response
+is `{cursor, events, failed_ops}` — there is no per-op confirmation.)
 
 **Slice 6: Sync Engine — Pull**
 The sync endpoint returns remote events since the client's last sync
@@ -95,14 +98,18 @@ merge functions. `useLiveQuery` automatically re-renders affected
 components. The `LoadByUserSince` event store method already exists for
 this.
 
-**Slice 7: WebSocket Real-Time Push**
+**Slice 7: WebSocket Real-Time Push** *(superseded by ADR-012 — the WS
+carries thin `{"type":"sync"}` pings that trigger a normal pull; no event
+payloads travel over the socket)*
 `WS /api/v1/ws` pushes events from other devices in real-time when online.
 On disconnect: immediately fall back to polling, attempt reconnection with
 exponential backoff (1s→2s→4s, capped at 30s) plus jitter. On successful
 reconnection: perform a full sync pull to catch events missed during the
 disconnect window.
 
-**Slice 8: Aggregate Snapshots**
+**Slice 8: Aggregate Snapshots** *(as built, the client tracks a single HLC
+sync cursor, not per-aggregate versions — snapshots are used only for
+all-or-nothing rehydration)*
 Per-aggregate server-side snapshots updated incrementally on each sync.
 Keyed by `aggregate_id + user_id` in the existing `aggregate_snapshots`
 table. Client tracks `last_synced_version` per aggregate for incremental

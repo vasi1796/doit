@@ -25,7 +25,8 @@ We will build a **Progressive Web App** targeting **Safari on macOS, iOS, and
 iPadOS**.
 
 - The frontend is a React SPA served as a PWA with a web app manifest.
-- **Workbox** manages the service worker for asset caching and offline support.
+- A service worker handles asset caching and offline support. (Workbox was
+  planned; shipped as a hand-written `web/public/sw.js`.)
 - Users add the app to their home screen via Safari's "Add to Home Screen".
 - All UI follows Apple Human Interface Guidelines (44px tap targets, safe area
   insets, system font preferences).
