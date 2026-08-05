@@ -10,33 +10,36 @@ import (
 )
 
 type Config struct {
-	Port              int
-	LogLevel          string
-	LogFormat         string
-	DatabaseURL       string
-	DBMaxOpenConns    int
-	DBMaxIdleConns    int
-	DBConnMaxLifetime time.Duration
-	JWTSecret         string
-	JWTExpiryHours    int
-	ShutdownTimeout   time.Duration
-	GoogleClientID    string
-	GoogleClientSecret string
-	GoogleRedirectURL  string
-	AllowedEmails      []string
-	DevMode            bool
-	FrontendURL        string
-	SecureCookies      bool
-	MetricsEnabled     bool
-	CORSOrigins        []string
-	VAPIDPublicKey     string
-	VAPIDPrivateKey    string
-	VAPIDSubject       string
-	ICalBaseURL        string
-	RabbitMQURL        string
-	ReminderInterval   time.Duration
-	ReminderHour       int
-	ReminderTZ         string
+	Port                   int
+	LogLevel               string
+	LogFormat              string
+	DatabaseURL            string
+	DBMaxOpenConns         int
+	DBMaxIdleConns         int
+	DBConnMaxLifetime      time.Duration
+	JWTSecret              string
+	JWTExpiryHours         int
+	ShutdownTimeout        time.Duration
+	GoogleClientID         string
+	GoogleClientSecret     string
+	GoogleRedirectURL      string
+	AllowedEmails          []string
+	DevMode                bool
+	FrontendURL            string
+	SecureCookies          bool
+	MetricsEnabled         bool
+	CORSOrigins            []string
+	VAPIDPublicKey         string
+	VAPIDPrivateKey        string
+	VAPIDSubject           string
+	ICalBaseURL            string
+	RabbitMQURL            string
+	RabbitMQPublishTimeout time.Duration
+	ProjectionRetryMax     int
+	ProjectionRetryDelay   time.Duration
+	ReminderInterval       time.Duration
+	ReminderHour           int
+	ReminderTZ             string
 }
 
 // Load reads all configuration from environment variables.
@@ -80,33 +83,36 @@ func loadBase() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Port:               envInt("PORT", 8080),
-		LogLevel:           envString("LOG_LEVEL", "info"),
-		LogFormat:          envString("LOG_FORMAT", "console"),
-		DatabaseURL:        dbURL,
-		DBMaxOpenConns:     envInt("DB_MAX_OPEN_CONNS", 10),
-		DBMaxIdleConns:     envInt("DB_MAX_IDLE_CONNS", 5),
-		DBConnMaxLifetime:  envDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
-		JWTSecret:          os.Getenv("JWT_SECRET"),
-		JWTExpiryHours:     envInt("JWT_EXPIRY_HOURS", 72),
-		ShutdownTimeout:    envDuration("SHUTDOWN_TIMEOUT", 15*time.Second),
-		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-		GoogleRedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
-		AllowedEmails:      envStringSlice("ALLOWED_EMAILS"),
-		DevMode:            envBool("DEV_MODE", false),
-		FrontendURL:        envString("FRONTEND_URL", "/"),
-		SecureCookies:      envBool("SECURE_COOKIES", true),
-		MetricsEnabled:     envBool("METRICS_ENABLED", true),
-		CORSOrigins:        envStringSlice("CORS_ORIGINS"),
-		VAPIDPublicKey:     os.Getenv("VAPID_PUBLIC_KEY"),
-		VAPIDPrivateKey:    os.Getenv("VAPID_PRIVATE_KEY"),
-		VAPIDSubject:       envString("VAPID_SUBJECT", "admin@localhost"),
-		ICalBaseURL:        envString("ICAL_BASE_URL", ""),
-		RabbitMQURL:        os.Getenv("RABBITMQ_URL"),
-		ReminderInterval:   envDuration("REMINDER_INTERVAL", 10*time.Minute),
-		ReminderHour:       envInt("REMINDER_HOUR", 8),
-		ReminderTZ:         envString("REMINDER_TZ", "UTC"),
+		Port:                   envInt("PORT", 8080),
+		LogLevel:               envString("LOG_LEVEL", "info"),
+		LogFormat:              envString("LOG_FORMAT", "console"),
+		DatabaseURL:            dbURL,
+		DBMaxOpenConns:         envInt("DB_MAX_OPEN_CONNS", 10),
+		DBMaxIdleConns:         envInt("DB_MAX_IDLE_CONNS", 5),
+		DBConnMaxLifetime:      envDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
+		JWTSecret:              os.Getenv("JWT_SECRET"),
+		JWTExpiryHours:         envInt("JWT_EXPIRY_HOURS", 72),
+		ShutdownTimeout:        envDuration("SHUTDOWN_TIMEOUT", 15*time.Second),
+		GoogleClientID:         os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:     os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRedirectURL:      os.Getenv("GOOGLE_REDIRECT_URL"),
+		AllowedEmails:          envStringSlice("ALLOWED_EMAILS"),
+		DevMode:                envBool("DEV_MODE", false),
+		FrontendURL:            envString("FRONTEND_URL", "/"),
+		SecureCookies:          envBool("SECURE_COOKIES", true),
+		MetricsEnabled:         envBool("METRICS_ENABLED", true),
+		CORSOrigins:            envStringSlice("CORS_ORIGINS"),
+		VAPIDPublicKey:         os.Getenv("VAPID_PUBLIC_KEY"),
+		VAPIDPrivateKey:        os.Getenv("VAPID_PRIVATE_KEY"),
+		VAPIDSubject:           envString("VAPID_SUBJECT", "admin@localhost"),
+		ICalBaseURL:            envString("ICAL_BASE_URL", ""),
+		RabbitMQURL:            os.Getenv("RABBITMQ_URL"),
+		RabbitMQPublishTimeout: envDuration("RABBITMQ_PUBLISH_TIMEOUT", 5*time.Second),
+		ProjectionRetryMax:     envInt("PROJECTION_RETRY_MAX", 5),
+		ProjectionRetryDelay:   envDuration("PROJECTION_RETRY_DELAY", 2*time.Second),
+		ReminderInterval:       envDuration("REMINDER_INTERVAL", 10*time.Minute),
+		ReminderHour:           envInt("REMINDER_HOUR", 8),
+		ReminderTZ:             envString("REMINDER_TZ", "UTC"),
 	}
 
 	if cfg.ReminderHour < 0 || cfg.ReminderHour > 23 {

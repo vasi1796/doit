@@ -41,6 +41,10 @@ func main() {
 	}
 	defer pool.Close()
 
+	if err := pool.Ping(ctx); err != nil {
+		logger.Fatal().Err(err).Msg("database unreachable")
+	}
+
 	b, err := broker.New(cfg.RabbitMQURL, logger)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect to RabbitMQ")
