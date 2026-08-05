@@ -2,6 +2,7 @@ import { db } from './database'
 import type { FieldHLC } from './database'
 import type { Table, UpdateSpec } from 'dexie'
 import { clock } from './clock'
+import { getSyncEngine } from './sync-instance'
 import type { CreateTaskRequest, UpdateTaskRequest, CreateListRequest, CreateLabelRequest } from '../api/types'
 
 export const SyncOpType = {
@@ -72,7 +73,7 @@ async function queueOp(operationType: string, aggregateId: string, hlc: { time: 
     createdAt: Date.now(),
   })
   // Nudge the sync engine to flush soon (500ms debounce)
-  window.__syncEngine?.nudge()
+  getSyncEngine()?.nudge()
 }
 
 // ---------------------------------------------------------------------------

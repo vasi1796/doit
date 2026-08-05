@@ -1,9 +1,11 @@
 import { db } from './database'
 import { mergeRemoteEvents } from './merge-events'
+import { redirectToLogin } from '../api/http'
 
 const BASE_INTERVAL = 30_000     // 30 seconds
 const MAX_INTERVAL = 300_000     // 5 minutes
 const JITTER_RANGE = 5_000       // ±5 seconds
+const MAX_RETRIES = 5            // server rejections before an op is discarded
 
 // WebSocket reconnection
 const WS_BASE_DELAY = 1_000     // 1 second
@@ -26,6 +28,14 @@ export class SyncEngine {
   private wsDelay = WS_BASE_DELAY
   private wsTimerId: ReturnType<typeof setTimeout> | null = null
   private stopped = false
+
+  private notify: ((message: string) => void) | null = null
+  private mergeFailureNotified = false
+
+  /** User-facing feedback channel (a toast) — wired in by AppLayout. */
+  setNotifier(fn: ((message: string) => void) | null): void {
+    this.notify = fn
+  }
 
   start(): void {
     this.stopped = false
@@ -121,7 +131,11 @@ export class SyncEngine {
       }
 
       if (res.status === 401) {
-        window.location.href = '/login'
+        // Session expired: stop flushing under a dead session. Local data and
+        // the queue survive — the boot owner check decides whether they are
+        // kept (same user re-login) or wiped (different account).
+        this.halt()
+        redirectToLogin()
         return
       }
 
@@ -135,7 +149,6 @@ export class SyncEngine {
       const result = await res.json()
 
       const failedIndices = new Set<number>(result.failed_ops ?? [])
-      const MAX_RETRIES = 5
 
       const successOpIds: number[] = []
       const failedOps: { id: number; index: number }[] = []
@@ -168,8 +181,31 @@ export class SyncEngine {
         }
         if (expiredIds.length > 0) {
           await db.syncQueue.bulkDelete(expiredIds)
+          this.notify?.(
+            expiredIds.length === 1
+              ? 'An offline change could not be synced and was discarded'
+              : `${expiredIds.length} offline changes could not be synced and were discarded`,
+          )
         }
       }
+
+      let allApplied = true
+      if (result.events && result.events.length > 0) {
+        allApplied = await mergeRemoteEvents(result.events)
+      }
+
+      if (!allApplied) {
+        // Leave the cursor behind so the failed events are redelivered on the
+        // next pull — merge is idempotent, so re-applying the others is safe.
+        // Advancing here would skip them forever (silent replica divergence).
+        if (!this.mergeFailureNotified) {
+          this.mergeFailureNotified = true
+          this.notify?.('Some changes from another device could not be applied — retrying')
+        }
+        this.increaseBackoff()
+        return
+      }
+      this.mergeFailureNotified = false
 
       if (result.cursor) {
         await db.syncState.put({
@@ -177,10 +213,6 @@ export class SyncEngine {
           hlcTime: result.cursor.hlc_time,
           hlcCounter: result.cursor.hlc_counter,
         })
-      }
-
-      if (result.events && result.events.length > 0) {
-        await mergeRemoteEvents(result.events)
       }
 
       this.resetBackoff()

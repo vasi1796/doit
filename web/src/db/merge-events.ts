@@ -133,8 +133,11 @@ interface RemoteEvent {
  * Merge remote events from the server into local IndexedDB.
  * Uses LWW (Last-Writer-Wins) — the event is applied only if its HLC
  * timestamp is newer than the local record's updated_at.
+ * Returns false if any event failed to apply, so the caller must not advance
+ * the sync cursor past this batch.
  */
-export async function mergeRemoteEvents(events: RemoteEvent[]): Promise<void> {
+export async function mergeRemoteEvents(events: RemoteEvent[]): Promise<boolean> {
+  let allApplied = true
   for (const event of events) {
     // Update client HLC so future local ops are causally after these events
     const eventHLC: HLCTimestamp = {
@@ -147,8 +150,10 @@ export async function mergeRemoteEvents(events: RemoteEvent[]): Promise<void> {
       await applyEvent(event)
     } catch (err) {
       console.warn('merge-events: failed to apply event', event.event_type, event.id, err)
+      allApplied = false
     }
   }
+  return allApplied
 }
 
 async function applyEvent(event: RemoteEvent): Promise<void> {

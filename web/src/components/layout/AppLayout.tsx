@@ -8,7 +8,10 @@ import { useLists } from '../../hooks/useLists'
 import { useLabels } from '../../hooks/useLabels'
 import { useTasks } from '../../hooks/useTasks'
 import { initialSync } from '../../db/initial-sync'
+import { ensureDbOwner } from '../../db/ensure-owner'
 import { SyncEngine } from '../../db/sync-engine'
+import { setSyncEngine } from '../../db/sync-instance'
+import { useToast } from '../common/Toast'
 import { InstallBanner } from '../common/InstallBanner'
 import { SearchOverlay } from '../common/SearchOverlay'
 import { TaskDetail } from '../tasks/TaskDetail'
@@ -197,22 +200,24 @@ export function AppLayout() {
   const quickAddRef = useRef<{ focus: () => void } | null>(null)
   const location = useLocation()
 
-  // Populate IndexedDB from server, then start sync engine.
+  // Verify the DB belongs to the signed-in account, populate IndexedDB from
+  // the server, then start the sync engine — strictly in that order, so a
+  // previous user's rows and queued ops can never sync under this session.
+  const { toast } = useToast()
   useEffect(() => {
     const engine = new SyncEngine()
-    initialSync()
+    engine.setNotifier((message) => toast(message, 'error'))
+    setSyncEngine(engine)
+    ensureDbOwner()
+      .then(() => initialSync())
       .then(() => engine.start())
-      .catch(() => engine.start()) // Start sync even if initial load fails (may be offline)
-
-    // Load-bearing global: operations.queueOp nudges it after every local
-    // write, and session.signOut flushes/stops it before wiping the device
-    window.__syncEngine = engine
+      .catch(() => engine.start()) // Start sync even if boot checks fail (may be offline)
 
     return () => {
       engine.stop()
-      delete window.__syncEngine
+      setSyncEngine(null)
     }
-  }, [])
+  }, [toast])
 
   const taskCounts = useTaskCounts(tasks)
   const { drawerOpen, toggleDrawer, closeDrawer } = useMobileDrawer(location.pathname)

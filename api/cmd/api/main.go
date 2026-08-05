@@ -200,6 +200,10 @@ func newRouter(pool *pgxpool.Pool, store *eventstore.Store, hub *handler.Hub, lo
 		r.Get("/google/login", authHandler.GoogleLogin)
 		r.Get("/google/callback", authHandler.GoogleCallback)
 		r.Post("/logout", authHandler.Logout)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.JWTAuth(tokenSvc, logger))
+			r.Get("/me", authHandler.Me)
+		})
 		if cfg.DevMode {
 			r.Post("/dev", authHandler.DevLogin)
 		}

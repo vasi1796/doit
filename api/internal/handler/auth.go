@@ -216,6 +216,20 @@ func (h *AuthHandler) DevLogin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Me returns the authenticated user's ID so the client can bind its local
+// database to an account and wipe it when a different account signs in.
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, h.logger, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]string{"user_id": userID.String()}); err != nil {
+		h.logger.Error().Err(err).Msg("encoding me response")
+	}
+}
+
 // Logout clears the auth cookie.
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{

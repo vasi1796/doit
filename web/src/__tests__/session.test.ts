@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { signOut } from '../session'
+import { setSyncEngine } from '../db/sync-instance'
+import type { SyncEngine } from '../db/sync-engine'
 
 const { deleteFn, unsubscribeFn } = vi.hoisted(() => ({
   deleteFn: vi.fn(),
@@ -22,11 +24,13 @@ describe('signOut', () => {
     drainFn.mockResolvedValue(undefined)
     unsubscribeFn.mockResolvedValue(undefined)
     location.href = ''
-    vi.stubGlobal('window', { __syncEngine: { drain: drainFn, halt: haltFn }, location })
+    setSyncEngine({ drain: drainFn, halt: haltFn } as unknown as SyncEngine)
+    vi.stubGlobal('window', { location })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
   })
 
   afterEach(() => {
+    setSyncEngine(null)
     vi.unstubAllGlobals()
     vi.useRealTimers()
   })
@@ -96,7 +100,7 @@ describe('signOut', () => {
   })
 
   it('works when no sync engine is mounted', async () => {
-    vi.stubGlobal('window', { location })
+    setSyncEngine(null)
 
     await signOut()
 
