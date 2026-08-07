@@ -19,7 +19,10 @@ flowchart TB
         Handlers --> CMD[CommandHandler + HLC]
         CMD -->|command| Agg[Aggregates]
         Agg -->|new events| CMD
+        Relay[WS Relay]
     end
+
+    Relay -.->|"WS thin sync ping →<br/>client pulls /sync"| SE
 
     Events -->|"load history"| CMD
     CMD -->|"atomic TX"| Events
@@ -37,10 +40,12 @@ flowchart TB
         direction LR
         Exchange{{topic exchange}} --> ProjQ[projections queue]
         Exchange -->|TaskCompleted| RecQ[recurring queue]
+        Exchange --> BcastQ[broadcast queue<br/>server-named, exclusive]
     end
 
     ProjQ --> ProjW[Projection Worker]
     RecQ --> RecW[Recurring Worker]
+    BcastQ --> Relay
 
     ProjW -->|upsert| RM
     RecW -->|"atomic TX"| Events
@@ -58,7 +63,8 @@ flowchart TB
 | **IndexedDB (Dexie.js)** | Client-side source of truth, drives UI reactivity |
 | **Sync Engine** | Background push/pull — batches ops to `/api/v1/sync` every 30s |
 | **CommandHandler** | Loads aggregate, validates via HLC clock, atomic event + outbox write |
-| **Outbox Poller** | Polls every 200ms, publishes to RabbitMQ, marks as published |
+| **Outbox Poller** | Polls every 200ms, publishes to RabbitMQ with confirms, marks as published |
+| **WS Relay** | Consumes the broadcast queue, sends thin `{"type":"sync"}` pings to the user's other connected devices (ADR-012) |
 | **Projection Worker** | Consumes all events, upserts into read model tables (idempotent) |
 | **Recurring Worker** | Consumes `TaskCompleted`, creates next occurrence if recurring |
 | **Reminder Worker** | Timer-based (not RabbitMQ) — queries read models for due tasks, sends Web Push notifications |
@@ -70,6 +76,7 @@ flowchart TB
 3. Server validates commands, writes events + outbox atomically
 4. Poller publishes outbox to RabbitMQ
 5. Workers consume and update read models / create recurring tasks
+6. The WS relay pings the user's other devices, which react with their own `/sync` pull
 
 ---
 
@@ -93,7 +100,7 @@ sequenceDiagram
         CI->>CI: Go vet + tests
         CI->>CI: Integration tests<br/>(Postgres + RabbitMQ)
         CI->>CI: Frontend lint +<br/>build + Vitest
-        CI->>CI: Playwright visual +<br/>a11y tests
+        CI->>CI: Playwright visual +<br/>a11y + functional tests
     and Webhook Deploy
         GH->>WH: POST /deploy/webhook<br/>(HMAC-SHA256 signed)
         WH->>WH: Verify signature
@@ -102,16 +109,16 @@ sequenceDiagram
     end
 
     WH->>DC: git pull --ff-only
+    WH->>DC: docker compose -p doit build<br/>doit-api web-build worker<br/>worker-recurring worker-reminder
     WH->>DC: docker rm -f doit-web-build
-    WH->>DC: docker compose up -d --build
+    WH->>DC: docker compose -p doit up -d<br/>(same five services)
 
-    Note over DC: Rebuilds: API, workers,<br/>web-build, Caddy, deployer
+    Note over DC: App services only — postgres,<br/>rabbitmq, caddy, deployer are<br/>NOT touched by auto-deploy
 
     DC->>DC: web-build: npm ci +<br/>npm run build
     DC->>DC: cp dist → web_dist volume
-    DC->>Caddy: Restart with new<br/>static assets
 
-    Note over Caddy: Serves new frontend +<br/>proxies to new API
+    Note over Caddy: Serves new frontend from the<br/>web_dist volume + proxies to new API
 
     Note over Dev: Service worker fetches<br/>new index.html on next load<br/>(network-first strategy)
 ```
@@ -121,8 +128,9 @@ flowchart LR
     subgraph "Deployer Sidecar"
         WH[Webhook Handler<br/>:9000] -->|HMAC verified| Deploy[runDeploy]
         Deploy --> Pull[git pull --ff-only]
-        Pull --> RM[docker rm -f<br/>doit-web-build]
-        RM --> Up[docker compose<br/>up -d --build]
+        Pull --> Build[docker compose build<br/>five app services]
+        Build --> RM[docker rm -f<br/>doit-web-build]
+        RM --> Up[docker compose up -d<br/>five app services]
     end
 
     subgraph "Safety"
@@ -137,5 +145,6 @@ flowchart LR
 - Deployer uses `TryLock` mutex to prevent concurrent deploys
 - `doit-web-build` one-shot container removed via `docker rm -f` before rebuild (Docker skips completed containers)
 - Service worker uses network-first for `index.html` so deploys take effect on next page load
-- Deployer rebuilds itself as part of `docker compose up` — chicken-and-egg on deployer code changes requires manual `docker compose up -d --build deployer`
+- Auto-deploy covers only the five app services (doit-api, web-build, worker, worker-recurring, worker-reminder). Changes to the Caddyfile, compose infra stanzas, or the deployer itself need a manual `docker compose up -d --build` on the host
+- If `DEPLOY_WEBHOOK_SECRET` is unset the deployer idles (webhook returns 503) instead of deploying
 - `git pull --ff-only` prevents accidental force-pushes from corrupting the deploy

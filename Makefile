@@ -1,4 +1,4 @@
-.PHONY: build run test test-verbose test-integration test-fullstack lint migrate rebuild-projections worker-reminder docker-up docker-down docker-up-prod docker-down-prod backup-db fmt vet help web-install web-dev web-build web-test web-lint docker-logs generate
+.PHONY: build run test test-verbose test-integration test-fullstack lint migrate rebuild-projections worker-reminder docker-up docker-down backup-db fmt vet help web-install web-dev web-build web-test web-lint docker-logs generate
 
 # Default target
 help: ## Show this help
@@ -52,17 +52,11 @@ worker-reminder: ## Run the due-date reminder worker
 # Docker
 # ---------------------------------------------------------------------------
 
-docker-up: ## Start all services (development)
+docker-up: ## Start all services
 	docker compose up -d --build
 
-docker-down: ## Stop all services (development)
+docker-down: ## Stop all services
 	docker compose down
-
-docker-up-prod: ## Start all services (production with overrides)
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-
-docker-down-prod: ## Stop all services (production)
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml down
 
 docker-logs: ## Tail logs from all containers
 	docker compose logs -f

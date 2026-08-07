@@ -5,7 +5,8 @@
 ## Context
 
 Tasks in DoIt have a description field that supports markdown content, edited
-via TipTap in the frontend. When multiple devices are offline and edit the same
+via the markdown editor in the frontend (planned as TipTap; shipped as
+CodeMirror 6 — the decision below is editor-agnostic). When multiple devices are offline and edit the same
 task's description, we need a strategy to merge those changes.
 
 Options for merging text content:

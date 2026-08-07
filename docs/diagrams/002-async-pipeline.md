@@ -12,12 +12,14 @@ flowchart LR
 
     subgraph API Server
         Poller[Outbox Poller<br/>200ms interval]
+        Relay[WS Relay]
     end
 
     subgraph RabbitMQ
         EX{{doit.events<br/>topic exchange}}
         QP[doit.projections<br/>binding: #]
         QR[doit.recurring<br/>binding: TaskCompleted]
+        QB[broadcast queue<br/>server-named, exclusive<br/>binding: #]
         DLQ[doit.dead-letter]
     end
 
@@ -27,25 +29,29 @@ flowchart LR
     end
 
     OB -->|SELECT ... FOR UPDATE<br/>SKIP LOCKED| Poller
-    Poller -->|Publish<br/>routing_key = EventType| EX
-    Poller -->|UPDATE published=true| OB
+    Poller -->|Publish with<br/>publisher confirms<br/>routing_key = EventType| EX
+    Poller -->|UPDATE published=true<br/>only after broker confirm| OB
     EX --> QP
     EX -->|TaskCompleted only| QR
+    EX --> QB
     QP --> PW
     QR --> RW
+    QB --> Relay
+    Relay -.->|"thin sync ping to the<br/>user's other devices"| Devices([Connected clients])
     PW -->|ON CONFLICT<br/>DO UPDATE| RM
-    RW -->|CreateTask +<br/>UpdateRecurrence +<br/>AddLabel| ES
+    RW -->|single atomic CreateTask<br/>recurrence + labels,<br/>deterministic next-task ID| ES
     RW -->|new outbox rows| OB
-    QP -.->|nack on failure| DLQ
-    QR -.->|nack on failure| DLQ
+    QP -.->|retries exhausted<br/>or unmarshal failure| DLQ
+    QR -.->|retries exhausted<br/>or unmarshal failure| DLQ
 ```
 
 **Key points:**
 - Outbox poller uses `FOR UPDATE SKIP LOCKED` for safe concurrent polling
-- Topic exchange routes by event type — projections get all events, recurring only gets `TaskCompleted`
-- Projection worker is idempotent — all handlers use `ON CONFLICT DO UPDATE`
-- Recurring worker creates new events (which cycle back through the same pipeline)
-- Failed messages go to the dead-letter queue for manual inspection
+- Publishing uses publisher confirms (`RABBITMQ_PUBLISH_TIMEOUT`) — rows are marked published only after the broker confirms receipt
+- Topic exchange routes by event type — projections get all events, recurring only gets `TaskCompleted`; a server-named exclusive queue feeds the WS relay (ADR-012)
+- Projection worker is idempotent — all handlers use `ON CONFLICT DO UPDATE` — and retries failures (`PROJECTION_RETRY_MAX` × `PROJECTION_RETRY_DELAY`); only exhausted retries dead-letter (unmarshal failures dead-letter immediately)
+- Recurring worker emits one atomic `CreateTask` event batch carrying the recurrence rule and labels, with a deterministic next-task ID derived from the completing event — safe under redelivery
+- Dead-lettered messages are kept for manual inspection
 
 ---
 

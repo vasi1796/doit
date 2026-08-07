@@ -4,8 +4,8 @@
 #
 # Strategy:
 #   - Daily pg_dump, compressed with gzip
-#   - Retain 7 daily backups
-#   - Retain 4 weekly backups (taken on Sundays)
+#   - Retain BACKUP_RETAIN_DAILY daily backups (default 7)
+#   - Retain BACKUP_RETAIN_WEEKLY weekly backups, taken on Sundays (default 4)
 #   - Optionally upload to off-VPS S3-compatible storage
 #
 # Usage:
@@ -55,20 +55,45 @@ echo "[$(date --iso-8601=seconds 2>/dev/null || date +%Y-%m-%dT%H:%M:%S%z)] Star
 # Dump
 # ---------------------------------------------------------------------------
 DUMP_FILE="$DAILY_DIR/doit_${TIMESTAMP}.sql.gz"
+# Dump to a temp file and only rename into place once verified, so a failed
+# dump can never count as a backup (or evict a good one during pruning).
+TMP_FILE="$DAILY_DIR/.doit_${TIMESTAMP}.sql.gz.partial"
+trap 'rm -f "$TMP_FILE"' EXIT
 
-if docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --status running postgres --quiet 2>/dev/null | grep -q .; then
+# A failing `compose ps` means compose itself is broken (bad interpolation,
+# missing env) — abort loudly rather than falling through to a host pg_dump
+# that typically doesn't exist on a Docker-only install.
+if ! COMPOSE_PS="$(docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --status running postgres --quiet)"; then
+    echo "ERROR: docker compose failed — check .env (RABBITMQ_PASSWORD etc.). Aborting backup." >&2
+    exit 1
+fi
+
+if [[ -n "$COMPOSE_PS" ]]; then
     # Database is running inside Docker — use docker exec
     docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T postgres \
         pg_dump -U "$PG_USER" -d "$PG_DB" --no-owner --no-acl \
-        | gzip > "$DUMP_FILE"
-else
-    # Assume local/remote PostgreSQL
+        | gzip > "$TMP_FILE"
+elif command -v pg_dump &>/dev/null; then
+    # Postgres not in compose — assume local/remote PostgreSQL
     PGPASSWORD="${POSTGRES_PASSWORD:-}" pg_dump \
         -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
         --no-owner --no-acl \
-        | gzip > "$DUMP_FILE"
+        | gzip > "$TMP_FILE"
+else
+    echo "ERROR: postgres container is not running and no host pg_dump found. Aborting backup." >&2
+    exit 1
 fi
 
+if ! gzip -t "$TMP_FILE" 2>/dev/null; then
+    echo "ERROR: dump failed integrity check. Aborting backup." >&2
+    exit 1
+fi
+if [[ "$(wc -c < "$TMP_FILE")" -lt 512 ]]; then
+    echo "ERROR: dump is implausibly small ($(wc -c < "$TMP_FILE") bytes). Aborting backup." >&2
+    exit 1
+fi
+
+mv "$TMP_FILE" "$DUMP_FILE"
 DUMP_SIZE="$(du -h "$DUMP_FILE" | cut -f1)"
 echo "[$(date --iso-8601=seconds 2>/dev/null || date +%Y-%m-%dT%H:%M:%S%z)] Daily backup created: $DUMP_FILE ($DUMP_SIZE)"
 

@@ -24,7 +24,7 @@ sequenceDiagram
 
     Ops->>SE: nudge() (debounced 500ms)
 
-    Note over SE: 30s polling / nudge / foreground
+    Note over SE: Triggers: 30s polling / nudge /<br/>foreground / WS thin sync ping (ADR-012)
 
     SE->>SQ: Read pending ops
     SE->>API: POST {operations, cursor}
@@ -40,13 +40,18 @@ sequenceDiagram
         Merge->>IDB: LWW merge (compare HLC)<br/>→ update if remote wins
     end
 
+    SE->>IDB: Persist sync cursor —<br/>only after ALL events applied
+
     Note over IDB: useLiveQuery fires →<br/>UI shows merged state
 ```
 
 **Key points:**
+- On boot, `ensureDbOwner()` binds the local DB to the signed-in account — a different account wipes and rehydrates; a 401 halts the engine
 - Writes are **instant** — IndexedDB updated before network call
+- A WebSocket carries thin `{"type":"sync"}` pings from the server relay; each ping just triggers this same pull — no event payloads travel over the socket
 - Sync engine retries with exponential backoff (30s → 60s → ... → 5min)
 - Server returns new events from other devices — merged via per-field LWW-Register
+- The cursor is persisted only after `mergeRemoteEvents` has applied every event, so a crash mid-merge re-pulls rather than skips
 - No rollback on sync failure — operations stay in queue and retry
 - Client HLC is updated from remote events to maintain causal ordering
 
@@ -71,7 +76,7 @@ flowchart TD
     Failed --> CheckRetry{"retryCount < 5?"}
     CheckRetry -->|Yes| Increment["retryCount++<br/>Keep in queue"]
     Increment --> NextSync["Retried on next<br/>sync cycle (30s)"]
-    CheckRetry -->|No| Discard["Discard with<br/>console.error"]
+    CheckRetry -->|No| Discard["Discard with console.error<br/>+ user-facing toast"]
 ```
 
 **Key points:**
